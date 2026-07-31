@@ -64,3 +64,6 @@ ApplicationInsights.config
 _ReSharper*/
 *.[Rr]e[Ss]harper
 *.DotSettings.user
+
+# Visual Studio solution explorer
+*.slnx

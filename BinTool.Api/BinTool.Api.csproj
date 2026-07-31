@@ -8,6 +8,10 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.19" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.19">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.19" />
     <PackageReference Include="Microsoft.Identity.Web" Version="3.12.0" />
     <PackageReference Include="Microsoft.Identity.Web.UI" Version="3.12.0" />
@@ -16,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BinTool.Core\BinTool.Core.csproj" />
+    <ProjectReference Include="..\BinTool.Infrastructure\BinTool.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
