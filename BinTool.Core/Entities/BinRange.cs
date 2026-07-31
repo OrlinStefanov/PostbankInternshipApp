@@ -5,51 +5,79 @@ namespace BinTool.Core.Entities;
 /// </summary>
 public class BinRange
 {
-    public int Id { get; set; }
+    public int BinRangeId { get; set; }
 
     /// <summary>
-    /// BIN prefix (6 to 8 digits).
-    /// Validation enforced at service layer: minimum 6 digits, maximum 8 digits
+    /// BIN prefix (6 to 8 digits)
     /// </summary>
     public string Prefix { get; set; } = string.Empty;
 
     /// <summary>
+    /// Length of the BIN prefix
+    /// </summary>
+    public int PrefixLength { get; set; }
+
+    /// <summary>
     /// Card scheme for this BIN range
     /// </summary>
-    public CardScheme Scheme { get; set; }
+    public int CardSchemeId { get; set; }
 
     /// <summary>
-    /// Product type (Consumer, Commercial, Prepaid)
+    /// Product type for this BIN range
     /// </summary>
-    public ProductType ProductType { get; set; }
+    public int ProductTypeId { get; set; }
 
     /// <summary>
-    /// Funding type (Credit, Debit)
+    /// Funding type for this BIN range
     /// </summary>
-    public FundingType FundingType { get; set; }
+    public int FundingTypeId { get; set; }
 
     /// <summary>
-    /// Issuing country code
+    /// Issuing country
     /// </summary>
     public int CountryId { get; set; }
 
     /// <summary>
-    /// Navigation property for the issuing country
+    /// Valid from date (inclusive)
     /// </summary>
-    public Country? Country { get; set; }
+    public DateTime ValidFrom { get; set; }
 
     /// <summary>
-    /// Timestamp when this record was created
+    /// Valid until date (inclusive, nullable for open-ended)
     /// </summary>
+    public DateTime? ValidTo { get; set; }
+
+    #region Audit Fields
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    /// <summary>
-    /// Timestamp when this record was last updated
-    /// </summary>
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    /// <summary>
-    /// User ID of who created/last updated this record (for audit trail)
-    /// </summary>
-    public string? LastModifiedBy { get; set; }
+    public string? CreatedBy { get; set; }
+
+    public string? UpdatedBy { get; set; }
+
+    #endregion
+
+    #region Soft Delete
+
+    public bool IsDeleted { get; set; }
+
+    public DateTime? DeletedAt { get; set; }
+
+    public string? DeletedBy { get; set; }
+
+    #endregion
+
+    #region Navigation Properties
+
+    public CardScheme? CardScheme { get; set; }
+
+    public ProductType? ProductType { get; set; }
+
+    public FundingType? FundingType { get; set; }
+
+    public Country? Country { get; set; }
+
+    #endregion
 }

@@ -6,27 +6,12 @@ namespace BinTool.Core.Entities;
 /// </summary>
 public class CommissionRule
 {
-    public int Id { get; set; }
+    public int CommissionRuleId { get; set; }
 
     /// <summary>
-    /// Card scheme this rule applies to (or null for wildcard/any scheme)
+    /// Descriptive name for this rule
     /// </summary>
-    public CardScheme? Scheme { get; set; }
-
-    /// <summary>
-    /// Product type this rule applies to (or null for wildcard/any product)
-    /// </summary>
-    public ProductType? ProductType { get; set; }
-
-    /// <summary>
-    /// Region this rule applies to (or null for wildcard/any region)
-    /// </summary>
-    public int? RegionId { get; set; }
-
-    /// <summary>
-    /// Navigation property for the region
-    /// </summary>
-    public Region? Region { get; set; }
+    public string RuleName { get; set; } = string.Empty;
 
     /// <summary>
     /// Percentage rate (e.g., 0.85 for 0.85%)
@@ -39,14 +24,14 @@ public class CommissionRule
     public decimal FixedAmount { get; set; }
 
     /// <summary>
-    /// Currency code for the fixed amount (e.g., "BGN", "EUR")
-    /// </summary>
-    public string Currency { get; set; } = "EUR";
-
-    /// <summary>
     /// Minimum fee that should be charged (e.g., 0.20 BGN)
     /// </summary>
     public decimal MinimumFee { get; set; }
+
+    /// <summary>
+    /// Priority for rule resolution (higher number = higher priority)
+    /// </summary>
+    public int Priority { get; set; }
 
     /// <summary>
     /// Rule is valid from this date (inclusive)
@@ -63,23 +48,39 @@ public class CommissionRule
     /// </summary>
     public bool IsActive { get; set; } = true;
 
-    /// <summary>
-    /// Description of this rule
-    /// </summary>
-    public string? Description { get; set; }
+    #region Audit Fields
 
-    /// <summary>
-    /// Timestamp when this record was created
-    /// </summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    /// <summary>
-    /// Timestamp when this record was last updated
-    /// </summary>
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+    public string? CreatedBy { get; set; }
+
+    public string? UpdatedBy { get; set; }
+
+    #endregion
+
+    #region Soft Delete
+
+    public bool IsDeleted { get; set; }
+
+    public DateTime? DeletedAt { get; set; }
+
+    public string? DeletedBy { get; set; }
+
+    #endregion
+
+    #region Navigation Properties
+
     /// <summary>
-    /// User ID of who created/last updated this record
+    /// Criteria for this rule
     /// </summary>
-    public string? LastModifiedBy { get; set; }
+    public ICollection<RuleCriteria> RuleCriteria { get; set; } = new List<RuleCriteria>();
+
+    /// <summary>
+    /// Default rule flag
+    /// </summary>
+    public DefaultRule? DefaultRule { get; set; }
+
+    #endregion
 }

@@ -1,19 +1,19 @@
 namespace BinTool.Core.Entities;
 
 /// <summary>
-/// Geographic region for determining fee rules and regulations
+/// Card payment schemes (networks)
 /// </summary>
-public class Region
+public class CardScheme
 {
-    public int RegionId { get; set; }
+    public int CardSchemeId { get; set; }
 
     /// <summary>
-    /// Region name (e.g., "Domestic", "Intra-EEA", "Inter-Regional")
+    /// Scheme name (e.g., "Visa", "Mastercard", "American Express")
     /// </summary>
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Description of the region's characteristics and fee implications
+    /// Description of the card scheme
     /// </summary>
     public string? Description { get; set; }
 
@@ -30,12 +30,12 @@ public class Region
     #region Navigation Properties
 
     /// <summary>
-    /// Countries in this region
+    /// BIN ranges for this scheme
     /// </summary>
-    public ICollection<Country> Countries { get; set; } = new List<Country>();
+    public ICollection<BinRange> BinRanges { get; set; } = new List<BinRange>();
 
     /// <summary>
-    /// Commission rules applicable to this region
+    /// Rule criteria using this scheme
     /// </summary>
     public ICollection<RuleCriteria> RuleCriteria { get; set; } = new List<RuleCriteria>();
 

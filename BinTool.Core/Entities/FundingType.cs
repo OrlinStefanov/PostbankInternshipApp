@@ -1,19 +1,19 @@
 namespace BinTool.Core.Entities;
 
 /// <summary>
-/// Geographic region for determining fee rules and regulations
+/// Card funding types (Credit, Debit, etc.)
 /// </summary>
-public class Region
+public class FundingType
 {
-    public int RegionId { get; set; }
+    public int FundingTypeId { get; set; }
 
     /// <summary>
-    /// Region name (e.g., "Domestic", "Intra-EEA", "Inter-Regional")
+    /// Funding type name
     /// </summary>
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Description of the region's characteristics and fee implications
+    /// Description of the funding type
     /// </summary>
     public string? Description { get; set; }
 
@@ -30,12 +30,12 @@ public class Region
     #region Navigation Properties
 
     /// <summary>
-    /// Countries in this region
+    /// BIN ranges with this funding type
     /// </summary>
-    public ICollection<Country> Countries { get; set; } = new List<Country>();
+    public ICollection<BinRange> BinRanges { get; set; } = new List<BinRange>();
 
     /// <summary>
-    /// Commission rules applicable to this region
+    /// Rule criteria using this funding type
     /// </summary>
     public ICollection<RuleCriteria> RuleCriteria { get; set; } = new List<RuleCriteria>();
 
