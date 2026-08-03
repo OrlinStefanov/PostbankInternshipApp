@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BinTool.Core\BinTool.Core.csproj" />
+    <ProjectReference Include="..\BinTool.Infrastructure\BinTool.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

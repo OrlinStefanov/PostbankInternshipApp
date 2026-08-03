@@ -47,8 +47,8 @@ public class BinCsvImportService : IBinCsvImportService
 
         while (csv.Read())
         {
-            rowNumber++;
-            result.TotalRows++;
+            rowNumber ++;
+            result.TotalRows ++;
 
             var raw = csv.Parser.RawRecord.Trim();
 
