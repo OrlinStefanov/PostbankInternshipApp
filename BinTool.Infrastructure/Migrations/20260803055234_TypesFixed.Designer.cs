@@ -11,14 +11,163 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BinTool.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260731121653_InitialSchemaWithLookupTables")]
-    partial class InitialSchemaWithLookupTables
+    [Migration("20260803055234_TypesFixed")]
+    partial class TypesFixed
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.19");
+
+            modelBuilder.Entity("BinTool.Core.Entities.ApplicationRole", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedName")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("RoleNameIndex");
+
+                    b.ToTable("AspNetRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "11111111-1111-1111-1111-111111111111",
+                            ConcurrencyStamp = "11111111-1111-1111-1111-111111111111",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Full access: manage BIN ranges, commission rules, users and imports",
+                            Name = "Admin",
+                            NormalizedName = "ADMIN"
+                        },
+                        new
+                        {
+                            Id = "22222222-2222-2222-2222-222222222222",
+                            ConcurrencyStamp = "22222222-2222-2222-2222-222222222222",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Read-only access: browse BIN ranges, rules and audit history",
+                            Name = "Viewer",
+                            NormalizedName = "VIEWER"
+                        });
+                });
+
+            modelBuilder.Entity("BinTool.Core.Entities.ApplicationUser", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("AccessFailedCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("LockoutEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("LockoutEnd")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NormalizedUserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("PhoneNumberConfirmed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SecurityStamp")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_ApplicationUser_IsActive");
+
+                    b.HasIndex("NormalizedEmail")
+                        .HasDatabaseName("EmailIndex");
+
+                    b.HasIndex("NormalizedUserName")
+                        .IsUnique()
+                        .HasDatabaseName("UserNameIndex");
+
+                    b.ToTable("AspNetUsers", (string)null);
+                });
 
             modelBuilder.Entity("BinTool.Core.Entities.AuditEntry", b =>
                 {
@@ -330,142 +479,142 @@ namespace BinTool.Infrastructure.Migrations
                         new
                         {
                             CountryId = 1,
-                            CreatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4264),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsDeleted = false,
                             IsoCode = "BG",
                             Name = "Bulgaria",
                             RegionId = 1,
-                            UpdatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4265)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             CountryId = 2,
-                            CreatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4267),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsDeleted = false,
                             IsoCode = "AT",
                             Name = "Austria",
                             RegionId = 2,
-                            UpdatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4268)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             CountryId = 3,
-                            CreatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4269),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsDeleted = false,
                             IsoCode = "BE",
                             Name = "Belgium",
                             RegionId = 2,
-                            UpdatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4270)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             CountryId = 4,
-                            CreatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4271),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsDeleted = false,
                             IsoCode = "FR",
                             Name = "France",
                             RegionId = 2,
-                            UpdatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4272)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             CountryId = 5,
-                            CreatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4273),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsDeleted = false,
                             IsoCode = "DE",
                             Name = "Germany",
                             RegionId = 2,
-                            UpdatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4274)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             CountryId = 6,
-                            CreatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4275),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsDeleted = false,
                             IsoCode = "IT",
                             Name = "Italy",
                             RegionId = 2,
-                            UpdatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4276)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             CountryId = 7,
-                            CreatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4277),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsDeleted = false,
                             IsoCode = "ES",
                             Name = "Spain",
                             RegionId = 2,
-                            UpdatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4278)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             CountryId = 8,
-                            CreatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4279),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsDeleted = false,
                             IsoCode = "NL",
                             Name = "Netherlands",
                             RegionId = 2,
-                            UpdatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4279)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             CountryId = 9,
-                            CreatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4281),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsDeleted = false,
                             IsoCode = "SE",
                             Name = "Sweden",
                             RegionId = 2,
-                            UpdatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4281)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             CountryId = 10,
-                            CreatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4283),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsDeleted = false,
                             IsoCode = "GB",
                             Name = "United Kingdom",
                             RegionId = 3,
-                            UpdatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4284)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             CountryId = 11,
-                            CreatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4285),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsDeleted = false,
                             IsoCode = "US",
                             Name = "United States",
                             RegionId = 3,
-                            UpdatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4286)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             CountryId = 12,
-                            CreatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4287),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsDeleted = false,
                             IsoCode = "CA",
                             Name = "Canada",
                             RegionId = 3,
-                            UpdatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4288)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             CountryId = 13,
-                            CreatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4289),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsDeleted = false,
                             IsoCode = "JP",
                             Name = "Japan",
                             RegionId = 3,
-                            UpdatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4290)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             CountryId = 14,
-                            CreatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4291),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsDeleted = false,
                             IsoCode = "CN",
                             Name = "China",
                             RegionId = 3,
-                            UpdatedAt = new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4292)
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         });
                 });
 
@@ -554,6 +703,7 @@ namespace BinTool.Infrastructure.Migrations
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("ImportedByUserId")
+                        .HasMaxLength(450)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("ImportedRows")
@@ -574,6 +724,8 @@ namespace BinTool.Infrastructure.Migrations
 
                     b.HasIndex("ImportedAt")
                         .HasDatabaseName("IX_ImportHistory_Date");
+
+                    b.HasIndex("ImportedByUserId");
 
                     b.ToTable("ImportHistories", (string)null);
                 });
@@ -756,32 +908,6 @@ namespace BinTool.Infrastructure.Migrations
                     b.ToTable("RuleCriteria", (string)null);
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("NormalizedName")
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NormalizedName")
-                        .IsUnique()
-                        .HasDatabaseName("RoleNameIndex");
-
-                    b.ToTable("AspNetRoles", (string)null);
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.Property<int>("Id")
@@ -803,70 +929,6 @@ namespace BinTool.Infrastructure.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("AspNetRoleClaims", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUser", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("AccessFailedCount")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("EmailConfirmed")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("LockoutEnabled")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTimeOffset?>("LockoutEnd")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("NormalizedEmail")
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("NormalizedUserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("PasswordHash")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("PhoneNumberConfirmed")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("SecurityStamp")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("TwoFactorEnabled")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("UserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NormalizedEmail")
-                        .HasDatabaseName("EmailIndex");
-
-                    b.HasIndex("NormalizedUserName")
-                        .IsUnique()
-                        .HasDatabaseName("UserNameIndex");
-
-                    b.ToTable("AspNetUsers", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
@@ -948,6 +1010,16 @@ namespace BinTool.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("BinTool.Core.Entities.AuditEntry", b =>
+                {
+                    b.HasOne("BinTool.Core.Entities.ApplicationUser", "PerformedByUser")
+                        .WithMany("AuditEntries")
+                        .HasForeignKey("PerformedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("PerformedByUser");
+                });
+
             modelBuilder.Entity("BinTool.Core.Entities.BinRange", b =>
                 {
                     b.HasOne("BinTool.Core.Entities.CardScheme", "CardScheme")
@@ -1005,6 +1077,16 @@ namespace BinTool.Infrastructure.Migrations
                     b.Navigation("CommissionRule");
                 });
 
+            modelBuilder.Entity("BinTool.Core.Entities.ImportHistory", b =>
+                {
+                    b.HasOne("BinTool.Core.Entities.ApplicationUser", "ImportedByUser")
+                        .WithMany("Imports")
+                        .HasForeignKey("ImportedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ImportedByUser");
+                });
+
             modelBuilder.Entity("BinTool.Core.Entities.RejectedImportRow", b =>
                 {
                     b.HasOne("BinTool.Core.Entities.ImportHistory", "ImportHistory")
@@ -1054,7 +1136,7 @@ namespace BinTool.Infrastructure.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
+                    b.HasOne("BinTool.Core.Entities.ApplicationRole", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1063,7 +1145,7 @@ namespace BinTool.Infrastructure.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                    b.HasOne("BinTool.Core.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1072,7 +1154,7 @@ namespace BinTool.Infrastructure.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                    b.HasOne("BinTool.Core.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1081,13 +1163,13 @@ namespace BinTool.Infrastructure.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
                 {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
+                    b.HasOne("BinTool.Core.Entities.ApplicationRole", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                    b.HasOne("BinTool.Core.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1096,11 +1178,18 @@ namespace BinTool.Infrastructure.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                    b.HasOne("BinTool.Core.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("BinTool.Core.Entities.ApplicationUser", b =>
+                {
+                    b.Navigation("AuditEntries");
+
+                    b.Navigation("Imports");
                 });
 
             modelBuilder.Entity("BinTool.Core.Entities.CardScheme", b =>

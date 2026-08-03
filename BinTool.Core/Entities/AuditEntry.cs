@@ -41,4 +41,14 @@ public class AuditEntry
     /// Timestamp when the action was performed
     /// </summary>
     public DateTime PerformedAt { get; set; } = DateTime.UtcNow;
+
+    #region Navigation Properties
+
+    /// <summary>
+    /// User who performed the action. Null when the user record was removed
+    /// or the change was made by the system.
+    /// </summary>
+    public ApplicationUser? PerformedByUser { get; set; }
+
+    #endregion
 }

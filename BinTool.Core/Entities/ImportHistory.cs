@@ -45,6 +45,11 @@ public class ImportHistory
     #region Navigation Properties
 
     /// <summary>
+    /// User who performed the import
+    /// </summary>
+    public ApplicationUser? ImportedByUser { get; set; }
+
+    /// <summary>
     /// Rejected rows from this import
     /// </summary>
     public ICollection<RejectedImportRow> RejectedRows_Navigation { get; set; } = new List<RejectedImportRow>();

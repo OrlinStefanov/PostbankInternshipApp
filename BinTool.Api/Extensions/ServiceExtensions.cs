@@ -1,4 +1,7 @@
+using BinTool.Core.Entities;
+using BinTool.Core.Services;
 using BinTool.Infrastructure.Data;
+using BinTool.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -14,7 +17,7 @@ public static class ServiceExtensions
             options.UseSqlite(configuration.GetConnectionString("DefaultConnection") ?? "Data Source=bintool.db"));
 
         // Identity
-        services.AddIdentity<IdentityUser, IdentityRole>(options =>
+        services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
         {
             options.Password.RequireDigit = true;
             options.Password.RequiredLength = 8;
@@ -37,6 +40,7 @@ public static class ServiceExtensions
         });
 
         services.AddEndpointsApiExplorer();
+        services.AddScoped<IBinCsvImportService, BinCsvImportService>();
 
         return services;
     }
@@ -53,6 +57,7 @@ public static class ServiceExtensions
         }
 
         app.UseHttpsRedirection();
+        app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
 

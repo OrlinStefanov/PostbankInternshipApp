@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BinTool.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialSchemaWithLookupTables : Migration
+    public partial class InitialSchema : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -18,6 +18,8 @@ namespace BinTool.Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "TEXT", nullable: false),
+                    Description = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     Name = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
                     NormalizedName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
                     ConcurrencyStamp = table.Column<string>(type: "TEXT", nullable: true)
@@ -32,6 +34,12 @@ namespace BinTool.Infrastructure.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "TEXT", nullable: false),
+                    FullName = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
+                    Notes = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    LastLoginAt = table.Column<DateTime>(type: "TEXT", nullable: true),
                     UserName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
@@ -50,25 +58,6 @@ namespace BinTool.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "AuditEntries",
-                columns: table => new
-                {
-                    AuditEntryId = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    EntityType = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    EntityId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Action = table.Column<int>(type: "INTEGER", nullable: false),
-                    OldValues = table.Column<string>(type: "TEXT", nullable: true),
-                    NewValues = table.Column<string>(type: "TEXT", nullable: true),
-                    PerformedByUserId = table.Column<string>(type: "TEXT", maxLength: 450, nullable: true),
-                    PerformedAt = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AuditEntries", x => x.AuditEntryId);
                 });
 
             migrationBuilder.CreateTable(
@@ -130,25 +119,6 @@ namespace BinTool.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_FundingTypes", x => x.FundingTypeId);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ImportHistories",
-                columns: table => new
-                {
-                    ImportHistoryId = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    FileName = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
-                    ImportedRows = table.Column<int>(type: "INTEGER", nullable: false),
-                    UpdatedRows = table.Column<int>(type: "INTEGER", nullable: false),
-                    RejectedRows = table.Column<int>(type: "INTEGER", nullable: false),
-                    ImportedByUserId = table.Column<string>(type: "TEXT", nullable: true),
-                    ImportedAt = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    Status = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ImportHistories", x => x.ImportHistoryId);
                 });
 
             migrationBuilder.CreateTable(
@@ -292,6 +262,56 @@ namespace BinTool.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "AuditEntries",
+                columns: table => new
+                {
+                    AuditEntryId = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    EntityType = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    EntityId = table.Column<int>(type: "INTEGER", nullable: false),
+                    Action = table.Column<int>(type: "INTEGER", nullable: false),
+                    OldValues = table.Column<string>(type: "TEXT", nullable: true),
+                    NewValues = table.Column<string>(type: "TEXT", nullable: true),
+                    PerformedByUserId = table.Column<string>(type: "TEXT", maxLength: 450, nullable: true),
+                    PerformedAt = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AuditEntries", x => x.AuditEntryId);
+                    table.ForeignKey(
+                        name: "FK_AuditEntries_AspNetUsers_PerformedByUserId",
+                        column: x => x.PerformedByUserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ImportHistories",
+                columns: table => new
+                {
+                    ImportHistoryId = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    FileName = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
+                    ImportedRows = table.Column<int>(type: "INTEGER", nullable: false),
+                    UpdatedRows = table.Column<int>(type: "INTEGER", nullable: false),
+                    RejectedRows = table.Column<int>(type: "INTEGER", nullable: false),
+                    ImportedByUserId = table.Column<string>(type: "TEXT", maxLength: 450, nullable: true),
+                    ImportedAt = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    Status = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ImportHistories", x => x.ImportHistoryId);
+                    table.ForeignKey(
+                        name: "FK_ImportHistories_AspNetUsers_ImportedByUserId",
+                        column: x => x.ImportedByUserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "DefaultRules",
                 columns: table => new
                 {
@@ -308,28 +328,6 @@ namespace BinTool.Infrastructure.Migrations
                         column: x => x.CommissionRuleId,
                         principalTable: "CommissionRules",
                         principalColumn: "CommissionRuleId",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "RejectedImportRows",
-                columns: table => new
-                {
-                    RejectedRowId = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    ImportHistoryId = table.Column<int>(type: "INTEGER", nullable: false),
-                    RowNumber = table.Column<int>(type: "INTEGER", nullable: false),
-                    Reason = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
-                    RawData = table.Column<string>(type: "TEXT", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_RejectedImportRows", x => x.RejectedRowId);
-                    table.ForeignKey(
-                        name: "FK_RejectedImportRows_ImportHistories_ImportHistoryId",
-                        column: x => x.ImportHistoryId,
-                        principalTable: "ImportHistories",
-                        principalColumn: "ImportHistoryId",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -409,6 +407,28 @@ namespace BinTool.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "RejectedImportRows",
+                columns: table => new
+                {
+                    RejectedRowId = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    ImportHistoryId = table.Column<int>(type: "INTEGER", nullable: false),
+                    RowNumber = table.Column<int>(type: "INTEGER", nullable: false),
+                    Reason = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
+                    RawData = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RejectedImportRows", x => x.RejectedRowId);
+                    table.ForeignKey(
+                        name: "FK_RejectedImportRows_ImportHistories_ImportHistoryId",
+                        column: x => x.ImportHistoryId,
+                        principalTable: "ImportHistories",
+                        principalColumn: "ImportHistoryId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "BinRanges",
                 columns: table => new
                 {
@@ -460,6 +480,15 @@ namespace BinTool.Infrastructure.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "AspNetRoles",
+                columns: new[] { "Id", "ConcurrencyStamp", "CreatedAt", "Description", "Name", "NormalizedName" },
+                values: new object[,]
+                {
+                    { "11111111-1111-1111-1111-111111111111", "11111111-1111-1111-1111-111111111111", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Full access: manage BIN ranges, commission rules, users and imports", "Admin", "ADMIN" },
+                    { "22222222-2222-2222-2222-222222222222", "22222222-2222-2222-2222-222222222222", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "Read-only access: browse BIN ranges, rules and audit history", "Viewer", "VIEWER" }
+                });
+
+            migrationBuilder.InsertData(
                 table: "CardSchemes",
                 columns: new[] { "CardSchemeId", "DeletedAt", "DeletedBy", "Description", "IsDeleted", "Name" },
                 values: new object[,]
@@ -504,20 +533,20 @@ namespace BinTool.Infrastructure.Migrations
                 columns: new[] { "CountryId", "CreatedAt", "CreatedBy", "DeletedAt", "DeletedBy", "IsDeleted", "IsoCode", "Name", "RegionId", "UpdatedAt", "UpdatedBy" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4264), null, null, null, false, "BG", "Bulgaria", 1, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4265), null },
-                    { 2, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4267), null, null, null, false, "AT", "Austria", 2, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4268), null },
-                    { 3, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4269), null, null, null, false, "BE", "Belgium", 2, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4270), null },
-                    { 4, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4271), null, null, null, false, "FR", "France", 2, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4272), null },
-                    { 5, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4273), null, null, null, false, "DE", "Germany", 2, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4274), null },
-                    { 6, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4275), null, null, null, false, "IT", "Italy", 2, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4276), null },
-                    { 7, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4277), null, null, null, false, "ES", "Spain", 2, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4278), null },
-                    { 8, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4279), null, null, null, false, "NL", "Netherlands", 2, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4279), null },
-                    { 9, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4281), null, null, null, false, "SE", "Sweden", 2, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4281), null },
-                    { 10, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4283), null, null, null, false, "GB", "United Kingdom", 3, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4284), null },
-                    { 11, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4285), null, null, null, false, "US", "United States", 3, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4286), null },
-                    { 12, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4287), null, null, null, false, "CA", "Canada", 3, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4288), null },
-                    { 13, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4289), null, null, null, false, "JP", "Japan", 3, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4290), null },
-                    { 14, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4291), null, null, null, false, "CN", "China", 3, new DateTime(2026, 7, 31, 12, 16, 52, 949, DateTimeKind.Utc).AddTicks(4292), null }
+                    { 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, false, "BG", "Bulgaria", 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null },
+                    { 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, false, "AT", "Austria", 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null },
+                    { 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, false, "BE", "Belgium", 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null },
+                    { 4, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, false, "FR", "France", 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null },
+                    { 5, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, false, "DE", "Germany", 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null },
+                    { 6, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, false, "IT", "Italy", 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null },
+                    { 7, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, false, "ES", "Spain", 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null },
+                    { 8, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, false, "NL", "Netherlands", 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null },
+                    { 9, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, false, "SE", "Sweden", 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null },
+                    { 10, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, false, "GB", "United Kingdom", 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null },
+                    { 11, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, false, "US", "United States", 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null },
+                    { 12, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, false, "CA", "Canada", 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null },
+                    { 13, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, false, "JP", "Japan", 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null },
+                    { 14, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, false, "CN", "China", 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null }
                 });
 
             migrationBuilder.CreateIndex(
@@ -550,6 +579,11 @@ namespace BinTool.Infrastructure.Migrations
                 name: "EmailIndex",
                 table: "AspNetUsers",
                 column: "NormalizedEmail");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ApplicationUser_IsActive",
+                table: "AspNetUsers",
+                column: "IsActive");
 
             migrationBuilder.CreateIndex(
                 name: "UserNameIndex",
@@ -638,6 +672,11 @@ namespace BinTool.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_ImportHistories_ImportedByUserId",
+                table: "ImportHistories",
+                column: "ImportedByUserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ImportHistory_Date",
                 table: "ImportHistories",
                 column: "ImportedAt");
@@ -722,9 +761,6 @@ namespace BinTool.Infrastructure.Migrations
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "AspNetUsers");
-
-            migrationBuilder.DropTable(
                 name: "Countries");
 
             migrationBuilder.DropTable(
@@ -744,6 +780,9 @@ namespace BinTool.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Regions");
+
+            migrationBuilder.DropTable(
+                name: "AspNetUsers");
         }
     }
 }

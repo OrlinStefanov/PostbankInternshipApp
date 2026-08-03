@@ -118,14 +118,39 @@ Full documentation is available in Swagger UI when running the API in developmen
 
 ### BIN Import
 
-Columns: `prefix`, `scheme`, `product_type`, `funding_type`, `country_code`
+The file must have a header row, be comma-delimited, and use UTF-8 encoding.
+
+| # | Column | Required | Type | Maps to | Validation |
+|---|---|---|---|---|---|
+| 1 | `Prefix` | Yes | string | `BinRange.Prefix` | 6–8 digits, unique |
+| 2 | `CardScheme` | Yes | string | `CardScheme.Name` (lookup) | Must match an existing scheme name |
+| 3 | `ProductType` | Yes | string | `ProductType.Name` (lookup) | Must match an existing product type name |
+| 4 | `FundingType` | Yes | string | `FundingType.Name` (lookup) | Must match an existing funding type name |
+| 5 | `CountryCode` | Yes | string | `Country.IsoCode` (lookup) | ISO 3166-1 alpha-2, must exist in `Countries` |
+| 6 | `ValidFrom` | Yes | date | `BinRange.ValidFrom` | Format `yyyy-MM-dd` |
+| 7 | `ValidTo` | No | date | `BinRange.ValidTo` | Format `yyyy-MM-dd`, blank = open-ended |
+
+`PrefixLength` is not a CSV column — it is derived from `Prefix.Length` during import.
+
+**Currently valid lookup values** (seeded reference data):
+
+- `CardScheme`: `Visa`, `Mastercard`, `American Express`, `Diners Club`
+- `ProductType`: `Consumer`, `Commercial`, `Prepaid`
+- `FundingType`: `Credit`, `Debit`
+- `CountryCode`: `BG`, `AT`, `BE`, `FR`, `DE`, `IT`, `ES`, `NL`, `SE`, `GB`, `US`, `CA`, `JP`, `CN`
 
 Example:
+```csv
+Prefix,CardScheme,ProductType,FundingType,CountryCode,ValidFrom,ValidTo
+456123,Mastercard,Consumer,Credit,US,2024-01-01,
+451234,Mastercard,Commercial,Debit,BG,2024-01-01,2026-12-31
 ```
-prefix,scheme,product_type,funding_type,country_code
-456123,Mastercard,Consumer,Credit,US
-451234,Mastercard,Commercial,Debit,BG
-```
+
+A sample 20-row file is available at [`samples/bin_import_sample.csv`](samples/bin_import_sample.csv).
+
+Rows that fail validation (unknown lookup value, invalid prefix length, bad date format) are
+skipped and recorded in `RejectedImportRow` with a reason; the rest of the file still imports.
+Totals are summarized in `ImportHistory` (`ImportedRows`, `UpdatedRows`, `RejectedRows`).
 
 ## Development Notes
 

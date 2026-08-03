@@ -1,0 +1,21 @@
+Prefix,CardScheme,ProductType,FundingType,CountryCode,ValidFrom,ValidTo
+400001,Visa,Consumer,Credit,US,2024-01-01,
+400002,Visa,Consumer,Debit,BG,2024-01-01,
+400003,Visa,Commercial,Credit,GB,2024-01-01,2026-12-31
+400004,Visa,Prepaid,Debit,DE,2024-01-01,
+451234,Mastercard,Commercial,Debit,BG,2024-01-01,2026-12-31
+456123,Mastercard,Consumer,Credit,US,2024-01-01,
+520000,Mastercard,Consumer,Debit,FR,2024-01-01,
+545678,Mastercard,Prepaid,Credit,IT,2024-01-01,2025-12-31
+340000,American Express,Consumer,Credit,US,2024-01-01,
+370001,American Express,Commercial,Credit,CA,2024-01-01,
+375999,American Express,Consumer,Credit,ES,2024-01-01,
+360000,Diners Club,Consumer,Credit,JP,2024-01-01,
+380055,Diners Club,Commercial,Credit,GB,2024-01-01,2027-06-30
+601100,Visa,Consumer,Debit,NL,2024-02-15,
+554433,Mastercard,Commercial,Debit,SE,2024-02-15,
+478912,Visa,Consumer,Credit,AT,2024-03-01,
+523456,Mastercard,Consumer,Credit,BE,2024-03-01,
+341111,American Express,Commercial,Credit,CN,2024-03-01,
+36007788,Diners Club,Consumer,Debit,US,2024-03-01,
+41234567,Visa,Prepaid,Debit,BG,2024-03-01,2025-03-01

@@ -1,5 +1,4 @@
 using BinTool.Core.Entities;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +8,7 @@ namespace BinTool.Infrastructure.Data;
 /// Main database context for the BinTool application
 /// Includes identity management and domain entities
 /// </summary>
-public class AppDbContext : IdentityDbContext<IdentityUser, IdentityRole, string>
+public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
@@ -95,6 +94,7 @@ public class AppDbContext : IdentityDbContext<IdentityUser, IdentityRole, string
     {
         base.OnModelCreating(modelBuilder);
 
+        ConfigureIdentity(modelBuilder);
         ConfigureCardScheme(modelBuilder);
         ConfigureProductType(modelBuilder);
         ConfigureFundingType(modelBuilder);
@@ -109,6 +109,44 @@ public class AppDbContext : IdentityDbContext<IdentityUser, IdentityRole, string
         ConfigureRejectedImportRow(modelBuilder);
 
         SeedReferenceData(modelBuilder);
+    }
+
+    /// <summary>
+    /// Configures the custom columns added on top of the Identity schema.
+    /// Table names stay the Identity defaults (AspNetUsers, AspNetRoles, ...).
+    /// </summary>
+    private static void ConfigureIdentity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<ApplicationUser>(entity =>
+        {
+            entity.Property(e => e.FullName)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(e => e.Notes)
+                .HasMaxLength(1000);
+
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true);
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.HasIndex(e => e.IsActive)
+                .HasDatabaseName("IX_ApplicationUser_IsActive");
+        });
+
+        modelBuilder.Entity<ApplicationRole>(entity =>
+        {
+            entity.Property(e => e.Description)
+                .HasMaxLength(500);
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+        });
     }
 
     private static void ConfigureCardScheme(ModelBuilder modelBuilder)
@@ -417,6 +455,13 @@ public class AppDbContext : IdentityDbContext<IdentityUser, IdentityRole, string
             entity.HasIndex(e => e.PerformedByUserId)
                 .HasDatabaseName("IX_AuditEntry_UserId");
 
+            // Keep the audit trail intact if the user is ever removed:
+            // the row survives with a null user reference.
+            entity.HasOne(e => e.PerformedByUser)
+                .WithMany(u => u.AuditEntries)
+                .HasForeignKey(e => e.PerformedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             entity.ToTable("AuditEntries");
         });
     }
@@ -438,8 +483,16 @@ public class AppDbContext : IdentityDbContext<IdentityUser, IdentityRole, string
             entity.Property(e => e.ImportedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+            entity.Property(e => e.ImportedByUserId)
+                .HasMaxLength(450);
+
             entity.HasIndex(e => e.ImportedAt)
                 .HasDatabaseName("IX_ImportHistory_Date");
+
+            entity.HasOne(e => e.ImportedByUser)
+                .WithMany(u => u.Imports)
+                .HasForeignKey(e => e.ImportedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasMany(e => e.RejectedRows_Navigation)
                 .WithOne(r => r.ImportHistory)
@@ -477,8 +530,37 @@ public class AppDbContext : IdentityDbContext<IdentityUser, IdentityRole, string
         });
     }
 
+    /// <summary>
+    /// Fixed timestamp for seeded rows. Using DateTime.UtcNow here would make the
+    /// model non-deterministic and EF would report a pending model change on every build.
+    /// </summary>
+    private static readonly DateTime SeedTimestamp = new(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
     private static void SeedReferenceData(ModelBuilder modelBuilder)
     {
+        // Seed Roles. Ids and concurrency stamps are fixed so the seed stays stable
+        // across migrations.
+        modelBuilder.Entity<ApplicationRole>().HasData(
+            new ApplicationRole
+            {
+                Id = "11111111-1111-1111-1111-111111111111",
+                Name = AppRoles.Admin,
+                NormalizedName = AppRoles.Admin.ToUpperInvariant(),
+                ConcurrencyStamp = "11111111-1111-1111-1111-111111111111",
+                Description = "Full access: manage BIN ranges, commission rules, users and imports",
+                CreatedAt = SeedTimestamp
+            },
+            new ApplicationRole
+            {
+                Id = "22222222-2222-2222-2222-222222222222",
+                Name = AppRoles.Viewer,
+                NormalizedName = AppRoles.Viewer.ToUpperInvariant(),
+                ConcurrencyStamp = "22222222-2222-2222-2222-222222222222",
+                Description = "Read-only access: browse BIN ranges, rules and audit history",
+                CreatedAt = SeedTimestamp
+            }
+        );
+
         // Seed Card Schemes
         modelBuilder.Entity<CardScheme>().HasData(
             new CardScheme { CardSchemeId = 1, Name = "Visa", Description = "Visa card scheme" },
@@ -510,22 +592,22 @@ public class AppDbContext : IdentityDbContext<IdentityUser, IdentityRole, string
         // Seed Countries (sample list)
         modelBuilder.Entity<Country>().HasData(
             // Bulgaria (Domestic)
-            new Country { CountryId = 1, IsoCode = "BG", Name = "Bulgaria", RegionId = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+            new Country { CountryId = 1, IsoCode = "BG", Name = "Bulgaria", RegionId = 1, CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp },
             // EEA Countries
-            new Country { CountryId = 2, IsoCode = "AT", Name = "Austria", RegionId = 2, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Country { CountryId = 3, IsoCode = "BE", Name = "Belgium", RegionId = 2, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Country { CountryId = 4, IsoCode = "FR", Name = "France", RegionId = 2, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Country { CountryId = 5, IsoCode = "DE", Name = "Germany", RegionId = 2, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Country { CountryId = 6, IsoCode = "IT", Name = "Italy", RegionId = 2, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Country { CountryId = 7, IsoCode = "ES", Name = "Spain", RegionId = 2, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Country { CountryId = 8, IsoCode = "NL", Name = "Netherlands", RegionId = 2, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Country { CountryId = 9, IsoCode = "SE", Name = "Sweden", RegionId = 2, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Country { CountryId = 10, IsoCode = "GB", Name = "United Kingdom", RegionId = 3, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+            new Country { CountryId = 2, IsoCode = "AT", Name = "Austria", RegionId = 2, CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp },
+            new Country { CountryId = 3, IsoCode = "BE", Name = "Belgium", RegionId = 2, CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp },
+            new Country { CountryId = 4, IsoCode = "FR", Name = "France", RegionId = 2, CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp },
+            new Country { CountryId = 5, IsoCode = "DE", Name = "Germany", RegionId = 2, CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp },
+            new Country { CountryId = 6, IsoCode = "IT", Name = "Italy", RegionId = 2, CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp },
+            new Country { CountryId = 7, IsoCode = "ES", Name = "Spain", RegionId = 2, CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp },
+            new Country { CountryId = 8, IsoCode = "NL", Name = "Netherlands", RegionId = 2, CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp },
+            new Country { CountryId = 9, IsoCode = "SE", Name = "Sweden", RegionId = 2, CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp },
+            new Country { CountryId = 10, IsoCode = "GB", Name = "United Kingdom", RegionId = 3, CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp },
             // Non-EEA
-            new Country { CountryId = 11, IsoCode = "US", Name = "United States", RegionId = 3, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Country { CountryId = 12, IsoCode = "CA", Name = "Canada", RegionId = 3, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Country { CountryId = 13, IsoCode = "JP", Name = "Japan", RegionId = 3, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Country { CountryId = 14, IsoCode = "CN", Name = "China", RegionId = 3, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            new Country { CountryId = 11, IsoCode = "US", Name = "United States", RegionId = 3, CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp },
+            new Country { CountryId = 12, IsoCode = "CA", Name = "Canada", RegionId = 3, CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp },
+            new Country { CountryId = 13, IsoCode = "JP", Name = "Japan", RegionId = 3, CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp },
+            new Country { CountryId = 14, IsoCode = "CN", Name = "China", RegionId = 3, CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp }
         );
     }
 }
