@@ -5,10 +5,21 @@ namespace BinTool.Core.Services;
 public interface IBinCsvImportService
 {
     /// <summary>
-    /// Parses and validates the CSV, splitting it into valid rows and rejected
-    /// rows. No database access and nothing is persisted.
+    /// Parses and validates the CSV, then reconciles it against the database:
+    /// new prefixes are inserted, rejected rows are persisted, unchanged rows are
+    /// skipped, and prefixes that already exist with different values are staged
+    /// as conflicts for the user to resolve later. All within one transaction.
     /// </summary>
     /// <param name="csvStream">The uploaded CSV content.</param>
-    /// <param name="fileName">Original file name, echoed back in the result.</param>
-    BinImportResult BinCsvImport(Stream csvStream, string fileName);
+    /// <param name="fileName">Original file name, recorded in the import history.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<BinImportResult> ImportAsync(Stream csvStream, string fileName, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Applies the user's decisions to staged conflicts: an <c>Update</c> overwrites
+    /// the existing BIN range with the staged values; otherwise the conflict is
+    /// discarded and the existing record is left untouched.
+    /// </summary>
+    Task<ConflictResolutionResult> ResolveConflictsAsync(
+        IEnumerable<ConflictResolution> resolutions, CancellationToken cancellationToken = default);
 }

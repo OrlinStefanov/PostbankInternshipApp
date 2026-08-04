@@ -1,7 +1,10 @@
 using System.Globalization;
+using BinTool.Core.Entities;
 using BinTool.Core.Models.Import;
 using BinTool.Core.Services;
+using BinTool.Infrastructure.Data;
 using CsvHelper;
+using Microsoft.EntityFrameworkCore;
 
 namespace BinTool.Infrastructure.Services;
 
@@ -9,46 +12,74 @@ public class BinCsvImportService : IBinCsvImportService
 {
     private const string DateFormat = "yyyy-MM-dd";
 
+    /// <summary>
+    /// Placeholder actor recorded on audit fields until authentication is wired in.
+    /// </summary>
+    private const string SystemUser = "system";
+
     private static readonly string[] RequiredColumns =
     {
         "Prefix", "CardScheme", "ProductType", "FundingType", "CountryCode", "ValidFrom"
     };
 
-    public BinImportResult BinCsvImport(Stream csvStream, string fileName)
+    private readonly AppDbContext _db;
+
+    public BinCsvImportService(AppDbContext db)
+    {
+        _db = db;
+    }
+
+    public async Task<BinImportResult> ImportAsync(
+        Stream csvStream, string fileName, CancellationToken cancellationToken = default)
     {
         var result = new BinImportResult { FileName = fileName };
+
+        // Load the lookup tables once so every row resolves against in-memory maps.
+        var lookups = await Lookups.LoadAsync(_db, cancellationToken);
+
+        var history = new ImportHistory
+        {
+            FileName = fileName,
+            ImportedByUserId = null, // no authenticated user yet
+            Status = "Success"
+        };
+        _db.ImportHistories.Add(history);
 
         using var reader = new StreamReader(csvStream);
         using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
 
-        // Read the header first so we can (a) validate the columns are present
-        // and (b) know whether the optional ValidTo column exists.
         if (!csv.Read() || !csv.ReadHeader())
         {
-            AddError(result, 0, "File is empty or has no header row", string.Empty);
-            return Finalize(result);
+            AddRejection(result, history, 0, "File is empty or has no header row", string.Empty);
+            history.Status = "Failed";
+            await FinalizeAsync(result, history, cancellationToken);
+            return result;
         }
 
         var header = csv.HeaderRecord ?? Array.Empty<string>();
         var missing = RequiredColumns.Where(c => !header.Contains(c)).ToList();
         if (missing.Count > 0)
         {
-            AddError(result, 0, $"Missing required column(s): {string.Join(", ", missing)}",
-                string.Join(",", header));
-            return Finalize(result);
+            AddRejection(result, history, 0,
+                $"Missing required column(s): {string.Join(", ", missing)}", string.Join(",", header));
+            history.Status = "Failed";
+            await FinalizeAsync(result, history, cancellationToken);
+            return result;
         }
 
         var hasValidTo = header.Contains("ValidTo");
 
-        // Track prefixes we have already accepted so a repeat within the same
-        // file is rejected rather than silently duplicated.
+        // First pass: parse, validate structure, resolve lookups, and collect the
+        // rows we might persist. We defer the existing-row lookup so it can be a
+        // single batched query.
         var seenPrefixes = new HashSet<string>();
+        var candidates = new List<Candidate>();
         var rowNumber = 0;
 
         while (csv.Read())
         {
-            rowNumber ++;
-            result.TotalRows ++;
+            rowNumber++;
+            result.TotalRows++;
 
             var raw = csv.Parser.RawRecord.Trim();
 
@@ -63,26 +94,176 @@ public class BinCsvImportService : IBinCsvImportService
             if (!TryValidateRow(prefix, cardScheme, productType, fundingType,
                     countryCode, validFrom, validTo, out var row, out var reason))
             {
-                AddError(result, rowNumber, reason, raw);
+                AddRejection(result, history, rowNumber, reason, raw);
                 continue;
             }
 
             if (!seenPrefixes.Add(row.Prefix!))
             {
-                AddError(result, rowNumber,
+                AddRejection(result, history, rowNumber,
                     $"Duplicate prefix '{row.Prefix}' already appears earlier in the file", raw);
                 continue;
             }
 
-            result.ValidRows.Add(row);
+            if (!lookups.TryResolve(row, out var resolved, out var lookupReason))
+            {
+                AddRejection(result, history, rowNumber, lookupReason, raw);
+                continue;
+            }
+
+            candidates.Add(new Candidate(rowNumber, raw, resolved));
         }
 
-        return Finalize(result);
+        // Second pass: reconcile the resolved rows against the existing BIN ranges.
+        var prefixes = candidates.Select(c => c.Values.Prefix).ToList();
+        var existing = await _db.BinRanges
+            .Where(b => !b.IsDeleted && prefixes.Contains(b.Prefix))
+            .ToDictionaryAsync(b => b.Prefix, cancellationToken);
+
+        var now = DateTime.UtcNow;
+        var stagedConflicts = new List<(PendingBinConflict Entity, int RowNumber, List<BinFieldDiff> Diffs)>();
+
+        foreach (var candidate in candidates)
+        {
+            var v = candidate.Values;
+
+            if (!existing.TryGetValue(v.Prefix, out var current))
+            {
+                _db.BinRanges.Add(new BinRange
+                {
+                    Prefix = v.Prefix,
+                    PrefixLength = v.Prefix.Length,
+                    CardSchemeId = v.CardSchemeId,
+                    ProductTypeId = v.ProductTypeId,
+                    FundingTypeId = v.FundingTypeId,
+                    CountryId = v.CountryId,
+                    ValidFrom = v.ValidFrom,
+                    ValidTo = v.ValidTo,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    CreatedBy = SystemUser,
+                    UpdatedBy = SystemUser
+                });
+                result.InsertedCount++;
+                continue;
+            }
+
+            var diffs = Diff(current, v, lookups);
+            if (diffs.Count == 0)
+            {
+                result.UnchangedCount++;
+                continue;
+            }
+
+            var conflict = new PendingBinConflict
+            {
+                TargetBinRangeId = current.BinRangeId,
+                Prefix = v.Prefix,
+                PrefixLength = v.Prefix.Length,
+                CardSchemeId = v.CardSchemeId,
+                ProductTypeId = v.ProductTypeId,
+                FundingTypeId = v.FundingTypeId,
+                CountryId = v.CountryId,
+                ValidFrom = v.ValidFrom,
+                ValidTo = v.ValidTo,
+                RawData = candidate.Raw,
+                Status = ConflictStatus.Pending,
+                CreatedAt = now
+            };
+            conflict.ImportHistory = history;
+            _db.Set<PendingBinConflict>().Add(conflict);
+
+            stagedConflicts.Add((conflict, candidate.RowNumber, diffs));
+        }
+
+        result.RejectedCount = result.Errors.Count;
+        history.ImportedRows = result.InsertedCount;
+        history.RejectedRows = result.RejectedCount;
+        history.Status = result.RejectedCount == result.TotalRows && result.TotalRows > 0
+            ? "Failed"
+            : result.RejectedCount > 0 || stagedConflicts.Count > 0
+                ? "Partial"
+                : "Success";
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        // Ids are generated now, so build the response conflicts.
+        foreach (var (entity, stagedRowNumber, diffs) in stagedConflicts)
+        {
+            result.Conflicts.Add(new BinConflict
+            {
+                PendingBinConflictId = entity.PendingBinConflictId,
+                RowNumber = stagedRowNumber,
+                Prefix = entity.Prefix,
+                Differences = diffs
+            });
+        }
+
+        result.ConflictCount = result.Conflicts.Count;
+        result.ImportHistoryId = history.ImportHistoryId;
+        return result;
+    }
+
+    public async Task<ConflictResolutionResult> ResolveConflictsAsync(
+        IEnumerable<ConflictResolution> resolutions, CancellationToken cancellationToken = default)
+    {
+        var result = new ConflictResolutionResult();
+
+        var decisions = resolutions
+            .GroupBy(r => r.PendingBinConflictId)
+            .ToDictionary(g => g.Key, g => g.Last().Update);
+
+        var ids = decisions.Keys.ToList();
+
+        var conflicts = await _db.Set<PendingBinConflict>()
+            .Where(c => ids.Contains(c.PendingBinConflictId) && c.Status == ConflictStatus.Pending)
+            .ToListAsync(cancellationToken);
+
+        var targetIds = conflicts.Select(c => c.TargetBinRangeId).ToList();
+        var targets = await _db.BinRanges
+            .Where(b => targetIds.Contains(b.BinRangeId))
+            .ToDictionaryAsync(b => b.BinRangeId, cancellationToken);
+
+        var found = conflicts.Select(c => c.PendingBinConflictId).ToHashSet();
+        result.NotFoundCount = ids.Count(id => !found.Contains(id));
+
+        var now = DateTime.UtcNow;
+
+        foreach (var conflict in conflicts)
+        {
+            if (decisions[conflict.PendingBinConflictId] &&
+                targets.TryGetValue(conflict.TargetBinRangeId, out var target))
+            {
+                target.CardSchemeId = conflict.CardSchemeId;
+                target.ProductTypeId = conflict.ProductTypeId;
+                target.FundingTypeId = conflict.FundingTypeId;
+                target.CountryId = conflict.CountryId;
+                target.PrefixLength = conflict.PrefixLength;
+                target.ValidFrom = conflict.ValidFrom;
+                target.ValidTo = conflict.ValidTo;
+                target.UpdatedAt = now;
+                target.UpdatedBy = SystemUser;
+
+                conflict.Status = ConflictStatus.Applied;
+                result.UpdatedCount++;
+            }
+            else
+            {
+                conflict.Status = ConflictStatus.Discarded;
+                result.DiscardedCount++;
+            }
+
+            conflict.ResolvedAt = now;
+            conflict.ResolvedBy = SystemUser;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return result;
     }
 
     /// <summary>
-    /// Structural validation only — no lookups against the database yet.
-    /// Returns the first rule that fails so the message stays specific.
+    /// Structural validation only. Returns the first rule that fails so the message
+    /// stays specific. Lookup existence is checked separately against the database.
     /// </summary>
     private static bool TryValidateRow(
         string? prefix, string? cardScheme, string? productType, string? fundingType,
@@ -116,6 +297,7 @@ public class BinCsvImportService : IBinCsvImportService
         }
 
         DateTime? to = null;
+
         if (!string.IsNullOrWhiteSpace(validTo))
         {
             if (!DateTime.TryParseExact(validTo, DateFormat, CultureInfo.InvariantCulture,
@@ -144,16 +326,191 @@ public class BinCsvImportService : IBinCsvImportService
             ValidFrom = from,
             ValidTo = to
         };
+
         return true;
     }
 
-    private static void AddError(BinImportResult result, int rowNumber, string reason, string raw) =>
-        result.Errors.Add(new BinImportError { RowNumber = rowNumber, Reason = reason, RawData = raw });
-
-    private static BinImportResult Finalize(BinImportResult result)
+    /// <summary>
+    /// Compares an incoming row against the existing record, returning a diff entry
+    /// for every field that differs (formatted for display). An empty list means the
+    /// records are identical and the row can be skipped.
+    /// </summary>
+    private static List<BinFieldDiff> Diff(BinRange current, ResolvedRow incoming, Lookups lookups)
     {
-        result.ValidCount = result.ValidRows.Count;
+        var diffs = new List<BinFieldDiff>();
+
+        if (current.CardSchemeId != incoming.CardSchemeId)
+            diffs.Add(new BinFieldDiff
+            {
+                Field = "CardScheme",
+                OldValue = lookups.CardSchemeName(current.CardSchemeId),
+                NewValue = lookups.CardSchemeName(incoming.CardSchemeId)
+            });
+
+        if (current.ProductTypeId != incoming.ProductTypeId)
+            diffs.Add(new BinFieldDiff
+            {
+                Field = "ProductType",
+                OldValue = lookups.ProductTypeName(current.ProductTypeId),
+                NewValue = lookups.ProductTypeName(incoming.ProductTypeId)
+            });
+
+        if (current.FundingTypeId != incoming.FundingTypeId)
+            diffs.Add(new BinFieldDiff
+            {
+                Field = "FundingType",
+                OldValue = lookups.FundingTypeName(current.FundingTypeId),
+                NewValue = lookups.FundingTypeName(incoming.FundingTypeId)
+            });
+
+        if (current.CountryId != incoming.CountryId)
+            diffs.Add(new BinFieldDiff
+            {
+                Field = "CountryCode",
+                OldValue = lookups.CountryCode(current.CountryId),
+                NewValue = lookups.CountryCode(incoming.CountryId)
+            });
+
+        if (current.ValidFrom != incoming.ValidFrom)
+            diffs.Add(new BinFieldDiff
+            {
+                Field = "ValidFrom",
+                OldValue = current.ValidFrom.ToString(DateFormat, CultureInfo.InvariantCulture),
+                NewValue = incoming.ValidFrom.ToString(DateFormat, CultureInfo.InvariantCulture)
+            });
+
+        if (current.ValidTo != incoming.ValidTo)
+            diffs.Add(new BinFieldDiff
+            {
+                Field = "ValidTo",
+                OldValue = current.ValidTo?.ToString(DateFormat, CultureInfo.InvariantCulture),
+                NewValue = incoming.ValidTo?.ToString(DateFormat, CultureInfo.InvariantCulture)
+            });
+
+        return diffs;
+    }
+
+    private static void AddRejection(
+        BinImportResult result, ImportHistory history, int rowNumber, string reason, string raw)
+    {
+        result.Errors.Add(new BinImportError { RowNumber = rowNumber, Reason = reason, RawData = raw });
+        history.RejectedRows_Navigation.Add(new RejectedImportRow
+        {
+            RowNumber = rowNumber,
+            Reason = reason,
+            RawData = raw
+        });
+    }
+
+    private async Task FinalizeAsync(
+        BinImportResult result, ImportHistory history, CancellationToken cancellationToken)
+    {
         result.RejectedCount = result.Errors.Count;
-        return result;
+        history.RejectedRows = result.RejectedCount;
+        await _db.SaveChangesAsync(cancellationToken);
+        result.ImportHistoryId = history.ImportHistoryId;
+    }
+
+    private sealed record Candidate(int RowNumber, string Raw, ResolvedRow Values);
+
+    /// <summary>
+    /// A validated import row with its lookup names resolved to database ids.
+    /// </summary>
+    private sealed record ResolvedRow(
+        string Prefix, int CardSchemeId, int ProductTypeId, int FundingTypeId, int CountryId,
+        DateTime ValidFrom, DateTime? ValidTo);
+
+    /// <summary>
+    /// In-memory snapshot of the lookup tables, keyed for resolution (name/code to id)
+    /// and for diffing (id back to display value).
+    /// </summary>
+    private sealed class Lookups
+    {
+        private readonly Dictionary<string, int> _cardSchemes;
+        private readonly Dictionary<string, int> _productTypes;
+        private readonly Dictionary<string, int> _fundingTypes;
+        private readonly Dictionary<string, int> _countries;
+        private readonly Dictionary<int, string> _cardSchemeNames;
+        private readonly Dictionary<int, string> _productTypeNames;
+        private readonly Dictionary<int, string> _fundingTypeNames;
+        private readonly Dictionary<int, string> _countryCodes;
+
+        private Lookups(
+            Dictionary<string, int> cardSchemes, Dictionary<string, int> productTypes,
+            Dictionary<string, int> fundingTypes, Dictionary<string, int> countries,
+            Dictionary<int, string> cardSchemeNames, Dictionary<int, string> productTypeNames,
+            Dictionary<int, string> fundingTypeNames, Dictionary<int, string> countryCodes)
+        {
+            _cardSchemes = cardSchemes;
+            _productTypes = productTypes;
+            _fundingTypes = fundingTypes;
+            _countries = countries;
+            _cardSchemeNames = cardSchemeNames;
+            _productTypeNames = productTypeNames;
+            _fundingTypeNames = fundingTypeNames;
+            _countryCodes = countryCodes;
+        }
+
+        public static async Task<Lookups> LoadAsync(AppDbContext db, CancellationToken cancellationToken)
+        {
+            var cardSchemes = await db.CardSchemes.Where(c => !c.IsDeleted)
+                .Select(c => new { c.CardSchemeId, c.Name }).ToListAsync(cancellationToken);
+            var productTypes = await db.ProductTypes.Where(p => !p.IsDeleted)
+                .Select(p => new { p.ProductTypeId, p.Name }).ToListAsync(cancellationToken);
+            var fundingTypes = await db.FundingTypes.Where(f => !f.IsDeleted)
+                .Select(f => new { f.FundingTypeId, f.Name }).ToListAsync(cancellationToken);
+            var countries = await db.Countries.Where(c => !c.IsDeleted)
+                .Select(c => new { c.CountryId, c.IsoCode }).ToListAsync(cancellationToken);
+
+            return new Lookups(
+                cardSchemes.ToDictionary(c => c.Name, c => c.CardSchemeId, StringComparer.OrdinalIgnoreCase),
+                productTypes.ToDictionary(p => p.Name, p => p.ProductTypeId, StringComparer.OrdinalIgnoreCase),
+                fundingTypes.ToDictionary(f => f.Name, f => f.FundingTypeId, StringComparer.OrdinalIgnoreCase),
+                countries.ToDictionary(c => c.IsoCode, c => c.CountryId, StringComparer.OrdinalIgnoreCase),
+                cardSchemes.ToDictionary(c => c.CardSchemeId, c => c.Name),
+                productTypes.ToDictionary(p => p.ProductTypeId, p => p.Name),
+                fundingTypes.ToDictionary(f => f.FundingTypeId, f => f.Name),
+                countries.ToDictionary(c => c.CountryId, c => c.IsoCode));
+        }
+
+        public bool TryResolve(BinImportRow row, out ResolvedRow resolved, out string reason)
+        {
+            resolved = default!;
+            reason = string.Empty;
+
+            if (!_cardSchemes.TryGetValue(row.CardScheme!, out var cardSchemeId))
+            {
+                reason = $"CardScheme '{row.CardScheme}' does not exist";
+                return false;
+            }
+
+            if (!_productTypes.TryGetValue(row.ProductType!, out var productTypeId))
+            {
+                reason = $"ProductType '{row.ProductType}' does not exist";
+                return false;
+            }
+
+            if (!_fundingTypes.TryGetValue(row.FundingType!, out var fundingTypeId))
+            {
+                reason = $"FundingType '{row.FundingType}' does not exist";
+                return false;
+            }
+
+            if (!_countries.TryGetValue(row.CountryCode!, out var countryId))
+            {
+                reason = $"CountryCode '{row.CountryCode}' does not exist";
+                return false;
+            }
+
+            resolved = new ResolvedRow(
+                row.Prefix!, cardSchemeId, productTypeId, fundingTypeId, countryId,
+                row.ValidFrom, row.ValidTo);
+            return true;
+        }
+
+        public string? CardSchemeName(int id) => _cardSchemeNames.GetValueOrDefault(id);
+        public string? ProductTypeName(int id) => _productTypeNames.GetValueOrDefault(id);
+        public string? FundingTypeName(int id) => _fundingTypeNames.GetValueOrDefault(id);
+        public string? CountryCode(int id) => _countryCodes.GetValueOrDefault(id);
     }
 }

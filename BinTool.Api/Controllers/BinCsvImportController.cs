@@ -1,3 +1,4 @@
+using BinTool.Core.Models.Import;
 using BinTool.Core.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,17 +16,33 @@ public class BinCsvImportController : ControllerBase
     }
 
     /// <summary>
-    /// Parses and validates a BIN CSV, returning the valid rows and the rejected
-    /// rows (with reasons) side by side. Nothing is saved to the database.
+    /// Imports a BIN CSV: new prefixes are inserted, rejected rows are recorded,
+    /// unchanged rows are skipped, and prefixes that already exist with different
+    /// values are returned as conflicts for the caller to resolve.
     /// </summary>
-    [HttpPost("preview")]
-    public IActionResult Preview(IFormFile file)
+    [HttpPost("import")]
+    public async Task<IActionResult> Import(IFormFile file, CancellationToken cancellationToken)
     {
         if (file == null || file.Length == 0) return BadRequest("Invalid file");
 
-        using var stream = file.OpenReadStream();
+        await using var stream = file.OpenReadStream();
 
-        var result = _service.BinCsvImport(stream, file.FileName);
+        var result = await _service.ImportAsync(stream, file.FileName, cancellationToken);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Applies the user's per-conflict decisions from a previous import: each
+    /// conflict is either used to overwrite the existing BIN range or discarded.
+    /// </summary>
+    [HttpPost("resolve-conflicts")]
+    public async Task<IActionResult> ResolveConflicts(
+        [FromBody] IEnumerable<ConflictResolution> resolutions, CancellationToken cancellationToken)
+    {
+        if (resolutions == null) return BadRequest("No resolutions provided");
+
+        var result = await _service.ResolveConflictsAsync(resolutions, cancellationToken);
 
         return Ok(result);
     }

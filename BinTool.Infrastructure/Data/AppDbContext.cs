@@ -88,6 +88,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     /// </summary>
     public DbSet<RejectedImportRow> RejectedImportRows { get; set; }
 
+    /// <summary>
+    /// Import rows whose prefix already exists with different values, staged for
+    /// a user decision (update or discard)
+    /// </summary>
+    public DbSet<PendingBinConflict> PendingBinConflicts { get; set; }
+
     #endregion
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -107,6 +113,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         ConfigureAuditEntry(modelBuilder);
         ConfigureImportHistory(modelBuilder);
         ConfigureRejectedImportRow(modelBuilder);
+        ConfigurePendingBinConflict(modelBuilder);
 
         SeedReferenceData(modelBuilder);
     }
@@ -527,6 +534,55 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                 .IsRequired();
 
             entity.ToTable("RejectedImportRows");
+        });
+    }
+
+    private static void ConfigurePendingBinConflict(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<PendingBinConflict>(entity =>
+        {
+            entity.HasKey(e => e.PendingBinConflictId);
+
+            entity.Property(e => e.Prefix)
+                .IsRequired()
+                .HasMaxLength(8);
+
+            entity.Property(e => e.PrefixLength)
+                .IsRequired();
+
+            entity.Property(e => e.RawData)
+                .IsRequired()
+                .HasColumnType("TEXT");
+
+            entity.Property(e => e.Status)
+                .IsRequired()
+                .HasConversion<int>();
+
+            entity.Property(e => e.ResolvedBy)
+                .HasMaxLength(450);
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            // Fast lookup of the outstanding conflicts.
+            entity.HasIndex(e => e.Status)
+                .HasDatabaseName("IX_PendingBinConflict_Status");
+
+            entity.HasOne(e => e.ImportHistory)
+                .WithMany()
+                .HasForeignKey(e => e.ImportHistoryId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+
+            // Keep the staged conflict even if the target row is hard-deleted; the
+            // resolution step re-checks the target still exists before applying.
+            entity.HasOne(e => e.TargetBinRange)
+                .WithMany()
+                .HasForeignKey(e => e.TargetBinRangeId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
+
+            entity.ToTable("PendingBinConflicts");
         });
     }
 
