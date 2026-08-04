@@ -261,6 +261,43 @@ public class BinCsvImportService : IBinCsvImportService
         return result;
     }
 
+    public async Task<List<BinConflict>> GetPendingConflictsAsync(CancellationToken cancellationToken = default)
+    {
+        var lookups = await Lookups.LoadAsync(_db, cancellationToken);
+
+        var pending = await _db.Set<PendingBinConflict>()
+            .Where(c => c.Status == ConflictStatus.Pending)
+            .OrderBy(c => c.PendingBinConflictId)
+            .ToListAsync(cancellationToken);
+
+        var targetIds = pending.Select(c => c.TargetBinRangeId).Distinct().ToList();
+        var targets = await _db.BinRanges
+            .Where(b => targetIds.Contains(b.BinRangeId))
+            .ToDictionaryAsync(b => b.BinRangeId, cancellationToken);
+
+        var conflicts = new List<BinConflict>();
+        foreach (var conflict in pending)
+        {
+            // If the target row is gone the conflict is stale; skip it.
+            if (!targets.TryGetValue(conflict.TargetBinRangeId, out var target))
+                continue;
+
+            var incoming = new ResolvedRow(
+                conflict.Prefix, conflict.CardSchemeId, conflict.ProductTypeId,
+                conflict.FundingTypeId, conflict.CountryId, conflict.ValidFrom, conflict.ValidTo);
+
+            conflicts.Add(new BinConflict
+            {
+                PendingBinConflictId = conflict.PendingBinConflictId,
+                RowNumber = 0, // not meaningful outside the originating file
+                Prefix = conflict.Prefix,
+                Differences = Diff(target, incoming, lookups)
+            });
+        }
+
+        return conflicts;
+    }
+
     /// <summary>
     /// Structural validation only. Returns the first rule that fails so the message
     /// stays specific. Lookup existence is checked separately against the database.

@@ -16,6 +16,13 @@ public interface IBinCsvImportService
     Task<BinImportResult> ImportAsync(Stream csvStream, string fileName, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Returns the conflicts still awaiting a decision (status Pending), each with a
+    /// freshly-computed diff against the current database record. Used to restore the
+    /// resolution workflow after a page reload, when no in-memory import result exists.
+    /// </summary>
+    Task<List<BinConflict>> GetPendingConflictsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Applies the user's decisions to staged conflicts: an <c>Update</c> overwrites
     /// the existing BIN range with the staged values; otherwise the conflict is
     /// discarded and the existing record is left untouched.

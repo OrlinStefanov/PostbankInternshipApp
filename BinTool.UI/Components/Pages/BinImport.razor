@@ -1,0 +1,493 @@
+@page "/import"
+@rendermode InteractiveServer
+@inject BinImportApiClient Api
+
+<PageTitle>BIN Import</PageTitle>
+
+<div class="page-head d-flex flex-wrap justify-content-between align-items-start gap-3">
+    <div>
+        <h1 class="h3 mb-1">BIN Range Import</h1>
+        <p class="text-secondary mb-0">
+            Upload a CSV of BIN ranges. New prefixes are added, unknown or malformed rows
+            are rejected, and prefixes that already exist with different values are held
+            for your review.
+        </p>
+    </div>
+    <button class="btn btn-primary" @onclick="OpenUpload">
+        Import CSV
+    </button>
+</div>
+
+@if (_loading)
+{
+    <div class="d-flex align-items-center gap-2 text-secondary mt-4">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <span>Loading…</span>
+    </div>
+}
+else
+{
+    @if (_loadError is not null)
+    {
+        <div class="alert alert-danger mt-4" role="alert">@_loadError</div>
+    }
+
+    @* Summary of the most recent upload this session (transient). *@
+    @if (_result is not null)
+    {
+        <div class="result-meta d-flex flex-wrap align-items-center gap-2 mt-4">
+            <span class="fw-semibold">@_result.FileName</span>
+            <span class="text-secondary small">Import #@_result.ImportHistoryId</span>
+            <span class="text-secondary small">· @_result.TotalRows rows</span>
+            <span class="badge rounded-pill text-bg-@StatusColor(Status)">@Status</span>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-6 col-lg-3">
+                <div class="stat">
+                    <div class="stat-value text-success">@_result.InsertedCount</div>
+                    <div class="stat-label">Inserted</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="stat">
+                    <div class="stat-value text-body-secondary">@_result.UnchangedCount</div>
+                    <div class="stat-label">Unchanged</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="stat">
+                    <div class="stat-value text-warning-emphasis">@_result.ConflictCount</div>
+                    <div class="stat-label">Conflicts</div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="stat">
+                    <div class="stat-value text-danger">@_result.RejectedCount</div>
+                    <div class="stat-label">Rejected</div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (_resolveOutcome is not null)
+    {
+        <div class="alert alert-success mt-4" role="alert">
+            Resolved: <strong>@_resolveOutcome.UpdatedCount</strong> updated,
+            <strong>@_resolveOutcome.DiscardedCount</strong> discarded@(_resolveOutcome.NotFoundCount > 0
+                ? $", {_resolveOutcome.NotFoundCount} no longer pending" : "").
+        </div>
+    }
+
+    @* Outstanding conflicts — loaded from the API, so they survive a reload. *@
+    @if (_conflicts.Count > 0)
+    {
+        <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 mt-4" role="alert">
+            <div>
+                <strong>@_conflicts.Count</strong>
+                @(_conflicts.Count == 1 ? "prefix" : "prefixes") already exist with different
+                values and need your decision.
+            </div>
+            <button class="btn btn-sm btn-warning" @onclick="OpenConflicts">
+                Review conflicts
+            </button>
+        </div>
+    }
+
+    @if (_result is not null && _result.Errors.Count > 0)
+    {
+        <div class="card mt-4">
+            <div class="card-header bg-transparent">
+                <span class="fw-semibold">Rejected rows</span>
+                <span class="text-secondary small">(@_result.Errors.Count)</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-3" style="width:5rem;">Row</th>
+                            <th style="width:22rem;">Reason</th>
+                            <th>Raw data</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var error in _result.Errors)
+                        {
+                            <tr>
+                                <td class="ps-3 text-secondary">@error.RowNumber</td>
+                                <td>@error.Reason</td>
+                                <td><code class="raw">@error.RawData</code></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    @* Nothing imported this session and nothing outstanding. *@
+    @if (_result is null && _conflicts.Count == 0 && _loadError is null)
+    {
+        <div class="card empty-state mt-4">
+            <div class="card-body">
+                <h2 class="h6 text-uppercase text-secondary mb-3">Expected format</h2>
+                <p class="mb-2">A header row followed by one BIN range per line:</p>
+                <pre class="sample mb-3"><code>Prefix,CardScheme,ProductType,FundingType,CountryCode,ValidFrom,ValidTo
+400001,Visa,Consumer,Credit,US,2024-01-01,2026-12-31
+520082,Mastercard,Commercial,Debit,BG,2024-01-01,</code></pre>
+                <p class="text-secondary small mb-0">
+                    <code>Prefix</code> is 6–8 digits. <code>CardScheme</code>, <code>ProductType</code>,
+                    <code>FundingType</code> and <code>CountryCode</code> must match existing reference
+                    values. <code>ValidTo</code> is optional (leave blank for open-ended).
+                </p>
+            </div>
+        </div>
+    }
+}
+
+@* ---------------------------------------------------------------- Upload modal *@
+@if (_uploadOpen)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5">Import BIN CSV</h2>
+                    <button type="button" class="btn-close" aria-label="Close"
+                            @onclick="CloseUpload" disabled="@_busy"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label" for="csv-file">CSV file</label>
+                    <InputFile id="csv-file" class="form-control" accept=".csv,text/csv"
+                               OnChange="OnFileSelected" disabled="@_busy" />
+
+                    @if (_file is not null)
+                    {
+                        <p class="text-secondary small mt-2 mb-0">
+                            Selected: <span class="fw-semibold text-body">@_file.Name</span>
+                            (@FormatSize(_file.Size))
+                        </p>
+                    }
+
+                    @if (_uploadError is not null)
+                    {
+                        <div class="alert alert-danger mt-3 mb-0 py-2 px-3 small" role="alert">
+                            @_uploadError
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" @onclick="CloseUpload" disabled="@_busy">
+                        Cancel
+                    </button>
+                    <button class="btn btn-primary" @onclick="RunImport" disabled="@(_busy || _file is null)">
+                        @if (_busy)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            <span>Importing…</span>
+                        }
+                        else
+                        {
+                            <span>Import</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@* ------------------------------------------------------------- Conflicts modal *@
+@if (_conflictsOpen && _conflicts.Count > 0)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h2 class="modal-title h5 mb-0">Resolve conflicts</h2>
+                        <p class="text-secondary small mb-0">
+                            Choose whether to overwrite each existing record or keep it.
+                        </p>
+                    </div>
+                    <button type="button" class="btn-close" aria-label="Close"
+                            @onclick="CloseConflicts" disabled="@_resolving"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <span class="text-secondary small">
+                            @DecidedCount of @_conflicts.Count decided
+                        </span>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-secondary" @onclick="() => SetAll(true)"
+                                    disabled="@_resolving">Update all</button>
+                            <button class="btn btn-outline-secondary" @onclick="() => SetAll(false)"
+                                    disabled="@_resolving">Discard all</button>
+                        </div>
+                    </div>
+
+                    @if (_resolveError is not null)
+                    {
+                        <div class="alert alert-danger py-2 px-3 small" role="alert">@_resolveError</div>
+                    }
+
+                    <div class="table-responsive">
+                        <table class="table align-middle conflict-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-3" style="width:8rem;">Prefix</th>
+                                    <th>Changes</th>
+                                    <th style="width:13rem;">Decision</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var conflict in _conflicts)
+                                {
+                                    var decision = _decisions.GetValueOrDefault(conflict.PendingBinConflictId);
+                                    <tr>
+                                        <td class="ps-3">
+                                            <code class="mono">@conflict.Prefix</code>
+                                            @if (conflict.RowNumber > 0)
+                                            {
+                                                <div class="text-secondary small">row @conflict.RowNumber</div>
+                                            }
+                                        </td>
+                                        <td>
+                                            <ul class="diff-list">
+                                                @foreach (var diff in conflict.Differences)
+                                                {
+                                                    <li>
+                                                        <span class="diff-field">@diff.Field</span>
+                                                        <span class="diff-old">@Show(diff.OldValue)</span>
+                                                        <span class="diff-arrow">→</span>
+                                                        <span class="diff-new">@Show(diff.NewValue)</span>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm w-100" role="group">
+                                                <button type="button"
+                                                        class="btn @(decision == true ? "btn-primary" : "btn-outline-secondary")"
+                                                        @onclick="() => SetDecision(conflict.PendingBinConflictId, true)"
+                                                        disabled="@_resolving">
+                                                    Update
+                                                </button>
+                                                <button type="button"
+                                                        class="btn @(decision == false ? "btn-secondary" : "btn-outline-secondary")"
+                                                        @onclick="() => SetDecision(conflict.PendingBinConflictId, false)"
+                                                        disabled="@_resolving">
+                                                    Discard
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" @onclick="CloseConflicts" disabled="@_resolving">
+                        Cancel
+                    </button>
+                    <button class="btn btn-primary" @onclick="ApplyResolutions"
+                            disabled="@(_resolving || !AllDecided)">
+                        @if (_resolving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            <span>Applying…</span>
+                        }
+                        else
+                        {
+                            <span>Apply decisions</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
+
+    private bool _loading = true;
+    private bool _uploadOpen;
+    private bool _conflictsOpen;
+    private bool _busy;
+    private bool _resolving;
+
+    private IBrowserFile? _file;
+    private string? _uploadError;
+    private string? _resolveError;
+    private string? _loadError;
+
+    private BinImportResult? _result;
+    private ConflictResolutionResult? _resolveOutcome;
+    private List<BinConflict> _conflicts = new();
+    private readonly Dictionary<int, bool?> _decisions = new();
+
+    private int DecidedCount => _decisions.Values.Count(v => v.HasValue);
+    private bool AllDecided => _decisions.Count > 0 && _decisions.Values.All(v => v.HasValue);
+
+    /// <summary>
+    /// Mirrors the server's import status so the badge reflects the same outcome
+    /// without widening the API contract.
+    /// </summary>
+    private string Status => _result switch
+    {
+        null => "—",
+        { TotalRows: > 0 } r when r.RejectedCount == r.TotalRows => "Failed",
+        { } r when r.RejectedCount > 0 || r.ConflictCount > 0 => "Partial",
+        _ => "Success"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadConflicts();
+        }
+        catch (Exception ex)
+        {
+            _loadError = $"Could not load pending conflicts: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    /// <summary>
+    /// Pulls the current pending conflicts from the API and resets the decision map.
+    /// </summary>
+    private async Task LoadConflicts()
+    {
+        _conflicts = await Api.GetConflictsAsync();
+        _decisions.Clear();
+        foreach (var conflict in _conflicts)
+            _decisions[conflict.PendingBinConflictId] = null;
+    }
+
+    private void OpenUpload()
+    {
+        _file = null;
+        _uploadError = null;
+        _uploadOpen = true;
+    }
+
+    private void CloseUpload() => _uploadOpen = false;
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _file = e.File;
+        _uploadError = null;
+    }
+
+    private async Task RunImport()
+    {
+        if (_file is null)
+        {
+            _uploadError = "Choose a CSV file first.";
+            return;
+        }
+
+        _busy = true;
+        _uploadError = null;
+        try
+        {
+            using var buffer = new MemoryStream();
+            await _file.OpenReadStream(MaxFileSize).CopyToAsync(buffer);
+            buffer.Position = 0;
+
+            _result = await Api.ImportAsync(buffer, _file.Name);
+            _resolveOutcome = null;
+            _resolveError = null;
+
+            // Refresh the outstanding-conflict worklist from the server so it reflects
+            // this import plus anything left pending from earlier runs.
+            await LoadConflicts();
+
+            _uploadOpen = false;
+        }
+        catch (Exception ex)
+        {
+            _uploadError = $"Import failed: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void OpenConflicts()
+    {
+        _resolveError = null;
+        _conflictsOpen = true;
+    }
+
+    private void CloseConflicts() => _conflictsOpen = false;
+
+    private void SetDecision(int conflictId, bool update) => _decisions[conflictId] = update;
+
+    private void SetAll(bool update)
+    {
+        foreach (var id in _decisions.Keys.ToList())
+            _decisions[id] = update;
+    }
+
+    private async Task ApplyResolutions()
+    {
+        if (!AllDecided) return;
+
+        _resolving = true;
+        _resolveError = null;
+        try
+        {
+            var resolutions = _decisions
+                .Where(kv => kv.Value.HasValue)
+                .Select(kv => new ConflictResolution
+                {
+                    PendingBinConflictId = kv.Key,
+                    Update = kv.Value!.Value
+                })
+                .ToList();
+
+            _resolveOutcome = await Api.ResolveConflictsAsync(resolutions);
+
+            // Drop the resolved conflicts from the local worklist.
+            var resolvedIds = _decisions.Keys.ToHashSet();
+            _conflicts.RemoveAll(c => resolvedIds.Contains(c.PendingBinConflictId));
+            foreach (var id in resolvedIds)
+                _decisions.Remove(id);
+
+            _conflictsOpen = false;
+        }
+        catch (Exception ex)
+        {
+            _resolveError = $"Could not apply decisions: {ex.Message}";
+        }
+        finally
+        {
+            _resolving = false;
+        }
+    }
+
+    private static string StatusColor(string status) => status switch
+    {
+        "Success" => "success",
+        "Partial" => "warning",
+        "Failed" => "danger",
+        _ => "secondary"
+    };
+
+    private static string Show(string? value) => string.IsNullOrEmpty(value) ? "—" : value;
+
+    private static string FormatSize(long bytes) =>
+        bytes < 1024 ? $"{bytes} B"
+        : bytes < 1024 * 1024 ? $"{bytes / 1024.0:0.#} KB"
+        : $"{bytes / (1024.0 * 1024):0.#} MB";
+}

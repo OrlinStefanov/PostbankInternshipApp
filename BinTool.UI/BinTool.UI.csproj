@@ -12,4 +12,8 @@
     <PackageReference Include="MudBlazor" Version="8.9.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\BinTool.Core\BinTool.Core.csproj" />
+  </ItemGroup>
+
 </Project>

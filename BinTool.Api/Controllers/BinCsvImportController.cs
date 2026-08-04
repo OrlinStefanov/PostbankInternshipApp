@@ -33,6 +33,17 @@ public class BinCsvImportController : ControllerBase
     }
 
     /// <summary>
+    /// Returns the conflicts still awaiting a decision, so the UI can restore the
+    /// resolution workflow after a page reload.
+    /// </summary>
+    [HttpGet("conflicts")]
+    public async Task<IActionResult> GetConflicts(CancellationToken cancellationToken)
+    {
+        var conflicts = await _service.GetPendingConflictsAsync(cancellationToken);
+        return Ok(conflicts);
+    }
+
+    /// <summary>
     /// Applies the user's per-conflict decisions from a previous import: each
     /// conflict is either used to overwrite the existing BIN range or discarded.
     /// </summary>
