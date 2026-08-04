@@ -66,6 +66,7 @@ public class BinCsvImportService : IBinCsvImportService
             ImportedByUserId = null, // no authenticated user yet
             Status = "Success"
         };
+
         _db.ImportHistories.Add(history);
 
         using var reader = new StreamReader(
@@ -524,6 +525,7 @@ public class BinCsvImportService : IBinCsvImportService
         BinImportResult result, ImportHistory history, int rowNumber, string reason, string raw)
     {
         result.Errors.Add(new BinImportError { RowNumber = rowNumber, Reason = reason, RawData = raw });
+        
         history.RejectedRows_Navigation.Add(new RejectedImportRow
         {
             RowNumber = rowNumber,
@@ -537,7 +539,9 @@ public class BinCsvImportService : IBinCsvImportService
     {
         result.RejectedCount = result.Errors.Count;
         history.RejectedRows = result.RejectedCount;
+
         await _db.SaveChangesAsync(cancellationToken);
+        
         result.ImportHistoryId = history.ImportHistoryId;
     }
 

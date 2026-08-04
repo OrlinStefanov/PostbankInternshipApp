@@ -107,12 +107,38 @@ The `main` branch is protected: direct pushes are blocked, and all merges requir
 
 ### Endpoints
 
-- `GET /health` - Health check endpoint (returns HTTP 200 if running)
-- `POST /api/bin/classify` - Classify a BIN
-- `POST /api/fees/calculate` - Calculate transaction fee
-- `GET /api/commissions/rules` - List all commission rules
+Implemented:
+
+- `GET /api/health` — Health check (returns HTTP 200 if running)
+- `POST /api/bin/classify` — Classify a BIN
+- `POST /api/BinCsvImport/import` — Import a CSV of BIN ranges
+- `GET /api/BinCsvImport/conflicts` — List the conflicts awaiting a decision
+- `POST /api/BinCsvImport/resolve-conflicts` — Apply update/discard decisions
+
+Planned:
+
+- `POST /api/fees/calculate` — Calculate transaction fee
+- `GET /api/commissions/rules` — List all commission rules
 
 Full documentation is available in Swagger UI when running the API in development mode.
+
+### BIN classification
+
+`POST /api/bin/classify` takes `{ "bin": "400001" }` and returns the card scheme, product
+type, funding type, issuing country and region.
+
+The lookup is a **longest-prefix match**: an 8-digit range is more specific than the 6-digit
+range it sits inside, so it wins; failing that the 7-digit range is tried, then the 6-digit
+one. Only ranges valid today are considered — expired, not-yet-started and deleted ranges are
+skipped, and a shorter range may match in their place. No scheme ranges are hard-coded; every
+answer comes from imported data.
+
+A full card number may be sent instead of a BIN. Only the leading 8 digits are used — the rest
+is discarded before the lookup runs, is never stored or logged, and the response echoes back
+only the truncated value.
+
+When no range covers the BIN the response is still `200` with `"matched": false` and the card
+attributes null. A malformed BIN (non-digits, or outside 6–19 digits) returns `400`.
 
 ## CSV Import Format
 
@@ -148,9 +174,42 @@ Prefix,CardScheme,ProductType,FundingType,CountryCode,ValidFrom,ValidTo
 
 A sample 20-row file is available at [`samples/bin_import_sample.csv`](samples/bin_import_sample.csv).
 
-Rows that fail validation (unknown lookup value, invalid prefix length, bad date format) are
-skipped and recorded in `RejectedImportRow` with a reason; the rest of the file still imports.
-Totals are summarized in `ImportHistory` (`ImportedRows`, `UpdatedRows`, `RejectedRows`).
+### Import outcomes
+
+Every data row lands in exactly one of four outcomes. A bad row never fails the whole file.
+
+| Outcome | Meaning | Recorded in |
+|---|---|---|
+| **Inserted** | The prefix is new. A prefix whose only record was soft-deleted is revived in place rather than duplicated, and counts here. | `BinRange`; `ImportHistory.ImportedRows` |
+| **Unchanged** | The prefix exists and every mapped column already matches. Skipped — nothing is written. | Counted only, in the import result |
+| **Conflict** | The prefix exists with at least one differing column. Nothing is overwritten; the row is staged for a decision. | `PendingBinConflict` (`Status = Pending`) |
+| **Rejected** | Unknown lookup value, invalid prefix length, bad date format, or a duplicate of an earlier row in the same file. | `RejectedImportRow` (reason + raw row); `ImportHistory.RejectedRows` |
+
+Totals are summarized in `ImportHistory` (`ImportedRows`, `UpdatedRows`, `RejectedRows`, `Status`).
+`Status` is `Failed` only when every row was rejected. Inserts, revivals, rejections and staged
+conflicts are written in a single save, so an import run is all-or-nothing at the database level.
+
+### Duplicate prefixes: the conflict workflow
+
+A prefix that already exists but carries different values is neither rejected nor silently
+overwritten — the import stages it and a person decides.
+
+1. The import writes the incoming values to `PendingBinConflict` with the id of the BIN range it
+   would overwrite and the raw CSV line. The stored record is left untouched.
+2. `GET /api/BinCsvImport/conflicts` returns the outstanding conflicts, each with a per-field diff
+   (field, current value, incoming value). The diff is recomputed on read, so it stays accurate if
+   the stored record changed after the import.
+3. `POST /api/BinCsvImport/resolve-conflicts` applies one decision per conflict — `update` writes the
+   imported values onto the existing record, `discard` keeps the stored one. Either way the conflict
+   is closed and stops being returned.
+
+Because conflicts are persisted rather than held in memory, the review list survives a page reload or
+a restart; the file does not have to be uploaded again. Resolution is idempotent — unknown or
+already-resolved ids are counted under `notFoundCount` instead of failing the request, so a batch can
+safely be retried.
+
+The full column and validation spec, including the decisions pending mentor sign-off, is in
+[`samples/BIN_Import_CSV_Layout.docx`](samples/BIN_Import_CSV_Layout.docx).
 
 ## Development Notes
 

@@ -48,7 +48,11 @@ public static class ServiceExtensions
                     "2. `POST /api/BinCsvImport/resolve-conflicts` applies a decision to each staged " +
                     "conflict - overwrite the stored record, or keep it and discard the imported row.\n\n" +
                     "Conflicts are persisted, so `GET /api/BinCsvImport/conflicts` can rebuild the " +
-                    "outstanding worklist at any time (for example after the client reloads)."
+                    "outstanding worklist at any time (for example after the client reloads).\n\n" +
+                    "**Classifying a BIN** with `POST /api/Bin/classify` matches it against the " +
+                    "imported ranges, longest prefix first, and returns the card scheme, product " +
+                    "type, funding type, issuing country and region. No scheme ranges are " +
+                    "hard-coded - every answer comes from data in the database."
             });
 
             // Surface the doc comments from the controllers and the shared import models.
@@ -70,6 +74,7 @@ public static class ServiceExtensions
 
         services.AddEndpointsApiExplorer();
         services.AddScoped<IBinCsvImportService, BinCsvImportService>();
+        services.AddScoped<IBinClassificationService, BinClassificationService>();
 
         return services;
     }
