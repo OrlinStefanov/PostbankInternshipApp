@@ -1,0 +1,362 @@
+@page "/bin-ranges"
+@rendermode InteractiveServer
+@inject BinRangeApiClient Api
+
+<PageTitle>BIN Ranges</PageTitle>
+
+<div class="page-head d-flex flex-wrap justify-content-between align-items-start gap-3">
+    <div>
+        <h1 class="h3 mb-1">BIN Ranges</h1>
+        <p class="text-secondary mb-0">
+            Everything currently stored. Filter to find a prefix, and check its status
+            before assuming classification will match it.
+        </p>
+    </div>
+    <a class="btn btn-outline-primary" href="import">Import CSV</a>
+</div>
+
+<div class="filters card mt-4">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-6 col-lg-3">
+                <label class="form-label" for="f-prefix">Prefix starts with</label>
+                <input id="f-prefix" class="form-control" inputmode="numeric" placeholder="e.g. 4000"
+                       value="@_prefix" @oninput="OnPrefixInput" @onkeydown="OnPrefixKeyDown" />
+            </div>
+
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label" for="f-scheme">Scheme</label>
+                <select id="f-scheme" class="form-select" value="@_cardScheme"
+                        @onchange="e => ApplyFilter(v => _cardScheme = v, e)">
+                    <option value="">Any</option>
+                    @foreach (var name in _options.CardSchemes)
+                    {
+                        <option value="@name">@name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label" for="f-product">Product</label>
+                <select id="f-product" class="form-select" value="@_productType"
+                        @onchange="e => ApplyFilter(v => _productType = v, e)">
+                    <option value="">Any</option>
+                    @foreach (var name in _options.ProductTypes)
+                    {
+                        <option value="@name">@name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label" for="f-funding">Funding</label>
+                <select id="f-funding" class="form-select" value="@_fundingType"
+                        @onchange="e => ApplyFilter(v => _fundingType = v, e)">
+                    <option value="">Any</option>
+                    @foreach (var name in _options.FundingTypes)
+                    {
+                        <option value="@name">@name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label" for="f-country">Country</label>
+                <select id="f-country" class="form-select" value="@_countryCode"
+                        @onchange="e => ApplyFilter(v => _countryCode = v, e)">
+                    <option value="">Any</option>
+                    @foreach (var country in _options.Countries)
+                    {
+                        <option value="@country.IsoCode">@country.IsoCode — @country.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-6 col-md-3 col-lg-1">
+                <label class="form-label" for="f-status">Status</label>
+                <select id="f-status" class="form-select" value="@_status" @onchange="OnStatusChanged">
+                    <option value="">Live</option>
+                    <option value="@nameof(BinRangeStatus.Active)">Active</option>
+                    <option value="@nameof(BinRangeStatus.Scheduled)">Scheduled</option>
+                    <option value="@nameof(BinRangeStatus.Expired)">Expired</option>
+                    <option value="@nameof(BinRangeStatus.Deleted)">Deleted</option>
+                </select>
+            </div>
+        </div>
+
+        @if (HasFilters)
+        {
+            <button class="btn btn-link btn-sm px-0 mt-2" @onclick="ClearFilters">Clear filters</button>
+        }
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger mt-4" role="alert">@_error</div>
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-4 mb-2">
+    <span class="text-secondary small">
+        @if (_loading)
+        {
+            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            <span>Loading…</span>
+        }
+        else if (_page.TotalCount == 0)
+        {
+            <span>No ranges match</span>
+        }
+        else
+        {
+            <span>
+                @FirstOnPage–@LastOnPage of <strong class="text-body">@_page.TotalCount</strong>
+                @(_page.TotalCount == 1 ? "range" : "ranges")
+            </span>
+        }
+    </span>
+
+    <div class="d-flex align-items-center gap-2">
+        <label class="text-secondary small mb-0" for="f-size">Per page</label>
+        <select id="f-size" class="form-select form-select-sm w-auto" value="@_pageSize"
+                @onchange="OnPageSizeChanged">
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+        </select>
+    </div>
+</div>
+
+@if (!_loading && _page.TotalCount == 0 && _error is null)
+{
+    <div class="card empty-state">
+        <div class="card-body text-center py-5">
+            <p class="mb-1 fw-semibold">Nothing to show</p>
+            <p class="text-secondary mb-3">
+                @(HasFilters
+                    ? "No BIN range matches these filters."
+                    : "No BIN ranges have been imported yet.")
+            </p>
+            @if (HasFilters)
+            {
+                <button class="btn btn-outline-secondary btn-sm" @onclick="ClearFilters">Clear filters</button>
+            }
+            else
+            {
+                <a class="btn btn-primary btn-sm" href="import">Import a CSV</a>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0 range-table">
+                <thead>
+                    <tr>
+                        <th class="ps-3">Prefix</th>
+                        <th>Scheme</th>
+                        <th>Product</th>
+                        <th>Funding</th>
+                        <th>Country</th>
+                        <th>Region</th>
+                        <th>Valid from</th>
+                        <th>Valid to</th>
+                        <th class="pe-3">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in _page.Items)
+                    {
+                        <tr class="@(item.Status == BinRangeStatus.Deleted ? "row-muted" : null)">
+                            <td class="ps-3">
+                                <code class="mono">@item.Prefix</code>
+                                <span class="text-secondary small ms-1">@item.PrefixLength</span>
+                            </td>
+                            <td>@item.CardScheme</td>
+                            <td>@item.ProductType</td>
+                            <td>@item.FundingType</td>
+                            <td>
+                                <span class="fw-semibold">@item.CountryCode</span>
+                                <span class="text-secondary small d-block">@item.CountryName</span>
+                            </td>
+                            <td class="text-secondary">@item.Region</td>
+                            <td>@Date(item.ValidFrom)</td>
+                            <td>@(item.ValidTo is null ? OpenEnded : Date(item.ValidTo.Value))</td>
+                            <td class="pe-3">
+                                <span class="badge rounded-pill text-bg-@StatusColor(item.Status)">
+                                    @item.Status
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @if (_page.TotalPages > 1)
+    {
+        <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="BIN range pages">
+            <button class="btn btn-outline-secondary btn-sm"
+                    @onclick="() => GoToPage(_page.Page - 1)"
+                    disabled="@(_loading || !_page.HasPrevious)">
+                Previous
+            </button>
+
+            <span class="text-secondary small">Page @_page.Page of @_page.TotalPages</span>
+
+            <button class="btn btn-outline-secondary btn-sm"
+                    @onclick="() => GoToPage(_page.Page + 1)"
+                    disabled="@(_loading || !_page.HasNext)">
+                Next
+            </button>
+        </nav>
+    }
+}
+
+@code {
+    private const string OpenEnded = "—";
+
+    private bool _loading = true;
+    private string? _error;
+
+    private BinRangeFilterOptions _options = new();
+    private PagedResult<BinRangeListItem> _page = new();
+
+    private string _prefix = string.Empty;
+    private string _cardScheme = string.Empty;
+    private string _productType = string.Empty;
+    private string _fundingType = string.Empty;
+    private string _countryCode = string.Empty;
+    private string _status = string.Empty;
+    private int _pageSize = BinRangeQuery.DefaultPageSize;
+    private int _currentPage = 1;
+
+    private bool HasFilters =>
+        !string.IsNullOrWhiteSpace(_prefix)
+        || !string.IsNullOrEmpty(_cardScheme)
+        || !string.IsNullOrEmpty(_productType)
+        || !string.IsNullOrEmpty(_fundingType)
+        || !string.IsNullOrEmpty(_countryCode)
+        || !string.IsNullOrEmpty(_status);
+
+    private int FirstOnPage => (_page.Page - 1) * _page.PageSize + 1;
+
+    private int LastOnPage => Math.Min(_page.Page * _page.PageSize, _page.TotalCount);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _options = await Api.GetFilterOptionsAsync();
+        }
+        catch (Exception ex)
+        {
+            // A failed dropdown load leaves the filters usable as "Any", so the listing
+            // is still worth attempting.
+            _error = $"Could not load filter options: {ex.Message}";
+        }
+
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        try
+        {
+            _page = await Api.SearchAsync(new BinRangeQuery
+            {
+                Prefix = _prefix,
+                CardScheme = _cardScheme,
+                ProductType = _productType,
+                FundingType = _fundingType,
+                CountryCode = _countryCode,
+                Status = string.IsNullOrEmpty(_status)
+                    ? null
+                    : Enum.Parse<BinRangeStatus>(_status),
+                Page = _currentPage,
+                PageSize = _pageSize
+            });
+
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Could not load BIN ranges: {ex.Message}";
+            _page = new PagedResult<BinRangeListItem>();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    /// <summary>
+    /// Any filter change resets to page 1: staying on page 7 of a narrower result set
+    /// would show an empty table.
+    /// </summary>
+    private async Task ReloadFromFirstPage()
+    {
+        _currentPage = 1;
+        await Load();
+    }
+
+    private void OnPrefixInput(ChangeEventArgs e) => _prefix = e.Value?.ToString() ?? string.Empty;
+
+    private async Task OnPrefixKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await ReloadFromFirstPage();
+        }
+    }
+
+    private async Task ApplyFilter(Action<string> set, ChangeEventArgs e)
+    {
+        set(e.Value?.ToString() ?? string.Empty);
+        await ReloadFromFirstPage();
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs e)
+    {
+        _status = e.Value?.ToString() ?? string.Empty;
+        await ReloadFromFirstPage();
+    }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        _pageSize = int.TryParse(e.Value?.ToString(), out var size)
+            ? size
+            : BinRangeQuery.DefaultPageSize;
+
+        await ReloadFromFirstPage();
+    }
+
+    private async Task GoToPage(int page)
+    {
+        if (page < 1 || page > _page.TotalPages) return;
+
+        _currentPage = page;
+        await Load();
+    }
+
+    private async Task ClearFilters()
+    {
+        _prefix = _cardScheme = _productType = _fundingType = _countryCode = _status = string.Empty;
+        await ReloadFromFirstPage();
+    }
+
+    private static string Date(DateTime value) => value.ToString("yyyy-MM-dd");
+
+    private static string StatusColor(BinRangeStatus status) => status switch
+    {
+        BinRangeStatus.Active => "success",
+        BinRangeStatus.Scheduled => "info",
+        BinRangeStatus.Expired => "warning",
+        BinRangeStatus.Deleted => "secondary",
+        _ => "secondary"
+    };
+}

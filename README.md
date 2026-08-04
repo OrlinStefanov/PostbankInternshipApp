@@ -111,6 +111,8 @@ Implemented:
 
 - `GET /api/health` — Health check (returns HTTP 200 if running)
 - `POST /api/bin/classify` — Classify a BIN
+- `GET /api/binranges` — Browse stored BIN ranges (filtered and paged)
+- `GET /api/binranges/filters` — Reference values available as filters
 - `POST /api/BinCsvImport/import` — Import a CSV of BIN ranges
 - `GET /api/BinCsvImport/conflicts` — List the conflicts awaiting a decision
 - `POST /api/BinCsvImport/resolve-conflicts` — Apply update/discard decisions
@@ -139,6 +141,32 @@ only the truncated value.
 
 When no range covers the BIN the response is still `200` with `"matched": false` and the card
 attributes null. A malformed BIN (non-digits, or outside 6–19 digits) returns `400`.
+
+### Browsing BIN ranges
+
+`GET /api/binranges` lists what is stored, filtered and paged. Filters are optional and combine
+with AND: `prefix` (starts-with), plus `cardScheme`, `productType`, `fundingType` and
+`countryCode` matched case-insensitively.
+
+Each row carries a `status` derived from its dates and delete flag rather than stored, so it
+can't fall out of step with them:
+
+| Status | Meaning |
+|---|---|
+| `Active` | Valid today — this is what classification will match. |
+| `Scheduled` | `validFrom` is in the future. |
+| `Expired` | `validTo` has passed. |
+| `Deleted` | Soft-deleted. |
+
+`status=<value>` narrows to one of those. Left unset, deleted ranges are excluded and everything
+else is returned — so `status=Deleted` is the only way to see them. `pageSize` is capped at 200,
+and `totalCount` counts every match rather than just the page, so a client can render a pager
+without a second call.
+
+`GET /api/binranges/filters` returns the card schemes, product types, funding types and
+countries currently in the database, so a client populates its dropdowns from data.
+
+The Blazor UI exposes this at **`/bin-ranges`**.
 
 ## CSV Import Format
 

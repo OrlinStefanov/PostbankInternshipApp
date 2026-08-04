@@ -7,14 +7,17 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Typed client for the BinTool API. Base URL is configurable; the dev cert is
+// Typed clients for the BinTool API. Base URL is configurable; the dev cert is
 // accepted only in Development so localhost HTTPS calls don't fail the handshake.
-builder.Services.AddHttpClient<BinImportApiClient>(client =>
-{
-    var baseUrl = builder.Configuration["Api:BaseUrl"] ?? "https://localhost:7258";
-    client.BaseAddress = new Uri(baseUrl);
-})
-.ConfigurePrimaryHttpMessageHandler(() =>
+var apiBaseUrl = builder.Configuration["Api:BaseUrl"] ?? "https://localhost:7258";
+
+builder.Services.AddHttpClient<BinImportApiClient>(client => client.BaseAddress = new Uri(apiBaseUrl))
+    .ConfigurePrimaryHttpMessageHandler(ApiHandler);
+
+builder.Services.AddHttpClient<BinRangeApiClient>(client => client.BaseAddress = new Uri(apiBaseUrl))
+    .ConfigurePrimaryHttpMessageHandler(ApiHandler);
+
+HttpClientHandler ApiHandler()
 {
     var handler = new HttpClientHandler();
     if (builder.Environment.IsDevelopment())
@@ -23,7 +26,7 @@ builder.Services.AddHttpClient<BinImportApiClient>(client =>
             HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
     }
     return handler;
-});
+}
 
 var app = builder.Build();
 

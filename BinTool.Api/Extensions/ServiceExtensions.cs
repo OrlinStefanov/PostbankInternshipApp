@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json.Serialization;
 using BinTool.Core.Entities;
 using BinTool.Core.Models.Import;
 using BinTool.Core.Services;
@@ -30,7 +31,12 @@ public static class ServiceExtensions
         .AddDefaultTokenProviders();
 
         // API
-        services.AddControllers();
+        services.AddControllers().AddJsonOptions(options =>
+        {
+            // Enums go out as their names, matching the names the query string accepts,
+            // so "Expired" means the same thing in a request and in a response.
+            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        });
         services.AddSwaggerGen(options =>
         {
             options.SwaggerDoc("v1", new OpenApiInfo
@@ -52,7 +58,10 @@ public static class ServiceExtensions
                     "**Classifying a BIN** with `POST /api/Bin/classify` matches it against the " +
                     "imported ranges, longest prefix first, and returns the card scheme, product " +
                     "type, funding type, issuing country and region. No scheme ranges are " +
-                    "hard-coded - every answer comes from data in the database."
+                    "hard-coded - every answer comes from data in the database.\n\n" +
+                    "**Browsing what is stored** is `GET /api/BinRanges`, which filters and pages " +
+                    "the BIN ranges and reports each one's status (active, scheduled, expired or " +
+                    "deleted). `GET /api/BinRanges/filters` returns the reference values to filter by."
             });
 
             // Surface the doc comments from the controllers and the shared import models.
@@ -75,6 +84,7 @@ public static class ServiceExtensions
         services.AddEndpointsApiExplorer();
         services.AddScoped<IBinCsvImportService, BinCsvImportService>();
         services.AddScoped<IBinClassificationService, BinClassificationService>();
+        services.AddScoped<IBinRangeQueryService, BinRangeQueryService>();
 
         return services;
     }
