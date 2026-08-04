@@ -4,6 +4,7 @@ using BinTool.Core.Models.Import;
 using BinTool.Core.Services;
 using BinTool.Infrastructure.Data;
 using CsvHelper;
+using CsvHelper.Configuration;
 using Microsoft.EntityFrameworkCore;
 
 namespace BinTool.Infrastructure.Services;
@@ -17,9 +18,31 @@ public class BinCsvImportService : IBinCsvImportService
     /// </summary>
     private const string SystemUser = "system";
 
+    /// <summary>
+    /// Read buffer for the CSV stream. Larger than the 1 KB default so bulk files
+    /// need far fewer underlying reads.
+    /// </summary>
+    private const int StreamBufferSize = 64 * 1024;
+
+    /// <summary>
+    /// Existing prefixes are looked up in batches so a large file does not build a
+    /// single enormous IN (...) clause, which is slow to plan and can exceed the
+    /// provider's parameter limit (SQLite caps host parameters per statement).
+    /// </summary>
+    private const int PrefixLookupBatchSize = 500;
+
     private static readonly string[] RequiredColumns =
     {
         "Prefix", "CardScheme", "ProductType", "FundingType", "CountryCode", "ValidFrom"
+    };
+
+    /// <summary>
+    /// A short row must not abort the whole import: with no MissingFieldFound handler
+    /// CsvHelper returns null for absent fields, which validation then rejects per row.
+    /// </summary>
+    private static readonly CsvConfiguration CsvSettings = new(CultureInfo.InvariantCulture)
+    {
+        MissingFieldFound = null
     };
 
     private readonly AppDbContext _db;
@@ -45,8 +68,9 @@ public class BinCsvImportService : IBinCsvImportService
         };
         _db.ImportHistories.Add(history);
 
-        using var reader = new StreamReader(csvStream);
-        using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+        using var reader = new StreamReader(
+            csvStream, detectEncodingFromByteOrderMarks: true, bufferSize: StreamBufferSize);
+        using var csv = new CsvReader(reader, CsvSettings);
 
         if (!csv.Read() || !csv.ReadHeader())
         {
@@ -57,7 +81,7 @@ public class BinCsvImportService : IBinCsvImportService
         }
 
         var header = csv.HeaderRecord ?? Array.Empty<string>();
-        var missing = RequiredColumns.Where(c => !header.Contains(c)).ToList();
+        var missing = RequiredColumns.Where(c => Array.IndexOf(header, c) < 0).ToList();
         if (missing.Count > 0)
         {
             AddRejection(result, history, 0,
@@ -67,12 +91,14 @@ public class BinCsvImportService : IBinCsvImportService
             return result;
         }
 
-        var hasValidTo = header.Contains("ValidTo");
+        // Resolve column positions once. Reading fields by index in the loop avoids a
+        // name lookup per field per row.
+        var columns = FieldIndexes.FromHeader(header);
 
         // First pass: parse, validate structure, resolve lookups, and collect the
-        // rows we might persist. We defer the existing-row lookup so it can be a
-        // single batched query.
-        var seenPrefixes = new HashSet<string>();
+        // rows we might persist. We defer the existing-row lookup so it can be
+        // batched instead of hitting the database per row.
+        var seenPrefixes = new HashSet<string>(StringComparer.Ordinal);
         var candidates = new List<Candidate>();
         var rowNumber = 0;
 
@@ -83,13 +109,13 @@ public class BinCsvImportService : IBinCsvImportService
 
             var raw = csv.Parser.RawRecord.Trim();
 
-            var prefix = csv.GetField("Prefix")?.Trim();
-            var cardScheme = csv.GetField("CardScheme")?.Trim();
-            var productType = csv.GetField("ProductType")?.Trim();
-            var fundingType = csv.GetField("FundingType")?.Trim();
-            var countryCode = csv.GetField("CountryCode")?.Trim();
-            var validFrom = csv.GetField("ValidFrom")?.Trim();
-            var validTo = hasValidTo ? csv.GetField("ValidTo")?.Trim() : null;
+            var prefix = csv.GetField(columns.Prefix)?.Trim();
+            var cardScheme = csv.GetField(columns.CardScheme)?.Trim();
+            var productType = csv.GetField(columns.ProductType)?.Trim();
+            var fundingType = csv.GetField(columns.FundingType)?.Trim();
+            var countryCode = csv.GetField(columns.CountryCode)?.Trim();
+            var validFrom = csv.GetField(columns.ValidFrom)?.Trim();
+            var validTo = columns.ValidTo >= 0 ? csv.GetField(columns.ValidTo)?.Trim() : null;
 
             if (!TryValidateRow(prefix, cardScheme, productType, fundingType,
                     countryCode, validFrom, validTo, out var row, out var reason))
@@ -98,14 +124,14 @@ public class BinCsvImportService : IBinCsvImportService
                 continue;
             }
 
-            if (!seenPrefixes.Add(row.Prefix!))
+            if (!seenPrefixes.Add(row.Prefix))
             {
                 AddRejection(result, history, rowNumber,
                     $"Duplicate prefix '{row.Prefix}' already appears earlier in the file", raw);
                 continue;
             }
 
-            if (!lookups.TryResolve(row, out var resolved, out var lookupReason))
+            if (!lookups.TryResolve(in row, out var resolved, out var lookupReason))
             {
                 AddRejection(result, history, rowNumber, lookupReason, raw);
                 continue;
@@ -115,13 +141,25 @@ public class BinCsvImportService : IBinCsvImportService
         }
 
         // Second pass: reconcile the resolved rows against the existing BIN ranges.
-        var prefixes = candidates.Select(c => c.Values.Prefix).ToList();
-        var existing = await _db.BinRanges
-            .Where(b => !b.IsDeleted && prefixes.Contains(b.Prefix))
-            .ToDictionaryAsync(b => b.Prefix, cancellationToken);
+        // Soft-deleted rows are included deliberately: the unique index on Prefix spans
+        // them, so inserting alongside one would violate the constraint.
+        var existing = new Dictionary<string, BinRange>(candidates.Count, StringComparer.Ordinal);
+        foreach (var batch in candidates.Select(c => c.Values.Prefix).Chunk(PrefixLookupBatchSize))
+        {
+            // Read-only for the common compare path; the rare revived row is attached
+            // explicitly below.
+            var rows = await _db.BinRanges
+                .AsNoTracking()
+                .Where(b => batch.Contains(b.Prefix))
+                .ToListAsync(cancellationToken);
+
+            foreach (var existingRow in rows)
+                existing[existingRow.Prefix] = existingRow;
+        }
 
         var now = DateTime.UtcNow;
         var stagedConflicts = new List<(PendingBinConflict Entity, int RowNumber, List<BinFieldDiff> Diffs)>();
+        var revivals = new Dictionary<int, ResolvedRow>();
 
         foreach (var candidate in candidates)
         {
@@ -144,6 +182,17 @@ public class BinCsvImportService : IBinCsvImportService
                     CreatedBy = SystemUser,
                     UpdatedBy = SystemUser
                 });
+                result.InsertedCount++;
+                continue;
+            }
+
+            // A soft-deleted range is not live data, so there is nothing for the user to
+            // arbitrate: revive the existing row in place with the imported values. The
+            // row keeps its identity and audit trail, and the prefix stays unique.
+            // Applied further down, against tracked instances.
+            if (current.IsDeleted)
+            {
+                revivals[current.BinRangeId] = v;
                 result.InsertedCount++;
                 continue;
             }
@@ -174,6 +223,33 @@ public class BinCsvImportService : IBinCsvImportService
             _db.Set<PendingBinConflict>().Add(conflict);
 
             stagedConflicts.Add((conflict, candidate.RowNumber, diffs));
+        }
+
+        // Revived rows are re-read with tracking so the change tracker owns the instance
+        // (attaching the no-tracking copy would clash with anything already tracked).
+        foreach (var batch in revivals.Keys.Chunk(PrefixLookupBatchSize))
+        {
+            var rows = await _db.BinRanges
+                .Where(b => batch.Contains(b.BinRangeId))
+                .ToListAsync(cancellationToken);
+
+            foreach (var row in rows)
+            {
+                var v = revivals[row.BinRangeId];
+
+                row.PrefixLength = v.Prefix.Length;
+                row.CardSchemeId = v.CardSchemeId;
+                row.ProductTypeId = v.ProductTypeId;
+                row.FundingTypeId = v.FundingTypeId;
+                row.CountryId = v.CountryId;
+                row.ValidFrom = v.ValidFrom;
+                row.ValidTo = v.ValidTo;
+                row.IsDeleted = false;
+                row.DeletedAt = null;
+                row.DeletedBy = null;
+                row.UpdatedAt = now;
+                row.UpdatedBy = SystemUser;
+            }
         }
 
         result.RejectedCount = result.Errors.Count;
@@ -265,13 +341,16 @@ public class BinCsvImportService : IBinCsvImportService
     {
         var lookups = await Lookups.LoadAsync(_db, cancellationToken);
 
+        // Read-only projection for display, so nothing here needs change tracking.
         var pending = await _db.Set<PendingBinConflict>()
+            .AsNoTracking()
             .Where(c => c.Status == ConflictStatus.Pending)
             .OrderBy(c => c.PendingBinConflictId)
             .ToListAsync(cancellationToken);
 
         var targetIds = pending.Select(c => c.TargetBinRangeId).Distinct().ToList();
         var targets = await _db.BinRanges
+            .AsNoTracking()
             .Where(b => targetIds.Contains(b.BinRangeId))
             .ToDictionaryAsync(b => b.BinRangeId, cancellationToken);
 
@@ -305,12 +384,12 @@ public class BinCsvImportService : IBinCsvImportService
     private static bool TryValidateRow(
         string? prefix, string? cardScheme, string? productType, string? fundingType,
         string? countryCode, string? validFrom, string? validTo,
-        out BinImportRow row, out string reason)
+        out ParsedRow row, out string reason)
     {
-        row = new BinImportRow();
+        row = default;
         reason = string.Empty;
 
-        if (string.IsNullOrWhiteSpace(prefix) || prefix.Length is < 6 or > 8 || !prefix.All(char.IsDigit))
+        if (string.IsNullOrWhiteSpace(prefix) || prefix.Length is < 6 or > 8 || !IsAllDigits(prefix))
         {
             reason = "Prefix must be 6-8 digits";
             return false;
@@ -320,7 +399,7 @@ public class BinCsvImportService : IBinCsvImportService
         if (string.IsNullOrWhiteSpace(productType)) { reason = "ProductType is required"; return false; }
         if (string.IsNullOrWhiteSpace(fundingType)) { reason = "FundingType is required"; return false; }
 
-        if (string.IsNullOrWhiteSpace(countryCode) || countryCode.Length != 2 || !countryCode.All(char.IsLetter))
+        if (string.IsNullOrWhiteSpace(countryCode) || countryCode.Length != 2 || !IsAllLetters(countryCode))
         {
             reason = "CountryCode must be a 2-letter ISO code";
             return false;
@@ -353,16 +432,30 @@ public class BinCsvImportService : IBinCsvImportService
             to = parsedTo;
         }
 
-        row = new BinImportRow
+        row = new ParsedRow(prefix, cardScheme, productType, fundingType, countryCode, from, to);
+        return true;
+    }
+
+    /// <summary>
+    /// Hand-rolled character scans. LINQ's <c>All</c> would allocate an enumerator for
+    /// every field of every row; these run allocation-free on the parse hot path.
+    /// </summary>
+    private static bool IsAllDigits(string value)
+    {
+        foreach (var c in value)
         {
-            Prefix = prefix,
-            CardScheme = cardScheme,
-            ProductType = productType,
-            FundingType = fundingType,
-            CountryCode = countryCode,
-            ValidFrom = from,
-            ValidTo = to
-        };
+            if (!char.IsDigit(c)) return false;
+        }
+
+        return true;
+    }
+
+    private static bool IsAllLetters(string value)
+    {
+        foreach (var c in value)
+        {
+            if (!char.IsLetter(c)) return false;
+        }
 
         return true;
     }
@@ -451,6 +544,40 @@ public class BinCsvImportService : IBinCsvImportService
     private sealed record Candidate(int RowNumber, string Raw, ResolvedRow Values);
 
     /// <summary>
+    /// Column positions in the file being read, resolved once from the header.
+    /// <see cref="ValidTo"/> is -1 when the optional column is absent.
+    /// </summary>
+    private readonly struct FieldIndexes
+    {
+        public int Prefix { get; private init; }
+        public int CardScheme { get; private init; }
+        public int ProductType { get; private init; }
+        public int FundingType { get; private init; }
+        public int CountryCode { get; private init; }
+        public int ValidFrom { get; private init; }
+        public int ValidTo { get; private init; }
+
+        public static FieldIndexes FromHeader(string[] header) => new()
+        {
+            Prefix = Array.IndexOf(header, "Prefix"),
+            CardScheme = Array.IndexOf(header, "CardScheme"),
+            ProductType = Array.IndexOf(header, "ProductType"),
+            FundingType = Array.IndexOf(header, "FundingType"),
+            CountryCode = Array.IndexOf(header, "CountryCode"),
+            ValidFrom = Array.IndexOf(header, "ValidFrom"),
+            ValidTo = Array.IndexOf(header, "ValidTo")
+        };
+    }
+
+    /// <summary>
+    /// A structurally-valid row before its lookup names are resolved to ids. A struct
+    /// so the parse loop does not allocate one object per row.
+    /// </summary>
+    private readonly record struct ParsedRow(
+        string Prefix, string CardScheme, string ProductType, string FundingType,
+        string CountryCode, DateTime ValidFrom, DateTime? ValidTo);
+
+    /// <summary>
     /// A validated import row with its lookup names resolved to database ids.
     /// </summary>
     private sealed record ResolvedRow(
@@ -510,37 +637,37 @@ public class BinCsvImportService : IBinCsvImportService
                 countries.ToDictionary(c => c.CountryId, c => c.IsoCode));
         }
 
-        public bool TryResolve(BinImportRow row, out ResolvedRow resolved, out string reason)
+        public bool TryResolve(in ParsedRow row, out ResolvedRow resolved, out string reason)
         {
             resolved = default!;
             reason = string.Empty;
 
-            if (!_cardSchemes.TryGetValue(row.CardScheme!, out var cardSchemeId))
+            if (!_cardSchemes.TryGetValue(row.CardScheme, out var cardSchemeId))
             {
                 reason = $"CardScheme '{row.CardScheme}' does not exist";
                 return false;
             }
 
-            if (!_productTypes.TryGetValue(row.ProductType!, out var productTypeId))
+            if (!_productTypes.TryGetValue(row.ProductType, out var productTypeId))
             {
                 reason = $"ProductType '{row.ProductType}' does not exist";
                 return false;
             }
 
-            if (!_fundingTypes.TryGetValue(row.FundingType!, out var fundingTypeId))
+            if (!_fundingTypes.TryGetValue(row.FundingType, out var fundingTypeId))
             {
                 reason = $"FundingType '{row.FundingType}' does not exist";
                 return false;
             }
 
-            if (!_countries.TryGetValue(row.CountryCode!, out var countryId))
+            if (!_countries.TryGetValue(row.CountryCode, out var countryId))
             {
                 reason = $"CountryCode '{row.CountryCode}' does not exist";
                 return false;
             }
 
             resolved = new ResolvedRow(
-                row.Prefix!, cardSchemeId, productTypeId, fundingTypeId, countryId,
+                row.Prefix, cardSchemeId, productTypeId, fundingTypeId, countryId,
                 row.ValidFrom, row.ValidTo);
             return true;
         }

@@ -24,7 +24,8 @@ public class BinImportResult
     public int TotalRows { get; set; }
 
     /// <summary>
-    /// New prefixes inserted into the database.
+    /// New prefixes added to the database. Includes prefixes whose only existing record
+    /// was soft-deleted and has been revived in place.
     /// </summary>
     public int InsertedCount { get; set; }
 
@@ -34,14 +35,14 @@ public class BinImportResult
     public int UnchangedCount { get; set; }
 
     /// <summary>
-    /// Existing prefixes with differing values, staged for a decision.
-    /// Equals <see cref="Conflicts"/>.Count.
+    /// Existing prefixes with differing values, staged for a decision. Always the number
+    /// of entries in <c>conflicts</c>.
     /// </summary>
     public int ConflictCount { get; set; }
 
     /// <summary>
-    /// Rows rejected due to bad structure or unknown lookup values.
-    /// Equals <see cref="Errors"/>.Count.
+    /// Rows rejected due to bad structure or unknown lookup values. Always the number of
+    /// entries in <c>errors</c>.
     /// </summary>
     public int RejectedCount { get; set; }
 

@@ -5,6 +5,10 @@ namespace BinTool.Core.Models.Import;
 /// </summary>
 public class ConflictResolution
 {
+    /// <summary>
+    /// Id of the staged conflict this decision applies to, as returned by the import or
+    /// by <c>GET /api/BinCsvImport/conflicts</c>.
+    /// </summary>
     public int PendingBinConflictId { get; set; }
 
     /// <summary>
