@@ -14,11 +14,6 @@ public class BinCsvImportService : IBinCsvImportService
     private const string DateFormat = "yyyy-MM-dd";
 
     /// <summary>
-    /// Placeholder actor recorded on audit fields until authentication is wired in.
-    /// </summary>
-    private const string SystemUser = "system";
-
-    /// <summary>
     /// Read buffer for the CSV stream. Larger than the 1 KB default so bulk files
     /// need far fewer underlying reads.
     /// </summary>
@@ -46,10 +41,12 @@ public class BinCsvImportService : IBinCsvImportService
     };
 
     private readonly AppDbContext _db;
+    private readonly ICurrentUser _currentUser;
 
-    public BinCsvImportService(AppDbContext db)
+    public BinCsvImportService(AppDbContext db, ICurrentUser currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
     public async Task<BinImportResult> ImportAsync(
@@ -63,7 +60,7 @@ public class BinCsvImportService : IBinCsvImportService
         var history = new ImportHistory
         {
             FileName = fileName,
-            ImportedByUserId = null, // no authenticated user yet
+            ImportedByUserId = _currentUser.UserId,
             Status = "Success"
         };
 
@@ -180,8 +177,8 @@ public class BinCsvImportService : IBinCsvImportService
                     ValidTo = v.ValidTo,
                     CreatedAt = now,
                     UpdatedAt = now,
-                    CreatedBy = SystemUser,
-                    UpdatedBy = SystemUser
+                    CreatedBy = _currentUser.Name,
+                    UpdatedBy = _currentUser.Name
                 });
                 result.InsertedCount++;
                 continue;
@@ -249,7 +246,7 @@ public class BinCsvImportService : IBinCsvImportService
                 row.DeletedAt = null;
                 row.DeletedBy = null;
                 row.UpdatedAt = now;
-                row.UpdatedBy = SystemUser;
+                row.UpdatedBy = _currentUser.Name;
             }
         }
 
@@ -319,7 +316,7 @@ public class BinCsvImportService : IBinCsvImportService
                 target.ValidFrom = conflict.ValidFrom;
                 target.ValidTo = conflict.ValidTo;
                 target.UpdatedAt = now;
-                target.UpdatedBy = SystemUser;
+                target.UpdatedBy = _currentUser.Name;
 
                 conflict.Status = ConflictStatus.Applied;
                 result.UpdatedCount++;
@@ -331,7 +328,7 @@ public class BinCsvImportService : IBinCsvImportService
             }
 
             conflict.ResolvedAt = now;
-            conflict.ResolvedBy = SystemUser;
+            conflict.ResolvedBy = _currentUser.Name;
         }
 
         await _db.SaveChangesAsync(cancellationToken);

@@ -1,0 +1,24 @@
+@page "/access-denied"
+
+<PageTitle>Access denied · BinTool</PageTitle>
+
+<div class="page-head">
+    <h1 class="h3 mb-1">Access denied</h1>
+    <p class="text-secondary mb-0">
+        You are signed in, but your role does not allow this page.
+    </p>
+</div>
+
+<div class="card mt-4">
+    <div class="card-body">
+        <p class="mb-2">
+            Importing BIN ranges and resolving conflicts are restricted to the
+            <strong>Admin</strong> role. Signing in again will not change that - the account
+            itself needs the role.
+        </p>
+        <p class="text-secondary small mb-3">
+            The API enforces the same rule, so this is not something a client can work around.
+        </p>
+        <a class="btn btn-outline-secondary btn-sm" href="/">Back to home</a>
+    </div>
+</div>

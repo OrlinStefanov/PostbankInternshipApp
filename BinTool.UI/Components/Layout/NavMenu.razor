@@ -14,16 +14,26 @@
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="bin-ranges">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> BIN Ranges
-            </NavLink>
-        </div>
+        @* A link is only shown to someone whose role can actually follow it. The route
+           itself is guarded too, so hiding it is presentation, not the control. *@
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="bin-ranges">
+                        <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> BIN Ranges
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="import">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> BIN Import
-            </NavLink>
-        </div>
+        <AuthorizeView Roles="@AppRoles.Admin">
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="import">
+                        <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> BIN Import
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
     </nav>
 </div>

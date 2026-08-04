@@ -1,5 +1,6 @@
 @page "/bin-ranges"
 @rendermode InteractiveServer
+@attribute [Authorize]
 @inject BinRangeApiClient Api
 
 <PageTitle>BIN Ranges</PageTitle>
@@ -12,7 +13,11 @@
             before assuming classification will match it.
         </p>
     </div>
-    <a class="btn btn-outline-primary" href="import">Import CSV</a>
+    <AuthorizeView Roles="@AppRoles.Admin">
+        <Authorized>
+            <a class="btn btn-outline-primary" href="import">Import CSV</a>
+        </Authorized>
+    </AuthorizeView>
 </div>
 
 <div class="filters card mt-4">
@@ -143,7 +148,11 @@
             }
             else
             {
-                <a class="btn btn-primary btn-sm" href="import">Import a CSV</a>
+                <AuthorizeView Roles="@AppRoles.Admin">
+                    <Authorized>
+                        <a class="btn btn-primary btn-sm" href="import">Import a CSV</a>
+                    </Authorized>
+                </AuthorizeView>
             }
         </div>
     </div>
@@ -163,6 +172,7 @@ else
                         <th>Region</th>
                         <th>Valid from</th>
                         <th>Valid to</th>
+                        <th>Added by</th>
                         <th class="pe-3">Status</th>
                     </tr>
                 </thead>
@@ -184,6 +194,18 @@ else
                             <td class="text-secondary">@item.Region</td>
                             <td>@Date(item.ValidFrom)</td>
                             <td>@(item.ValidTo is null ? OpenEnded : Date(item.ValidTo.Value))</td>
+                            <td title="@LastChanged(item)">
+                                @if (IsSystem(item.CreatedBy))
+                                {
+                                    @* Not an account: nobody was signed in when this was written. *@
+                                    <span class="badge rounded-pill text-bg-light border">System</span>
+                                }
+                                else
+                                {
+                                    <span class="fw-semibold">@(item.CreatedBy ?? OpenEnded)</span>
+                                }
+                                <span class="text-secondary small d-block">@Date(item.CreatedAt)</span>
+                            </td>
                             <td class="pe-3">
                                 <span class="badge rounded-pill text-bg-@StatusColor(item.Status)">
                                     @item.Status
@@ -350,6 +372,22 @@ else
     }
 
     private static string Date(DateTime value) => value.ToString("yyyy-MM-dd");
+
+    /// <summary>
+    /// "system" is the placeholder recorded when nobody was signed in, not a user name.
+    /// </summary>
+    private static bool IsSystem(string? user) =>
+        string.Equals(user, "system", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Shown on hover, so the last change is available without a column of its own.
+    /// </summary>
+    private static string LastChanged(BinRangeListItem item)
+    {
+        var who = IsSystem(item.UpdatedBy) ? "no signed-in user" : item.UpdatedBy ?? "unknown";
+
+        return $"Last changed {Date(item.UpdatedAt)} by {who}";
+    }
 
     private static string StatusColor(BinRangeStatus status) => status switch
     {

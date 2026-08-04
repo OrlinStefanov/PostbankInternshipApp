@@ -53,6 +53,8 @@ public class BinRangeQueryService : IBinRangeQueryService
                         : b.ValidFrom > today
                             ? BinRangeStatus.Scheduled
                             : BinRangeStatus.Active,
+                CreatedAt = b.CreatedAt,
+                CreatedBy = b.CreatedBy,
                 UpdatedAt = b.UpdatedAt,
                 UpdatedBy = b.UpdatedBy
             })

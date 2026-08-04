@@ -13,6 +13,17 @@ namespace BinTool.Infrastructure.Data;
 /// </summary>
 public static class DbInitializer
 {
+    /// <summary>
+    /// The demo accounts created on an empty database so the application can be signed
+    /// into straight after a clone. Each can be overridden from configuration, and the
+    /// whole step is skipped when <c>Seed:DemoUsers</c> is false.
+    /// </summary>
+    private static readonly SeedUser[] DemoUsers =
+    {
+        new("admin", "admin@bintool.local", "Admin@123", "System Administrator", AppRoles.Admin),
+        new("viewer", "viewer@bintool.local", "Viewer@123", "Read-only User", AppRoles.Viewer)
+    };
+
     public static async Task InitializeAsync(IServiceProvider services)
     {
         using var scope = services.CreateScope();
@@ -33,54 +44,64 @@ public static class DbInitializer
             }
         }
 
-        await SeedAdminAsync(provider, logger);
+        await SeedUsersAsync(provider, logger);
     }
 
     /// <summary>
-    /// Creates the bootstrap admin account on an empty database.
-    /// The password comes from configuration (Seed:AdminPassword, or a user secret)
-    /// so no credential is committed to the repository.
+    /// Creates the demo accounts on an empty database. Existing accounts are left alone,
+    /// so a changed password is never reset by a restart.
     /// </summary>
-    private static async Task SeedAdminAsync(IServiceProvider provider, ILogger logger)
+    private static async Task SeedUsersAsync(IServiceProvider provider, ILogger logger)
     {
         var configuration = provider.GetRequiredService<IConfiguration>();
         var userManager = provider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        var email = configuration["Seed:AdminEmail"];
-        var password = configuration["Seed:AdminPassword"];
-
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        // Unset means enabled, so a fresh clone can be signed into without configuration.
+        if (bool.TryParse(configuration["Seed:DemoUsers"], out var enabled) && !enabled)
         {
-            logger.LogWarning(
-                "Seed:AdminEmail / Seed:AdminPassword are not configured - skipping admin seeding. " +
-                "Set them via user secrets or environment variables to create the first admin.");
+            logger.LogInformation("Seed:DemoUsers is false - skipping demo account seeding.");
             return;
         }
 
-        if (await userManager.FindByEmailAsync(email) is not null)
+        foreach (var seed in DemoUsers)
         {
-            return;
+            // Per-role overrides, so a real deployment can supply its own credentials
+            // without editing code: Seed:Admin:UserName, Seed:Admin:Password, and so on.
+            var section = configuration.GetSection($"Seed:{seed.Role}");
+            var userName = section["UserName"] ?? seed.UserName;
+            var email = section["Email"] ?? seed.Email;
+            var password = section["Password"] ?? seed.Password;
+            var fullName = section["FullName"] ?? seed.FullName;
+
+            if (await userManager.FindByNameAsync(userName) is not null)
+            {
+                continue;
+            }
+
+            var user = new ApplicationUser
+            {
+                UserName = userName,
+                Email = email,
+                EmailConfirmed = true,
+                FullName = fullName,
+                IsActive = true
+            };
+
+            var result = await userManager.CreateAsync(user, password);
+            if (!result.Succeeded)
+            {
+                logger.LogError(
+                    "Failed to create the seed {Role} account: {Errors}",
+                    seed.Role, string.Join("; ", result.Errors.Select(e => e.Description)));
+                continue;
+            }
+
+            await userManager.AddToRoleAsync(user, seed.Role);
+            logger.LogInformation(
+                "Created seed {Role} account {UserName}", seed.Role, userName);
         }
-
-        var admin = new ApplicationUser
-        {
-            UserName = email,
-            Email = email,
-            EmailConfirmed = true,
-            FullName = "System Administrator",
-            IsActive = true
-        };
-
-        var result = await userManager.CreateAsync(admin, password);
-        if (!result.Succeeded)
-        {
-            logger.LogError(
-                "Failed to create the seed admin: {Errors}",
-                string.Join("; ", result.Errors.Select(e => e.Description)));
-            return;
-        }
-
-        await userManager.AddToRoleAsync(admin, AppRoles.Admin);
-        logger.LogInformation("Created seed admin account {Email}", email);
     }
+
+    private sealed record SeedUser(
+        string UserName, string Email, string Password, string FullName, string Role);
 }

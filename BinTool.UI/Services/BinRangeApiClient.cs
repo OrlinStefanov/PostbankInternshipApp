@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -21,10 +22,25 @@ public class BinRangeApiClient
     };
 
     private readonly HttpClient _http;
+    private readonly IAccessTokenProvider _tokens;
 
-    public BinRangeApiClient(HttpClient http)
+    public BinRangeApiClient(HttpClient http, IAccessTokenProvider tokens)
     {
         _http = http;
+        _tokens = tokens;
+    }
+
+    /// <summary>
+    /// Attaches the signed-in user's token. Safe to set on the instance: a typed client
+    /// gets its own <c>HttpClient</c>, so this never leaks across users.
+    /// </summary>
+    private async Task AuthorizeAsync()
+    {
+        var token = await _tokens.GetTokenAsync();
+
+        _http.DefaultRequestHeaders.Authorization = token is null
+            ? null
+            : new AuthenticationHeaderValue("Bearer", token);
     }
 
     /// <summary>
@@ -33,6 +49,8 @@ public class BinRangeApiClient
     public async Task<PagedResult<BinRangeListItem>> SearchAsync(
         BinRangeQuery query, CancellationToken cancellationToken = default)
     {
+        await AuthorizeAsync();
+
         var result = await _http.GetFromJsonAsync<PagedResult<BinRangeListItem>>(
             $"api/BinRanges?{BuildQueryString(query)}", Json, cancellationToken);
 
@@ -45,6 +63,8 @@ public class BinRangeApiClient
     public async Task<BinRangeFilterOptions> GetFilterOptionsAsync(
         CancellationToken cancellationToken = default)
     {
+        await AuthorizeAsync();
+
         return await _http.GetFromJsonAsync<BinRangeFilterOptions>(
             "api/BinRanges/filters", Json, cancellationToken) ?? new BinRangeFilterOptions();
     }

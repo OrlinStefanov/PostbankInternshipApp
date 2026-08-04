@@ -94,3 +94,24 @@ main {
         right: 0.75rem;
         top: 0.5rem;
     }
+
+/* Signed-in identity in the top bar */
+.user-chip {
+    display: inline-flex;
+    flex-direction: column;
+    line-height: 1.15;
+    text-align: right;
+}
+
+.user-name {
+    font-size: .875rem;
+    font-weight: 600;
+    color: var(--bs-body-color);
+}
+
+.user-roles {
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--bs-secondary-color);
+}

@@ -48,11 +48,25 @@ public class BinRangeListItem
     /// </summary>
     public BinRangeStatus Status { get; set; }
 
+    /// <summary>
+    /// When the range first entered the database.
+    /// </summary>
+    public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    /// User name of whoever added the range - normally the person who ran the import.
+    /// <para>
+    /// The literal <c>system</c> means no user was signed in at the time, which is how
+    /// rows written before authentication existed are recorded. It is not an account.
+    /// </para>
+    /// </summary>
+    public string? CreatedBy { get; set; }
+
     public DateTime UpdatedAt { get; set; }
 
     /// <summary>
-    /// Who last touched the record. Currently the literal "system" for anything an
-    /// import wrote, until authentication is wired in.
+    /// User name of whoever last changed the range. Differs from <see cref="CreatedBy"/>
+    /// once someone applies a conflict that overwrites it.
     /// </summary>
     public string? UpdatedBy { get; set; }
 }

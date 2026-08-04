@@ -109,13 +109,17 @@ The `main` branch is protected: direct pushes are blocked, and all merges requir
 
 Implemented:
 
-- `GET /api/health` — Health check (returns HTTP 200 if running)
-- `POST /api/bin/classify` — Classify a BIN
-- `GET /api/binranges` — Browse stored BIN ranges (filtered and paged)
-- `GET /api/binranges/filters` — Reference values available as filters
-- `POST /api/BinCsvImport/import` — Import a CSV of BIN ranges
-- `GET /api/BinCsvImport/conflicts` — List the conflicts awaiting a decision
-- `POST /api/BinCsvImport/resolve-conflicts` — Apply update/discard decisions
+| Endpoint | Access |
+|---|---|
+| `GET /api/health` — Health check | Anonymous |
+| `POST /api/auth/login` — Exchange credentials for a token | Anonymous |
+| `GET /api/auth/me` — Identity behind the token | Any signed-in user |
+| `POST /api/bin/classify` — Classify a BIN | Any signed-in user |
+| `GET /api/binranges` — Browse stored BIN ranges | Any signed-in user |
+| `GET /api/binranges/filters` — Reference values for filters | Any signed-in user |
+| `POST /api/BinCsvImport/import` — Import a CSV | **Admin** |
+| `GET /api/BinCsvImport/conflicts` — Conflicts awaiting a decision | **Admin** |
+| `POST /api/BinCsvImport/resolve-conflicts` — Apply decisions | **Admin** |
 
 Planned:
 
@@ -123,6 +127,65 @@ Planned:
 - `GET /api/commissions/rules` — List all commission rules
 
 Full documentation is available in Swagger UI when running the API in development mode.
+
+### Authentication
+
+The API uses **JWT bearer tokens**. `POST /api/auth/login` exchanges credentials for a signed
+token; send it on every other call as `Authorization: Bearer <accessToken>`. The token carries
+the user's roles and expires after 60 minutes (`Jwt:ExpiryMinutes`). There is no refresh token —
+when it expires, log in again.
+
+```bash
+curl -k -X POST https://localhost:7258/api/auth/login -H "Content-Type: application/json" -d "{\"userName\":\"admin\",\"password\":\"Admin@123\"}"
+```
+
+In Swagger UI, use the **Authorize** button and paste the `accessToken` — Swagger adds the
+`Bearer ` prefix itself.
+
+Roles are enforced by the API, not by the client: reading (classify, browse) is open to any
+signed-in user, while importing and resolving conflicts require **Admin**. A `403` means the
+token is valid but the role is not enough; a `401` means no token, or an expired one.
+
+#### Demo accounts
+
+Created automatically on an empty database so the app can be signed into straight after a clone.
+
+| User name | Password | Role | Can do |
+|---|---|---|---|
+| `admin` | `Admin@123` | Admin | Everything, including CSV import and conflict resolution |
+| `viewer` | `Viewer@123` | Viewer | Browse BIN ranges and classify BINs; no import |
+
+> **These are development credentials, published here on purpose so the project runs out of the
+> box.** They are not suitable for any shared or deployed environment. Existing accounts are never
+> overwritten, so changing a password sticks across restarts. Set `Seed:DemoUsers` to `false` to
+> skip seeding entirely, or override per role with `Seed:Admin:UserName` / `Seed:Admin:Password`
+> (and the same under `Seed:Viewer`).
+
+#### Signing key
+
+`Jwt:Key` signs the tokens. A development-only key is committed in
+`BinTool.Api/appsettings.Development.json` so the project runs after a clone — it is not a secret.
+Anywhere else, supply your own via user secrets or an environment variable:
+
+```bash
+dotnet user-secrets set "Jwt:Key" "<at least 32 bytes of random text>" --project BinTool.Api
+```
+
+The API refuses to start if `Jwt:Key` is missing or shorter than 32 bytes, rather than issuing
+tokens that are cheap to forge.
+
+#### How the UI holds the token
+
+The Blazor UI signs in against the API and stores the returned JWT as a claim inside **its own
+authentication cookie** — encrypted by ASP.NET Core Data Protection, `HttpOnly` so no script can
+read it, and `Secure` over HTTPS. That is deliberately not local storage, which any injected
+script could read. The cookie's lifetime is set to the token's own expiry, so the session cannot
+outlive the token it carries.
+
+Pages are guarded by `AuthorizeRouteView`, so typing a URL is refused the same way a hidden link
+is: a signed-out visitor is sent to `/login` and returned afterwards, and a signed-in user
+without the role gets `/access-denied`. Nav links are hidden to match, but hiding is presentation
+— the route guard and the API's own role checks are the control.
 
 ### BIN classification
 
@@ -162,6 +225,14 @@ can't fall out of step with them:
 else is returned — so `status=Deleted` is the only way to see them. `pageSize` is capped at 200,
 and `totalCount` counts every match rather than just the page, so a client can render a pager
 without a second call.
+
+Every row also reports **who added it** (`createdBy`, `createdAt`) and who last changed it
+(`updatedBy`, `updatedAt`) — normally the user who ran the import, and whoever later applied a
+conflict over it. The UI shows this as an **Added by** column, with the last change on hover.
+
+A `createdBy` of `system` is not an account: it means no user was signed in when the row was
+written, which is how anything imported before authentication existed is recorded. The UI renders
+it as a *System* badge rather than a user name.
 
 `GET /api/binranges/filters` returns the card schemes, product types, funding types and
 countries currently in the database, so a client populates its dropdowns from data.
@@ -248,6 +319,10 @@ The full column and validation spec, including the decisions pending mentor sign
 
 ## Known Limitations
 
+- Demo accounts and the JWT signing key are committed for convenience — both must be replaced
+  before this runs anywhere shared (see [Authentication](#authentication))
+- There is no refresh token, no password reset and no self-registration; accounts are seeded
+- Audit fields record the signed-in user, but no `AuditEntry` rows are written yet
 - The application uses ASP.NET Core built-in authentication for internship purposes
 - Production deployment would require integration with the corporate identity provider
 - Bulk classification files are limited to reasonable sizes (currently tested up to 1000 rows)

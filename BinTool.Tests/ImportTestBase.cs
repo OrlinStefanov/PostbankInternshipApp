@@ -1,5 +1,6 @@
 using System.Text;
 using BinTool.Core.Models.Import;
+using BinTool.Core.Services;
 using BinTool.Infrastructure.Services;
 
 namespace BinTool.Tests;
@@ -15,9 +16,28 @@ public abstract class ImportTestBase : SqliteTestBase
 
     protected readonly BinCsvImportService Service;
 
+    /// <summary>
+    /// The identity the import records on audit fields. Swap it in a test to assert what
+    /// gets stamped; defaults to the out-of-request "system" identity.
+    /// </summary>
+    protected ICurrentUser CurrentUser = new SystemCurrentUser();
+
     protected ImportTestBase()
     {
-        Service = new BinCsvImportService(Db);
+        // Resolved lazily through a wrapper so a test can replace CurrentUser after the
+        // base constructor has already built the service.
+        Service = new BinCsvImportService(Db, new DeferredCurrentUser(() => CurrentUser));
+    }
+
+    private sealed class DeferredCurrentUser : ICurrentUser
+    {
+        private readonly Func<ICurrentUser> _resolve;
+
+        public DeferredCurrentUser(Func<ICurrentUser> resolve) => _resolve = resolve;
+
+        public string? UserId => _resolve().UserId;
+
+        public string Name => _resolve().Name;
     }
 
     /// <summary>

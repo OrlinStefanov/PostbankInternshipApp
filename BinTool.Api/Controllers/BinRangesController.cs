@@ -1,15 +1,20 @@
 using BinTool.Core.Models.BinRanges;
 using BinTool.Core.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.Api.Controllers;
 
 /// <summary>
 /// Browses the stored BIN ranges.
+/// <para>
+/// Open to any signed-in user: browsing only reads.
+/// </para>
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
+[Authorize]
 public class BinRangesController : ControllerBase
 {
     private readonly IBinRangeQueryService _service;
@@ -43,6 +48,11 @@ public class BinRangesController : ControllerBase
     /// Filtering by `status` narrows to one of those. Left unset, deleted ranges are
     /// excluded and everything else is returned - so `status=Deleted` is the only way
     /// to see them.
+    ///
+    /// Each row also reports who added it (`createdBy`, `createdAt`) and who last changed
+    /// it (`updatedBy`, `updatedAt`) - normally the user who ran the import, and whoever
+    /// later applied a conflict over it. A `createdBy` of `system` is not an account: it
+    /// means no user was signed in when the row was written.
     ///
     /// Results are ordered by prefix. `pageSize` is capped at 200; `totalCount` counts
     /// every match rather than just this page, so a client can render a pager without

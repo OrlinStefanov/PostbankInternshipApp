@@ -5,6 +5,21 @@
 <h1 class="h3 mb-2">BinTool</h1>
 <p class="text-secondary">Card BIN classification &amp; commission configuration.</p>
 
-<div class="mt-4">
-    <a class="btn btn-primary" href="import">Import BIN CSV</a>
-</div>
+<AuthorizeView>
+    <Authorized>
+        <div class="d-flex flex-wrap gap-2 mt-4">
+            <a class="btn btn-outline-primary" href="bin-ranges">Browse BIN ranges</a>
+
+            <AuthorizeView Roles="@AppRoles.Admin" Context="admin">
+                <Authorized>
+                    <a class="btn btn-primary" href="import">Import BIN CSV</a>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="mt-4">
+            <a class="btn btn-primary" href="login">Sign in</a>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>

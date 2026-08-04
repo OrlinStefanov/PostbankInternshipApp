@@ -1,0 +1,29 @@
+.login-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    background: var(--bs-tertiary-bg);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 24rem;
+}
+
+.demo-heading {
+    letter-spacing: .04em;
+    font-size: .75rem;
+}
+
+.demo-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    color: var(--bs-secondary-color);
+}
+
+.demo-list li + li {
+    margin-top: .2rem;
+}

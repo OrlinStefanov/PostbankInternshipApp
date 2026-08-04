@@ -1,0 +1,135 @@
+@page "/login"
+@layout Layout.BareLayout
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@inject AuthApiClient AuthApi
+@inject NavigationManager Nav
+
+@*
+    Static server rendering on purpose. A cookie can only be written while the HTTP
+    response is still being built - by the time an interactive circuit is running there
+    is no response left to add a Set-Cookie header to.
+*@
+
+<PageTitle>Sign in · BinTool</PageTitle>
+
+<div class="login-shell">
+    <div class="login-card card">
+        <div class="card-body p-4">
+            <h1 class="h4 mb-1">Sign in</h1>
+            <p class="text-secondary small mb-4">BIN classification and commission configuration.</p>
+
+            <EditForm Model="Input" method="post" OnValidSubmit="SignIn" FormName="login">
+                <DataAnnotationsValidator />
+
+                @if (_error is not null)
+                {
+                    <div class="alert alert-danger py-2 px-3 small" role="alert">@_error</div>
+                }
+
+                <div class="mb-3">
+                    <label class="form-label" for="userName">User name</label>
+                    <InputText id="userName" class="form-control" @bind-Value="Input.UserName"
+                               autocomplete="username" autofocus />
+                    <ValidationMessage For="() => Input.UserName" class="text-danger small" />
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label" for="password">Password</label>
+                    <InputText id="password" type="password" class="form-control"
+                               @bind-Value="Input.Password" autocomplete="current-password" />
+                    <ValidationMessage For="() => Input.Password" class="text-danger small" />
+                </div>
+
+                <button class="btn btn-primary w-100" type="submit">Sign in</button>
+            </EditForm>
+
+            <hr class="my-4" />
+
+            <p class="text-secondary small mb-1 text-uppercase demo-heading">Demo accounts</p>
+            <ul class="demo-list small mb-0">
+                <li><code>admin</code> / <code>Admin@@123</code> — full access</li>
+                <li><code>viewer</code> / <code>Viewer@@123</code> — read-only</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string? _error;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private LoginInput Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private async Task SignIn()
+    {
+        var login = await AuthApi.LoginAsync(Input.UserName, Input.Password);
+
+        if (login is null)
+        {
+            _error = "Invalid user name or password.";
+            return;
+        }
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, login.UserId),
+            new(ClaimTypes.Name, login.UserName),
+            new("full_name", login.FullName),
+
+            // The API token rides inside the encrypted cookie rather than in local
+            // storage, and stays reachable once the circuit takes over.
+            new(AuthClaims.AccessToken, login.AccessToken)
+        };
+
+        claims.AddRange(login.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+        await HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            new ClaimsPrincipal(identity),
+            new AuthenticationProperties
+            {
+                IsPersistent = false,
+
+                // Tied to the token's own expiry, so the session cannot outlive it.
+                ExpiresUtc = login.ExpiresAtUtc
+            });
+
+        Nav.NavigateTo(SafeReturnUrl(), forceLoad: true);
+    }
+
+    /// <summary>
+    /// Only same-site paths are honoured, so a crafted returnUrl cannot bounce a
+    /// freshly signed-in user off to another site.
+    /// </summary>
+    private string SafeReturnUrl()
+    {
+        if (string.IsNullOrWhiteSpace(ReturnUrl)
+            || !ReturnUrl.StartsWith('/')
+            || ReturnUrl.StartsWith("//", StringComparison.Ordinal))
+        {
+            return "/";
+        }
+
+        return ReturnUrl;
+    }
+
+    private sealed class LoginInput
+    {
+        [Required(ErrorMessage = "Enter your user name.")]
+        public string UserName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Enter your password.")]
+        public string Password { get; set; } = string.Empty;
+    }
+}

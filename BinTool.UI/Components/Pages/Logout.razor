@@ -1,0 +1,41 @@
+@page "/logout"
+@layout Layout.BareLayout
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@inject NavigationManager Nav
+
+@*
+    Static server rendering, and a POST: clearing the cookie needs the HTTP response,
+    and a GET would let another site sign the user out with an image tag.
+*@
+
+<PageTitle>Sign out · BinTool</PageTitle>
+
+<div class="logout-shell">
+    <div class="card logout-card">
+        <div class="card-body p-4 text-center">
+            <h1 class="h5 mb-3">Sign out</h1>
+            <p class="text-secondary small mb-4">
+                This ends your session and discards the access token.
+            </p>
+
+            <EditForm Model="this" method="post" OnValidSubmit="SignOut" FormName="logout">
+                <button class="btn btn-primary w-100" type="submit">Sign out</button>
+            </EditForm>
+
+            <a class="btn btn-link btn-sm mt-2" href="/">Cancel</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private async Task SignOut()
+    {
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+        Nav.NavigateTo("/login", forceLoad: true);
+    }
+}

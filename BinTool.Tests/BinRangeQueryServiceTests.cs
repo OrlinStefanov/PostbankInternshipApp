@@ -228,6 +228,37 @@ public class BinRangeQueryServiceTests : SqliteTestBase
         result.TotalPages.Should().Be(0);
     }
 
+    // ---- Attribution -----------------------------------------------------------
+
+    [Fact]
+    public async Task Each_row_reports_who_added_it_and_who_last_changed_it()
+    {
+        var range = SeedBinRange("400001", VisaId, ConsumerId, CreditId, UsCountryId, Started);
+        range.CreatedBy = "admin";
+        range.UpdatedBy = "someone-else";
+        Db.SaveChanges();
+
+        var result = await Search();
+
+        var item = result.Items.Should().ContainSingle().Subject;
+        item.CreatedBy.Should().Be("admin");
+        item.UpdatedBy.Should().Be("someone-else");
+        item.CreatedAt.Should().BeCloseTo(range.CreatedAt, TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public async Task A_row_written_without_a_signed_in_user_is_attributed_to_system()
+    {
+        var range = SeedBinRange("400001", VisaId, ConsumerId, CreditId, UsCountryId, Started);
+        range.CreatedBy = "system";
+        range.UpdatedBy = "system";
+        Db.SaveChanges();
+
+        var result = await Search();
+
+        result.Items.Should().ContainSingle().Which.CreatedBy.Should().Be("system");
+    }
+
     // ---- Filter options --------------------------------------------------------
 
     [Fact]

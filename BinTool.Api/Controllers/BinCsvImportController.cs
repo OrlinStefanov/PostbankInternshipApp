@@ -1,15 +1,21 @@
+using BinTool.Core.Entities;
 using BinTool.Core.Models.Import;
 using BinTool.Core.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.Api.Controllers;
 
 /// <summary>
 /// Imports BIN ranges from CSV and resolves the conflicts an import stages.
+/// <para>
+/// Admin only: every endpoint here writes to, or decides the fate of, live BIN data.
+/// </para>
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
+[Authorize(Roles = AppRoles.Admin)]
 public class BinCsvImportController : ControllerBase
 {
     private readonly IBinCsvImportService _service;

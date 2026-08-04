@@ -1,12 +1,17 @@
 using System.Reflection;
+using System.Text;
 using System.Text.Json.Serialization;
+using BinTool.Api.Options;
+using BinTool.Api.Services;
 using BinTool.Core.Entities;
 using BinTool.Core.Models.Import;
 using BinTool.Core.Services;
 using BinTool.Infrastructure.Data;
 using BinTool.Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 namespace BinTool.Api.Extensions;
@@ -29,6 +34,8 @@ public static class ServiceExtensions
         })
         .AddEntityFrameworkStores<AppDbContext>()
         .AddDefaultTokenProviders();
+
+        services.AddJwtAuthentication(configuration);
 
         // API
         services.AddControllers().AddJsonOptions(options =>
@@ -61,7 +68,11 @@ public static class ServiceExtensions
                     "hard-coded - every answer comes from data in the database.\n\n" +
                     "**Browsing what is stored** is `GET /api/BinRanges`, which filters and pages " +
                     "the BIN ranges and reports each one's status (active, scheduled, expired or " +
-                    "deleted). `GET /api/BinRanges/filters` returns the reference values to filter by."
+                    "deleted). `GET /api/BinRanges/filters` returns the reference values to filter by.\n\n" +
+                    "**Authentication.** Every endpoint except `POST /api/Auth/login` and " +
+                    "`GET /api/Health` needs a bearer token. Call login, then use the **Authorize** " +
+                    "button above with the `accessToken` it returns. Reading (classify, browse) is " +
+                    "open to both roles; importing and resolving conflicts require **Admin**."
             });
 
             // Surface the doc comments from the controllers and the shared import models.
@@ -79,12 +90,95 @@ public static class ServiceExtensions
             }
 
             options.SupportNonNullableReferenceTypes();
+
+            // Lets Swagger UI's Authorize button send the token from POST /api/Auth/login.
+            options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Description =
+                    "Paste the `accessToken` returned by `POST /api/Auth/login`. " +
+                    "Swagger adds the `Bearer ` prefix itself."
+            });
+
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = JwtBearerDefaults.AuthenticationScheme
+                        }
+                    },
+                    Array.Empty<string>()
+                }
+            });
         });
 
         services.AddEndpointsApiExplorer();
+
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
+        services.AddSingleton<IJwtTokenService, JwtTokenService>();
+
         services.AddScoped<IBinCsvImportService, BinCsvImportService>();
         services.AddScoped<IBinClassificationService, BinClassificationService>();
         services.AddScoped<IBinRangeQueryService, BinRangeQueryService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Configures bearer-token authentication. Identity brings cookie schemes with it, so
+    /// the defaults are set explicitly to JWT - otherwise an unauthenticated API call would
+    /// be answered with a redirect to a login page that does not exist here.
+    /// </summary>
+    private static IServiceCollection AddJwtAuthentication(
+        this IServiceCollection services, IConfiguration configuration)
+    {
+        var section = configuration.GetSection(JwtOptions.SectionName);
+        services.Configure<JwtOptions>(section);
+
+        var options = section.Get<JwtOptions>() ?? new JwtOptions();
+
+        if (Encoding.UTF8.GetByteCount(options.Key) < JwtOptions.MinimumKeyBytes)
+        {
+            // Fail at startup rather than issue tokens that are cheap to forge.
+            throw new InvalidOperationException(
+                $"Jwt:Key must be configured with at least {JwtOptions.MinimumKeyBytes} bytes. " +
+                "Set it via user secrets or an environment variable.");
+        }
+
+        services.AddAuthentication(auth =>
+        {
+            auth.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            auth.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            auth.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(jwt =>
+        {
+            jwt.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = options.Issuer,
+                ValidAudience = options.Audience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.Key)),
+
+                // The default five-minute grace period would keep expired tokens working
+                // well past the expiry the client was told about.
+                ClockSkew = TimeSpan.Zero
+            };
+        });
+
+        services.AddAuthorization();
 
         return services;
     }
