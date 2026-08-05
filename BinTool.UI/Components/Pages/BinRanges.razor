@@ -13,14 +13,18 @@
             before assuming classification will match it.
         </p>
     </div>
-    <AuthorizeView Roles="@AppRoles.Admin">
-        <Authorized>
-            <div class="d-flex gap-2">
+    <div class="d-flex gap-2">
+        <AuthorizeView Policy="@Permissions.BinRangesImport" Context="import">
+            <Authorized>
                 <a class="btn btn-outline-primary" href="import">Import CSV</a>
+            </Authorized>
+        </AuthorizeView>
+        <AuthorizeView Policy="@Permissions.BinRangesWrite" Context="write">
+            <Authorized>
                 <button class="btn btn-primary" @onclick="StartAdd">Add BIN range</button>
-            </div>
-        </Authorized>
-    </AuthorizeView>
+            </Authorized>
+        </AuthorizeView>
+    </div>
 </div>
 
 <div class="filters card mt-4">
@@ -76,6 +80,18 @@
                     @foreach (var country in _options.Countries)
                     {
                         <option value="@country.IsoCode">@country.IsoCode — @country.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label" for="f-added-by">Added by</label>
+                <select id="f-added-by" class="form-select" value="@_createdBy"
+                        @onchange="e => ApplyFilter(v => _createdBy = v, e)">
+                    <option value="">Anyone</option>
+                    @foreach (var name in _options.Creators)
+                    {
+                        <option value="@name">@(IsSystem(name) ? "System" : name)</option>
                     }
                 </select>
             </div>
@@ -160,9 +176,13 @@
             }
             else
             {
-                <AuthorizeView Roles="@AppRoles.Admin">
+                <AuthorizeView Policy="@Permissions.BinRangesImport" Context="import">
                     <Authorized>
                         <a class="btn btn-outline-primary btn-sm me-1" href="import">Import a CSV</a>
+                    </Authorized>
+                </AuthorizeView>
+                <AuthorizeView Policy="@Permissions.BinRangesWrite" Context="write">
+                    <Authorized>
                         <button class="btn btn-primary btn-sm" @onclick="StartAdd">Add one by hand</button>
                     </Authorized>
                 </AuthorizeView>
@@ -186,11 +206,8 @@ else
                         <th>Valid from</th>
                         <th>Valid to</th>
                         <th>Added by</th>
-                        <th class="@(_isAdmin ? null : "pe-3")">Status</th>
-                        @if (_isAdmin)
-                        {
-                            <th class="pe-3 text-end">Actions</th>
-                        }
+                        <th>Status</th>
+                        <th class="pe-3 text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -223,14 +240,18 @@ else
                                 }
                                 <span class="text-secondary small d-block">@Date(item.CreatedAt)</span>
                             </td>
-                            <td class="@(_isAdmin ? null : "pe-3")">
+                            <td>
                                 <span class="badge rounded-pill text-bg-@StatusColor(item.Status)">
                                     @item.Status
                                 </span>
                             </td>
-                            @if (_isAdmin)
-                            {
-                                <td class="pe-3 text-end">
+                            <td class="pe-3 text-end text-nowrap">
+                                <button class="btn btn-outline-secondary btn-sm me-1"
+                                        @onclick="() => View(item)" disabled="@_busy">
+                                    View
+                                </button>
+                                @if (_canWrite)
+                                {
                                     @if (item.Status == BinRangeStatus.Deleted)
                                     {
                                         <button class="btn btn-outline-secondary btn-sm"
@@ -249,8 +270,8 @@ else
                                             Delete
                                         </button>
                                     }
-                                </td>
-                            }
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -324,6 +345,82 @@ else
     <div class="modal-backdrop show"></div>
 }
 
+@if (_viewing is not null)
+{
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true"
+         aria-label="BIN range details">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        BIN range <code class="mono">@_viewing.Prefix</code>
+                        <span class="badge rounded-pill text-bg-@StatusColor(_viewing.Status) ms-1">
+                            @_viewing.Status
+                        </span>
+                    </h5>
+                    <button type="button" class="btn-close" aria-label="Close"
+                            @onclick="CloseView"></button>
+                </div>
+                <div class="modal-body">
+                    @if (_viewError is not null)
+                    {
+                        <div class="alert alert-danger py-2 px-3 small" role="alert">@_viewError</div>
+                    }
+
+                    <dl class="row mb-0 detail-list">
+                        <dt class="col-5">Prefix</dt>
+                        <dd class="col-7"><code class="mono">@_viewing.Prefix</code> (@_viewing.PrefixLength digits)</dd>
+
+                        <dt class="col-5">Scheme</dt>
+                        <dd class="col-7">@_viewing.CardScheme</dd>
+
+                        <dt class="col-5">Product</dt>
+                        <dd class="col-7">@_viewing.ProductType</dd>
+
+                        <dt class="col-5">Funding</dt>
+                        <dd class="col-7">@_viewing.FundingType</dd>
+
+                        <dt class="col-5">Country</dt>
+                        <dd class="col-7">@_viewing.CountryCode — @_viewing.CountryName</dd>
+
+                        <dt class="col-5">Region</dt>
+                        <dd class="col-7">@_viewing.Region</dd>
+
+                        <dt class="col-5">Valid from</dt>
+                        <dd class="col-7">@Date(_viewing.ValidFrom)</dd>
+
+                        <dt class="col-5">Valid to</dt>
+                        <dd class="col-7">@(_viewing.ValidTo is null ? OpenEnded : Date(_viewing.ValidTo.Value))</dd>
+
+                        <dt class="col-5">Added by</dt>
+                        <dd class="col-7">
+                            @(IsSystem(_viewing.CreatedBy) ? "System" : _viewing.CreatedBy ?? OpenEnded)
+                            <span class="text-secondary small">on @Date(_viewing.CreatedAt)</span>
+                        </dd>
+
+                        <dt class="col-5">Last changed by</dt>
+                        <dd class="col-7">
+                            @(IsSystem(_viewing.UpdatedBy) ? "System" : _viewing.UpdatedBy ?? OpenEnded)
+                            <span class="text-secondary small">on @Date(_viewing.UpdatedAt)</span>
+                        </dd>
+                    </dl>
+                </div>
+                <div class="modal-footer">
+                    @if (_canWrite && _viewing.Status == BinRangeStatus.Deleted)
+                    {
+                        <button type="button" class="btn btn-outline-secondary"
+                                @onclick="() => RestoreFromView(_viewing)" disabled="@_busy">
+                            Restore
+                        </button>
+                    }
+                    <button type="button" class="btn btn-primary" @onclick="CloseView">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
+
 @code {
     private const string OpenEnded = "—";
 
@@ -339,20 +436,26 @@ else
     private string _productType = string.Empty;
     private string _fundingType = string.Empty;
     private string _countryCode = string.Empty;
+    private string _createdBy = string.Empty;
     private string _status = string.Empty;
     private int _pageSize = BinRangeQuery.DefaultPageSize;
     private int _currentPage = 1;
 
-    // Admin-only maintenance. The API enforces the role regardless; this decides whether
-    // the controls are worth rendering at all.
-    private bool _isAdmin;
+    // Maintenance controls. The API enforces the permission regardless; this decides whether
+    // the Edit/Delete/Restore controls are worth rendering at all.
+    private bool _canWrite;
     private bool _busy;
     private bool _editorOpen;
     private BinRangeListItem? _editing;
     private BinRangeListItem? _pendingDelete;
+    private BinRangeListItem? _viewing;
+    private string? _viewError;
 
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    [Inject]
+    private IAuthorizationService Authorization { get; set; } = default!;
 
     private bool HasFilters =>
         !string.IsNullOrWhiteSpace(_prefix)
@@ -360,6 +463,7 @@ else
         || !string.IsNullOrEmpty(_productType)
         || !string.IsNullOrEmpty(_fundingType)
         || !string.IsNullOrEmpty(_countryCode)
+        || !string.IsNullOrEmpty(_createdBy)
         || !string.IsNullOrEmpty(_status);
 
     private int FirstOnPage => (_page.Page - 1) * _page.PageSize + 1;
@@ -371,7 +475,8 @@ else
         if (AuthenticationState is not null)
         {
             var state = await AuthenticationState;
-            _isAdmin = state.User.IsInRole(AppRoles.Admin);
+            _canWrite = (await Authorization.AuthorizeAsync(
+                state.User, Permissions.BinRangesWrite)).Succeeded;
         }
 
         try
@@ -400,6 +505,7 @@ else
                 ProductType = _productType,
                 FundingType = _fundingType,
                 CountryCode = _countryCode,
+                CreatedBy = _createdBy,
                 Status = string.IsNullOrEmpty(_status)
                     ? null
                     : Enum.Parse<BinRangeStatus>(_status),
@@ -471,7 +577,8 @@ else
 
     private async Task ClearFilters()
     {
-        _prefix = _cardScheme = _productType = _fundingType = _countryCode = _status = string.Empty;
+        _prefix = _cardScheme = _productType = _fundingType = string.Empty;
+        _countryCode = _createdBy = _status = string.Empty;
         await ReloadFromFirstPage();
     }
 
@@ -495,6 +602,44 @@ else
     {
         _editorOpen = false;
         _editing = null;
+    }
+
+    /// <summary>
+    /// Opens the read-only details for one range, re-fetching it by id so a deleted range
+    /// can be looked at in full before deciding whether to restore it, and so the values
+    /// shown are the stored ones rather than a possibly stale list row.
+    /// </summary>
+    private async Task View(BinRangeListItem item)
+    {
+        _viewing = item;
+        _viewError = null;
+        _notice = null;
+
+        try
+        {
+            var fresh = await Api.GetAsync(item.BinRangeId);
+
+            if (fresh is null)
+            {
+                _viewError = "This range no longer exists. It may have been removed since the list loaded.";
+            }
+            else
+            {
+                _viewing = fresh;
+            }
+        }
+        catch (Exception ex)
+        {
+            _viewError = $"Could not load the latest values: {ex.Message}";
+        }
+    }
+
+    private void CloseView() => _viewing = null;
+
+    private async Task RestoreFromView(BinRangeListItem item)
+    {
+        CloseView();
+        await Run(() => Api.RestoreAsync(item.BinRangeId));
     }
 
     /// <summary>

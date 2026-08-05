@@ -1,3 +1,4 @@
+using BinTool.Core.Authorization;
 using BinTool.UI.Components;
 using BinTool.UI.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -26,7 +27,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.SlidingExpiration = false;
     });
 
-builder.Services.AddAuthorization();
+// The same permission-based authorization the API uses, so the UI gates pages and controls on
+// the very policies the API enforces. Registered here rather than plain AddAuthorization().
+builder.Services.AddPermissionAuthorization();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAccessTokenProvider, AccessTokenProvider>();
@@ -42,6 +45,9 @@ builder.Services.AddHttpClient<BinImportApiClient>(client => client.BaseAddress 
     .ConfigurePrimaryHttpMessageHandler(ApiHandler);
 
 builder.Services.AddHttpClient<BinRangeApiClient>(client => client.BaseAddress = new Uri(apiBaseUrl))
+    .ConfigurePrimaryHttpMessageHandler(ApiHandler);
+
+builder.Services.AddHttpClient<AccessControlApiClient>(client => client.BaseAddress = new Uri(apiBaseUrl))
     .ConfigurePrimaryHttpMessageHandler(ApiHandler);
 
 HttpClientHandler ApiHandler()

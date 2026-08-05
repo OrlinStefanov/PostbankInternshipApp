@@ -1,6 +1,6 @@
 @page "/import"
 @rendermode InteractiveServer
-@attribute [Authorize(Roles = AppRoles.Admin)]
+@attribute [Authorize(Policy = Permissions.BinRangesImport)]
 @inject BinImportApiClient Api
 
 <PageTitle>BIN Import</PageTitle>

@@ -1,4 +1,4 @@
-using BinTool.Core.Entities;
+using BinTool.Core.Authorization;
 using BinTool.Core.Models.BinRanges;
 using BinTool.Core.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -40,7 +40,9 @@ public class BinRangesController : ControllerBase
     /// Every filter is optional and they combine with AND. `prefix` is a starts-with
     /// match, so `4000` finds both 400001 and 40000123. The name filters
     /// (`cardScheme`, `productType`, `fundingType`, `countryCode`) are matched
-    /// case-insensitively against the reference data.
+    /// case-insensitively against the reference data. `createdBy` narrows to the ranges a
+    /// given account added, matched case-insensitively; `system` selects rows written with
+    /// no user signed in.
     ///
     /// Each row carries a `status` derived from its dates and delete flag rather than
     /// stored, so it cannot fall out of step with them:
@@ -67,6 +69,7 @@ public class BinRangesController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="200">One page of matching ranges. Empty when nothing matched.</response>
     [HttpGet]
+    [Authorize(Policy = Permissions.BinRangesRead)]
     [ProducesResponseType(typeof(PagedResult<BinRangeListItem>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Search(
         [FromQuery] BinRangeQuery query, CancellationToken cancellationToken)
@@ -82,11 +85,13 @@ public class BinRangesController : ControllerBase
     /// <remarks>
     /// The card schemes, product types, funding types and countries currently in the
     /// database, so a client can populate its filter dropdowns from data instead of
-    /// hard-coding the lists. Soft-deleted reference values are omitted.
+    /// hard-coding the lists. Soft-deleted reference values are omitted. `creators` lists
+    /// the accounts that have added a range - the values the `createdBy` filter takes.
     /// </remarks>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="200">The available filter values.</response>
     [HttpGet("filters")]
+    [Authorize(Policy = Permissions.BinRangesRead)]
     [ProducesResponseType(typeof(BinRangeFilterOptions), StatusCodes.Status200OK)]
     public async Task<IActionResult> Filters(CancellationToken cancellationToken)
     {
@@ -107,6 +112,7 @@ public class BinRangesController : ControllerBase
     /// <response code="200">The range.</response>
     /// <response code="404">No range has that id.</response>
     [HttpGet("{id:int}", Name = nameof(GetById))]
+    [Authorize(Policy = Permissions.BinRangesRead)]
     [ProducesResponseType(typeof(BinRangeListItem), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
@@ -153,7 +159,7 @@ public class BinRangesController : ControllerBase
     /// <response code="400">A field broke a rule, or named reference data that does not exist.</response>
     /// <response code="409">A live range already owns that prefix.</response>
     [HttpPost]
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Policy = Permissions.BinRangesWrite)]
     [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -190,7 +196,7 @@ public class BinRangesController : ControllerBase
     /// <response code="404">No such range, or it is deleted and must be restored first.</response>
     /// <response code="409">Another range already owns that prefix.</response>
     [HttpPut("{id:int}")]
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Policy = Permissions.BinRangesWrite)]
     [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status404NotFound)]
@@ -220,7 +226,7 @@ public class BinRangesController : ControllerBase
     /// <response code="404">No range has that id.</response>
     /// <response code="409">The range is already deleted.</response>
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Policy = Permissions.BinRangesWrite)]
     [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status409Conflict)]
@@ -244,7 +250,7 @@ public class BinRangesController : ControllerBase
     /// <response code="404">No range has that id.</response>
     /// <response code="409">The range was not deleted.</response>
     [HttpPost("{id:int}/restore")]
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Policy = Permissions.BinRangesWrite)]
     [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status409Conflict)]

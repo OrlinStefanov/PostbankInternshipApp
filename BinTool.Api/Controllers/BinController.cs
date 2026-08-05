@@ -1,3 +1,4 @@
+using BinTool.Core.Authorization;
 using BinTool.Core.Models.Classification;
 using BinTool.Core.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -8,13 +9,14 @@ namespace BinTool.Api.Controllers;
 /// <summary>
 /// Classifies card BINs against the stored BIN ranges.
 /// <para>
-/// Open to any signed-in user: classification only reads.
+/// Requires the <c>bin.classify</c> permission. Classification only reads, so any role granted
+/// it - Viewer holds it by default - can classify.
 /// </para>
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-[Authorize]
+[Authorize(Policy = Permissions.BinClassify)]
 public class BinController : ControllerBase
 {
     private readonly IBinClassificationService _service;

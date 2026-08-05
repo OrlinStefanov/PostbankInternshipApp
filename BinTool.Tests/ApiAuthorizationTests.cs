@@ -1,6 +1,6 @@
 using System.Reflection;
 using BinTool.Api.Controllers;
-using BinTool.Core.Entities;
+using BinTool.Core.Authorization;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +12,8 @@ namespace BinTool.Tests;
 /// <para>
 /// Authorization is easy to remove by accident and produces no failure when it goes
 /// missing - the endpoint simply starts answering everyone. These tests fail instead.
+/// Since the switch to permission-based authorization, the rule is a policy name (a
+/// permission key), not a role.
 /// </para>
 /// </summary>
 public class ApiAuthorizationTests
@@ -19,51 +21,62 @@ public class ApiAuthorizationTests
     private static AuthorizeAttribute? Authorize(Type controller) =>
         controller.GetCustomAttribute<AuthorizeAttribute>();
 
+    private static AuthorizeAttribute? Authorize(Type controller, string action) =>
+        controller.GetMethod(action)!.GetCustomAttribute<AuthorizeAttribute>();
+
     [Fact]
-    public void Importing_requires_the_admin_role()
+    public void Classifying_requires_the_classify_permission()
     {
-        Authorize(typeof(BinCsvImportController))!.Roles.Should().Be(AppRoles.Admin);
+        Authorize(typeof(BinController))!.Policy.Should().Be(Permissions.BinClassify);
     }
 
-    [Theory]
-    [InlineData(typeof(BinController))]
-    [InlineData(typeof(BinRangesController))]
-    public void Read_only_endpoints_require_a_signed_in_user_of_any_role(Type controller)
+    [Fact]
+    public void Importing_requires_the_import_permission()
     {
-        var attribute = Authorize(controller);
+        Authorize(typeof(BinCsvImportController))!.Policy.Should().Be(Permissions.BinRangesImport);
+    }
 
-        attribute.Should().NotBeNull("reading still requires authentication");
-        attribute!.Roles.Should().BeNull("both roles may read");
+    [Fact]
+    public void Managing_access_requires_the_roles_manage_permission()
+    {
+        Authorize(typeof(RolesController))!.Policy.Should().Be(Permissions.RolesManage);
+        Authorize(typeof(UsersController))!.Policy.Should().Be(Permissions.RolesManage);
     }
 
     /// <summary>
-    /// BinRanges is the one controller that mixes access levels: its class-level rule
-    /// admits both roles for reading, so each write has to raise the bar itself. Missing
-    /// one would hand a viewer the ability to edit live BIN data.
+    /// BinRanges keeps a bare class-level rule - authenticated, no policy - so each action
+    /// states its own permission. Reads take the read permission; a missing one would hand an
+    /// unprivileged caller live BIN data.
     /// </summary>
+    [Fact]
+    public void The_bin_ranges_controller_requires_authentication_but_no_single_policy()
+    {
+        var attribute = Authorize(typeof(BinRangesController));
+
+        attribute.Should().NotBeNull("browsing still requires authentication");
+        attribute!.Policy.Should().BeNull("the per-action permissions decide access");
+        attribute.Roles.Should().BeNull();
+    }
+
     [Theory]
     [InlineData(nameof(BinRangesController.Create))]
     [InlineData(nameof(BinRangesController.Update))]
     [InlineData(nameof(BinRangesController.Delete))]
     [InlineData(nameof(BinRangesController.Restore))]
-    public void Maintaining_a_single_range_requires_the_admin_role(string action)
+    public void Maintaining_a_single_range_requires_the_write_permission(string action)
     {
-        var attribute = typeof(BinRangesController).GetMethod(action)!
-            .GetCustomAttribute<AuthorizeAttribute>();
-
-        attribute.Should().NotBeNull("{0} writes BIN data", action);
-        attribute!.Roles.Should().Be(AppRoles.Admin);
+        Authorize(typeof(BinRangesController), action)!.Policy
+            .Should().Be(Permissions.BinRangesWrite, "{0} writes BIN data", action);
     }
 
     [Theory]
     [InlineData(nameof(BinRangesController.Search))]
     [InlineData(nameof(BinRangesController.Filters))]
     [InlineData(nameof(BinRangesController.GetById))]
-    public void Reading_a_range_is_not_narrowed_to_admin(string action)
+    public void Reading_a_range_requires_the_read_permission(string action)
     {
-        typeof(BinRangesController).GetMethod(action)!
-            .GetCustomAttribute<AuthorizeAttribute>()
-            .Should().BeNull("a viewer must still be able to browse");
+        Authorize(typeof(BinRangesController), action)!.Policy
+            .Should().Be(Permissions.BinRangesRead, "{0} exposes BIN data", action);
     }
 
     [Fact]

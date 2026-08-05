@@ -110,22 +110,32 @@ The `main` branch is protected: direct pushes are blocked, and all merges requir
 
 Implemented:
 
-| Endpoint | Access |
+| Endpoint | Permission required |
 |---|---|
 | `GET /api/health` — Health check | Anonymous |
 | `POST /api/auth/login` — Exchange credentials for a token | Anonymous |
 | `GET /api/auth/me` — Identity behind the token | Any signed-in user |
-| `POST /api/bin/classify` — Classify a BIN | Any signed-in user |
-| `GET /api/binranges` — Browse stored BIN ranges | Any signed-in user |
-| `GET /api/binranges/filters` — Reference values for filters | Any signed-in user |
-| `GET /api/binranges/{id}` — One BIN range | Any signed-in user |
-| `POST /api/binranges` — Add a BIN range by hand | **Admin** |
-| `PUT /api/binranges/{id}` — Edit a BIN range | **Admin** |
-| `DELETE /api/binranges/{id}` — Withdraw a BIN range (soft) | **Admin** |
-| `POST /api/binranges/{id}/restore` — Bring a withdrawn range back | **Admin** |
-| `POST /api/BinCsvImport/import` — Import a CSV | **Admin** |
-| `GET /api/BinCsvImport/conflicts` — Conflicts awaiting a decision | **Admin** |
-| `POST /api/BinCsvImport/resolve-conflicts` — Apply decisions | **Admin** |
+| `POST /api/bin/classify` — Classify a BIN | `bin.classify` |
+| `GET /api/binranges` — Browse stored BIN ranges | `binranges.read` |
+| `GET /api/binranges/filters` — Reference values for filters | `binranges.read` |
+| `GET /api/binranges/{id}` — One BIN range | `binranges.read` |
+| `POST /api/binranges` — Add a BIN range by hand | `binranges.write` |
+| `PUT /api/binranges/{id}` — Edit a BIN range | `binranges.write` |
+| `DELETE /api/binranges/{id}` — Withdraw a BIN range (soft) | `binranges.write` |
+| `POST /api/binranges/{id}/restore` — Bring a withdrawn range back | `binranges.write` |
+| `POST /api/BinCsvImport/import` — Import a CSV | `binranges.import` |
+| `GET /api/BinCsvImport/conflicts` — Conflicts awaiting a decision | `binranges.import` |
+| `POST /api/BinCsvImport/resolve-conflicts` — Apply decisions | `binranges.import` |
+| `GET /api/roles` — List roles with their permissions | `roles.manage` |
+| `GET /api/roles/permissions` — The permission catalog | `roles.manage` |
+| `POST /api/roles` — Create a role | `roles.manage` |
+| `PUT /api/roles/{id}` — Edit a role | `roles.manage` |
+| `DELETE /api/roles/{id}` — Delete a role | `roles.manage` |
+| `GET /api/users` — List users with their roles | `roles.manage` |
+| `PUT /api/users/{id}/roles` — Set a user's roles | `roles.manage` |
+
+Admin holds every permission implicitly, so in practice the `roles.manage` endpoints are an
+admin's. Any permission can also be granted to a custom role.
 
 Planned:
 
@@ -138,8 +148,8 @@ Full documentation is available in Swagger UI when running the API in developmen
 
 The API uses **JWT bearer tokens**. `POST /api/auth/login` exchanges credentials for a signed
 token; send it on every other call as `Authorization: Bearer <accessToken>`. The token carries
-the user's roles and expires after 60 minutes (`Jwt:ExpiryMinutes`). There is no refresh token —
-when it expires, log in again.
+the user's roles **and the permissions those roles add up to**, and expires after 60 minutes
+(`Jwt:ExpiryMinutes`). There is no refresh token — when it expires, log in again.
 
 ```bash
 curl -k -X POST https://localhost:7258/api/auth/login -H "Content-Type: application/json" -d "{\"userName\":\"admin\",\"password\":\"Admin@123\"}"
@@ -179,10 +189,39 @@ Restarting the API or the UI does *not* sign you out: the Data Protection key ri
 the cookie is persisted per user under `%LOCALAPPDATA%\ASP.NET\DataProtection-Keys`, so the
 cookie still decrypts against a fresh process.
 
-Roles are enforced by the API, not by the client: reading (classify, browse) is open to any
-signed-in user, while anything that writes BIN data — importing, resolving conflicts, and
-adding, editing, deleting or restoring a range — requires **Admin**. A `403` means the token is
-valid but the role is not enough; a `401` means no token, or an expired one.
+Access is enforced by the API, not by the client. Each endpoint requires a **permission** (see
+the table above), and a permission is granted by holding a **role** that carries it. A `403`
+means the token is valid but lacks the permission; a `401` means no token, or an expired one.
+
+#### Roles & permissions
+
+Roles are **data**, not code: an admin composes a role from a fixed catalog of permissions and
+assigns it to users, from the **Access Control** page (`/access-control`) or the `roles`/`users`
+endpoints. The catalog is fixed because each permission maps to real enforcement on an endpoint;
+what is free is which permissions a role holds, and which roles a user holds.
+
+| Permission | Grants |
+|---|---|
+| `bin.classify` | Classify a BIN |
+| `binranges.read` | Browse the stored ranges |
+| `binranges.write` | Add, edit, delete and restore a range |
+| `binranges.import` | Import a CSV and resolve conflicts |
+| `roles.manage` | Manage roles and assign them to users |
+
+Two roles are seeded: **Viewer** holds `bin.classify` + `binranges.read`; **Admin** holds
+everything. Adding a permission to the catalog and putting it on an endpoint is enough for Admin
+to pick it up — seeding keeps Admin's grants complete on every startup, for existing databases
+too.
+
+**The Admin role is a god.** It is a superuser at the authorization layer (it passes every
+permission check whether or not the grant is explicit), and it is protected from being weakened:
+it can't be renamed, deleted, or have permissions removed. Two further rules protect the account
+itself — the **last** admin can't have Admin removed, and no one can strip **their own** Admin
+role. Admins can otherwise manage each other.
+
+Because permissions ride on the token, a change to a role's permissions (or to a user's roles)
+takes effect the **next time that user signs in** — within the 60-minute token lifetime — not
+mid-session.
 
 #### Demo accounts
 
@@ -246,8 +285,9 @@ attributes null. A malformed BIN (non-digits, or outside 6–19 digits) returns 
 ### Browsing BIN ranges
 
 `GET /api/binranges` lists what is stored, filtered and paged. Filters are optional and combine
-with AND: `prefix` (starts-with), plus `cardScheme`, `productType`, `fundingType` and
-`countryCode` matched case-insensitively.
+with AND: `prefix` (starts-with), plus `cardScheme`, `productType`, `fundingType`, `countryCode`
+and `createdBy` matched case-insensitively. `createdBy` narrows to the ranges one account added
+(`system` for rows written with no user signed in); the UI offers it as an **Added by** dropdown.
 
 Each row carries a `status` derived from its dates and delete flag rather than stored, so it
 can't fall out of step with them:
@@ -273,7 +313,12 @@ written, which is how anything imported before authentication existed is recorde
 it as a *System* badge rather than a user name.
 
 `GET /api/binranges/filters` returns the card schemes, product types, funding types and
-countries currently in the database, so a client populates its dropdowns from data.
+countries currently in the database — plus `creators`, the accounts that have added a range —
+so a client populates its dropdowns from data.
+
+`GET /api/binranges/{id}` returns one range by id, **deleted ones included** (with
+`status: Deleted`), so it can be inspected before deciding whether to restore it. The UI wires
+this to a **View** button on every row, which opens a read-only details panel.
 
 The Blazor UI exposes this at **`/bin-ranges`**.
 

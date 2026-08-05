@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using BinTool.Core.Authorization;
 using BinTool.Core.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -44,7 +46,50 @@ public static class DbInitializer
             }
         }
 
+        await SeedRolePermissionsAsync(roleManager, logger);
         await SeedUsersAsync(provider, logger);
+    }
+
+    /// <summary>
+    /// The permissions the built-in roles start with. Applied every startup and idempotent, so
+    /// existing databases pick up new catalog entries too: Admin is credited with the whole
+    /// catalog (it is a superuser and its grants are kept complete), Viewer with reading.
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> RolePermissions =
+        new Dictionary<string, IReadOnlyList<string>>
+        {
+            [AppRoles.Admin] = Permissions.AllKeys,
+            [AppRoles.Viewer] = new[] { Permissions.BinClassify, Permissions.BinRangesRead }
+        };
+
+    /// <summary>
+    /// Grants each built-in role its baseline permissions, adding only the ones it is missing.
+    /// Permissions are stored as role claims, so this needs no schema of its own.
+    /// </summary>
+    private static async Task SeedRolePermissionsAsync(
+        RoleManager<ApplicationRole> roleManager, ILogger logger)
+    {
+        foreach (var (roleName, wanted) in RolePermissions)
+        {
+            var role = await roleManager.FindByNameAsync(roleName);
+            if (role is null)
+            {
+                continue;
+            }
+
+            var existing = (await roleManager.GetClaimsAsync(role))
+                .Where(c => c.Type == PermissionClaimTypes.Permission)
+                .Select(c => c.Value)
+                .ToHashSet(StringComparer.Ordinal);
+
+            foreach (var permission in wanted.Where(p => !existing.Contains(p)))
+            {
+                await roleManager.AddClaimAsync(
+                    role, new Claim(PermissionClaimTypes.Permission, permission));
+                logger.LogInformation(
+                    "Granted permission {Permission} to role {RoleName}", permission, roleName);
+            }
+        }
     }
 
     /// <summary>

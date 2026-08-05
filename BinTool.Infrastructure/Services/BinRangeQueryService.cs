@@ -65,6 +65,14 @@ public class BinRangeQueryService : IBinRangeQueryService
             Countries = await _db.Countries.AsNoTracking()
                 .Where(x => !x.IsDeleted).OrderBy(x => x.Name)
                 .Select(x => new CountryOption { IsoCode = x.IsoCode, Name = x.Name })
+                .ToListAsync(cancellationToken),
+
+            // Every account that has added a range, deleted rows included, so the "added
+            // by" filter can reach a range no matter its current state.
+            Creators = await _db.BinRanges.AsNoTracking()
+                .Where(b => b.CreatedBy != null)
+                .Select(b => b.CreatedBy!)
+                .Distinct().OrderBy(name => name)
                 .ToListAsync(cancellationToken)
         };
     }
@@ -107,6 +115,12 @@ public class BinRangeQueryService : IBinRangeQueryService
         if (countryCode is not null)
         {
             rows = rows.Where(b => b.Country!.IsoCode.ToLower() == countryCode);
+        }
+
+        var createdBy = Normalize(query.CreatedBy);
+        if (createdBy is not null)
+        {
+            rows = rows.Where(b => b.CreatedBy != null && b.CreatedBy.ToLower() == createdBy);
         }
 
         return query.Status switch

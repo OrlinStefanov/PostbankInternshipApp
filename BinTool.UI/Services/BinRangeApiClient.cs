@@ -60,6 +60,26 @@ public class BinRangeApiClient
     }
 
     /// <summary>
+    /// Fetches one BIN range by id from <c>GET /api/BinRanges/{id}</c>, deleted ones
+    /// included. Returns null if no range has that id.
+    /// </summary>
+    public async Task<BinRangeListItem?> GetAsync(
+        int binRangeId, CancellationToken cancellationToken = default)
+    {
+        await AuthorizeAsync();
+
+        using var response = await _http.GetAsync(
+            $"api/BinRanges/{binRangeId}", cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content
+            .ReadFromJsonAsync<BinRangeListItem>(Json, cancellationToken);
+    }
+
+    /// <summary>
     /// Fetches the filter dropdown values from <c>GET /api/BinRanges/filters</c>.
     /// </summary>
     public async Task<BinRangeFilterOptions> GetFilterOptionsAsync(
@@ -191,6 +211,7 @@ public class BinRangeApiClient
         Add(parts, "productType", query.ProductType);
         Add(parts, "fundingType", query.FundingType);
         Add(parts, "countryCode", query.CountryCode);
+        Add(parts, "createdBy", query.CreatedBy);
 
         if (query.Status.HasValue)
         {

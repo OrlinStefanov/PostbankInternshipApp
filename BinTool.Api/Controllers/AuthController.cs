@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using BinTool.Api.Services;
+using BinTool.Core.Authorization;
 using BinTool.Core.Entities;
 using BinTool.Core.Models.Auth;
 using Microsoft.AspNetCore.Authorization;
@@ -22,17 +23,20 @@ namespace BinTool.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _users;
+    private readonly RoleManager<ApplicationRole> _roles;
     private readonly SignInManager<ApplicationUser> _signIn;
     private readonly IJwtTokenService _tokens;
     private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         UserManager<ApplicationUser> users,
+        RoleManager<ApplicationRole> roles,
         SignInManager<ApplicationUser> signIn,
         IJwtTokenService tokens,
         ILogger<AuthController> logger)
     {
         _users = users;
+        _roles = roles;
         _signIn = signIn;
         _tokens = tokens;
         _logger = logger;
@@ -104,7 +108,8 @@ public class AuthController : ControllerBase
         }
 
         var roles = await _users.GetRolesAsync(user);
-        var (token, expiresAt) = _tokens.CreateToken(user, roles);
+        var permissions = await ResolvePermissionsAsync(roles);
+        var (token, expiresAt) = _tokens.CreateToken(user, roles, permissions);
 
         user.LastLoginAt = DateTime.UtcNow;
 
@@ -117,8 +122,44 @@ public class AuthController : ControllerBase
             UserId = user.Id,
             UserName = user.UserName ?? string.Empty,
             FullName = user.FullName,
-            Roles = roles.ToList()
+            Roles = roles.ToList(),
+            Permissions = permissions
         });
+    }
+
+    /// <summary>
+    /// Flattens the user's roles into the permissions they grant, read from each role's
+    /// claims. Admin is a superuser, so it is credited with the whole catalog whether or not
+    /// every grant is present - the token then advertises the same access the API enforces.
+    /// </summary>
+    private async Task<List<string>> ResolvePermissionsAsync(IEnumerable<string> roleNames)
+    {
+        var permissions = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var roleName in roleNames)
+        {
+            if (string.Equals(roleName, AppRoles.Admin, StringComparison.Ordinal))
+            {
+                permissions.UnionWith(Permissions.AllKeys);
+                continue;
+            }
+
+            var role = await _roles.FindByNameAsync(roleName);
+            if (role is null)
+            {
+                continue;
+            }
+
+            foreach (var claim in await _roles.GetClaimsAsync(role))
+            {
+                if (claim.Type == PermissionClaimTypes.Permission)
+                {
+                    permissions.Add(claim.Value);
+                }
+            }
+        }
+
+        return permissions.ToList();
     }
 
     /// <summary>

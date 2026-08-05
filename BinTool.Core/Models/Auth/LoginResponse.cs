@@ -30,4 +30,11 @@ public class LoginResponse
     /// The API enforces the same roles regardless of what the client shows.
     /// </summary>
     public List<string> Roles { get; set; } = new();
+
+    /// <summary>
+    /// The permission keys the user's roles add up to, also carried as claims inside the token.
+    /// A client uses these for fine-grained gating; the API enforces the same permissions
+    /// regardless of what the client shows. Admins are a superuser and hold every permission.
+    /// </summary>
+    public List<string> Permissions { get; set; } = new();
 }

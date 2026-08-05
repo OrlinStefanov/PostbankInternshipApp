@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using BinTool.Api.Options;
+using BinTool.Core.Authorization;
 using BinTool.Core.Entities;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -11,9 +12,11 @@ namespace BinTool.Api.Services;
 public interface IJwtTokenService
 {
     /// <summary>
-    /// Issues a signed access token for the user, carrying their id, name and roles.
+    /// Issues a signed access token for the user, carrying their id, name, roles and the
+    /// permissions those roles add up to.
     /// </summary>
-    (string Token, DateTime ExpiresAtUtc) CreateToken(ApplicationUser user, IEnumerable<string> roles);
+    (string Token, DateTime ExpiresAtUtc) CreateToken(
+        ApplicationUser user, IEnumerable<string> roles, IEnumerable<string> permissions);
 }
 
 public class JwtTokenService : IJwtTokenService
@@ -26,7 +29,7 @@ public class JwtTokenService : IJwtTokenService
     }
 
     public (string Token, DateTime ExpiresAtUtc) CreateToken(
-        ApplicationUser user, IEnumerable<string> roles)
+        ApplicationUser user, IEnumerable<string> roles, IEnumerable<string> permissions)
     {
         var issuedAt = DateTime.UtcNow;
         var expiresAt = issuedAt.AddMinutes(_options.ExpiryMinutes);
@@ -53,6 +56,13 @@ public class JwtTokenService : IJwtTokenService
         foreach (var role in roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, role));
+        }
+
+        // One claim per permission, so the permission policies can check the token directly
+        // without going back to the database on every request.
+        foreach (var permission in permissions)
+        {
+            claims.Add(new Claim(PermissionClaimTypes.Permission, permission));
         }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Key));

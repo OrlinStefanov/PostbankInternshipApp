@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using BinTool.Api.Options;
 using BinTool.Api.Services;
+using BinTool.Core.Authorization;
 using BinTool.Core.Entities;
 using BinTool.Core.Models.Import;
 using BinTool.Core.Services;
@@ -82,9 +83,14 @@ public static class ServiceExtensions
                     "soft, so nothing is erased and every change records who made it.\n\n" +
                     "**Authentication.** Every endpoint except `POST /api/Auth/login` and " +
                     "`GET /api/Health` needs a bearer token. Call login, then use the **Authorize** " +
-                    "button above with the `accessToken` it returns. Reading (classify, browse) is " +
-                    "open to both roles; anything that writes BIN data - importing, resolving " +
-                    "conflicts, and adding, editing, deleting or restoring a range - requires **Admin**."
+                    "button above with the `accessToken` it returns.\n\n" +
+                    "**Authorization is permission-based.** Each endpoint requires a permission " +
+                    "(`binranges.read`, `binranges.write`, `binranges.import`, `bin.classify`, " +
+                    "`roles.manage`), granted by holding a role that carries it. An admin composes " +
+                    "roles from these permissions and assigns them to users via `/api/roles` and " +
+                    "`/api/users`. The **Admin** role is a superuser that holds every permission and " +
+                    "is protected from being weakened. Permissions are baked into the token, so a " +
+                    "change to a role takes effect the next time the affected user signs in."
             });
 
             // Surface the doc comments from the controllers and the shared import models.
@@ -144,6 +150,8 @@ public static class ServiceExtensions
         services.AddScoped<IBinClassificationService, BinClassificationService>();
         services.AddScoped<IBinRangeQueryService, BinRangeQueryService>();
         services.AddScoped<IBinRangeAdminService, BinRangeAdminService>();
+        services.AddScoped<IRoleAdminService, RoleAdminService>();
+        services.AddScoped<IUserAdminService, UserAdminService>();
 
         return services;
     }
@@ -193,7 +201,9 @@ public static class ServiceExtensions
             };
         });
 
-        services.AddAuthorization();
+        // Permission-based authorization: an on-demand policy per catalog permission, plus the
+        // handler that makes Admin a superuser. The UI registers the same thing.
+        services.AddPermissionAuthorization();
 
         return services;
     }

@@ -13,6 +13,13 @@ public class BinRangeFilterOptions
     public List<string> FundingTypes { get; set; } = new();
 
     public List<CountryOption> Countries { get; set; } = new();
+
+    /// <summary>
+    /// Distinct user names that have added at least one range, so a browse screen can
+    /// offer an "added by" filter without hard-coding accounts. Includes <c>system</c>
+    /// when any row was written with no user signed in, and covers deleted ranges too.
+    /// </summary>
+    public List<string> Creators { get; set; } = new();
 }
 
 /// <summary>

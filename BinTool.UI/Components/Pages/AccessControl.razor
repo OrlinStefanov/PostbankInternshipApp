@@ -1,0 +1,601 @@
+@page "/access-control"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Permissions.RolesManage)]
+@inject AccessControlApiClient Api
+
+<PageTitle>Access Control</PageTitle>
+
+<div class="page-head">
+    <h1 class="h3 mb-1">Access Control</h1>
+    <p class="text-secondary mb-0">
+        Compose roles from the available permissions, then assign them to people. The
+        <strong>Admin</strong> role is a superuser: it holds every permission and can't be
+        changed or removed. A permission change reaches a user the next time they sign in.
+    </p>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger mt-4" role="alert">@_error</div>
+}
+
+@if (_notice is not null)
+{
+    <div class="alert alert-success alert-dismissible mt-4" role="alert">
+        @_notice
+        <button type="button" class="btn-close" aria-label="Dismiss" @onclick="() => _notice = null"></button>
+    </div>
+}
+
+@* ---- Roles ------------------------------------------------------------------ *@
+<div class="d-flex justify-content-between align-items-center mt-4 mb-2">
+    <h2 class="h5 mb-0">Roles</h2>
+    <button class="btn btn-primary btn-sm" @onclick="StartAddRole" disabled="@_busy">Add role</button>
+</div>
+
+@if (_loading)
+{
+    <p class="text-secondary"><span class="spinner-border spinner-border-sm me-1"></span> Loading…</p>
+}
+else
+{
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-3">Role</th>
+                        <th>Permissions</th>
+                        <th class="text-center">Members</th>
+                        <th class="pe-3 text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var role in _roles)
+                    {
+                        <tr>
+                            <td class="ps-3">
+                                <span class="fw-semibold">@role.Name</span>
+                                @if (role.IsProtected)
+                                {
+                                    <span class="badge rounded-pill text-bg-warning ms-1">Protected</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(role.Description))
+                                {
+                                    <span class="text-secondary small d-block">@role.Description</span>
+                                }
+                            </td>
+                            <td>
+                                @if (role.IsProtected)
+                                {
+                                    <span class="badge rounded-pill text-bg-secondary">All permissions</span>
+                                }
+                                else if (role.Permissions.Count == 0)
+                                {
+                                    <span class="text-secondary small">None</span>
+                                }
+                                else
+                                {
+                                    @foreach (var key in role.Permissions)
+                                    {
+                                        <span class="badge rounded-pill text-bg-light border me-1 mb-1">@PermissionName(key)</span>
+                                    }
+                                }
+                            </td>
+                            <td class="text-center">@role.MemberCount</td>
+                            <td class="pe-3 text-end text-nowrap">
+                                <button class="btn btn-outline-secondary btn-sm me-1"
+                                        @onclick="() => StartEditRole(role)" disabled="@_busy">
+                                    @(role.IsProtected ? "View" : "Edit")
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm"
+                                        @onclick="() => _pendingRoleDelete = role"
+                                        disabled="@(_busy || role.IsProtected)"
+                                        title="@(role.IsProtected ? "The Admin role can't be deleted." : null)">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @* ---- Users -------------------------------------------------------------- *@
+    <h2 class="h5 mt-5 mb-2">Users</h2>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-3">User</th>
+                        <th>Roles</th>
+                        <th class="text-center">Active</th>
+                        <th class="pe-3 text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in _users)
+                    {
+                        <tr>
+                            <td class="ps-3">
+                                <span class="fw-semibold">@user.UserName</span>
+                                @if (IsSelf(user))
+                                {
+                                    <span class="badge rounded-pill text-bg-info ms-1">You</span>
+                                }
+                                <span class="text-secondary small d-block">@user.FullName</span>
+                            </td>
+                            <td>
+                                @if (user.Roles.Count == 0)
+                                {
+                                    <span class="text-secondary small">No roles</span>
+                                }
+                                else
+                                {
+                                    @foreach (var role in user.Roles)
+                                    {
+                                        <span class="badge rounded-pill text-bg-light border me-1 mb-1">@role</span>
+                                    }
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (user.IsActive)
+                                {
+                                    <span class="badge rounded-pill text-bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge rounded-pill text-bg-secondary">Disabled</span>
+                                }
+                            </td>
+                            <td class="pe-3 text-end">
+                                <button class="btn btn-outline-secondary btn-sm"
+                                        @onclick="() => StartEditUser(user)" disabled="@_busy">
+                                    Edit roles
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@* ---- Role editor modal ------------------------------------------------------ *@
+@if (_roleEditorOpen)
+{
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-label="@RoleDialogTitle">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@RoleDialogTitle</h5>
+                    <button type="button" class="btn-close" aria-label="Close"
+                            @onclick="CloseRoleEditor" disabled="@_roleBusy"></button>
+                </div>
+                <div class="modal-body">
+                    @if (_roleError is not null)
+                    {
+                        <div class="alert alert-danger" role="alert">@_roleError</div>
+                    }
+
+                    @if (RoleIsProtected)
+                    {
+                        <div class="alert alert-warning py-2 px-3 small" role="alert">
+                            The Admin role is a superuser and holds every permission. It can't be
+                            edited here.
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label" for="r-name">Name</label>
+                        <input id="r-name" class="form-control" @bind="_roleName"
+                               disabled="@RoleIsProtected" maxlength="64" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="r-desc">Description</label>
+                        <input id="r-desc" class="form-control" @bind="_roleDescription"
+                               disabled="@RoleIsProtected" maxlength="256"
+                               placeholder="What this role is for" />
+                    </div>
+
+                    <label class="form-label">Permissions</label>
+                    @foreach (var group in _permissions.GroupBy(p => p.Group))
+                    {
+                        <div class="perm-group mb-2">
+                            <div class="text-secondary small text-uppercase perm-group-head">@group.Key</div>
+                            @foreach (var permission in group)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                           id="perm-@permission.Key"
+                                           checked="@(RoleIsProtected || _rolePermissions.Contains(permission.Key))"
+                                           disabled="@RoleIsProtected"
+                                           @onchange="e => TogglePermission(permission.Key, e)" />
+                                    <label class="form-check-label" for="perm-@permission.Key">
+                                        <span class="fw-semibold">@permission.Name</span>
+                                        <span class="text-secondary small d-block">@permission.Description</span>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary"
+                            @onclick="CloseRoleEditor" disabled="@_roleBusy">
+                        @(RoleIsProtected ? "Close" : "Cancel")
+                    </button>
+                    @if (!RoleIsProtected)
+                    {
+                        <button type="button" class="btn btn-primary" @onclick="SaveRole" disabled="@_roleBusy">
+                            @if (_roleBusy)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                            }
+                            @(_editingRole is null ? "Add role" : "Save changes")
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
+
+@* ---- Role delete confirm ---------------------------------------------------- *@
+@if (_pendingRoleDelete is not null)
+{
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-label="Confirm delete">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete role @_pendingRoleDelete.Name?</h5>
+                    <button type="button" class="btn-close" aria-label="Close"
+                            @onclick="() => _pendingRoleDelete = null" disabled="@_busy"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">
+                        The role will be removed. Users keep their other roles. A role that still
+                        has members can't be deleted - remove it from them first.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary"
+                            @onclick="() => _pendingRoleDelete = null" disabled="@_busy">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteRole" disabled="@_busy">
+                        @if (_busy)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Delete role
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
+
+@* ---- User roles editor ------------------------------------------------------ *@
+@if (_editingUser is not null)
+{
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-label="Edit roles">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Roles for @_editingUser.UserName</h5>
+                    <button type="button" class="btn-close" aria-label="Close"
+                            @onclick="CloseUserEditor" disabled="@_userBusy"></button>
+                </div>
+                <div class="modal-body">
+                    @if (_userError is not null)
+                    {
+                        <div class="alert alert-danger" role="alert">@_userError</div>
+                    }
+
+                    @foreach (var role in _roles)
+                    {
+                        var locked = IsAdminLockedForUser(role);
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="urole-@role.Id"
+                                   checked="@_userSelectedRoles.Contains(role.Name)"
+                                   disabled="@locked"
+                                   @onchange="e => ToggleUserRole(role.Name, e)" />
+                            <label class="form-check-label" for="urole-@role.Id">
+                                @role.Name
+                                @if (locked)
+                                {
+                                    <span class="text-secondary small">@AdminLockReason</span>
+                                }
+                            </label>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary"
+                            @onclick="CloseUserEditor" disabled="@_userBusy">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveUserRoles" disabled="@_userBusy">
+                        @if (_userBusy)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Save roles
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _busy;
+    private string? _error;
+    private string? _notice;
+
+    private List<RoleListItem> _roles = new();
+    private List<PermissionInfo> _permissions = new();
+    private List<UserListItem> _users = new();
+    private string? _currentUserId;
+
+    // Role editor
+    private bool _roleEditorOpen;
+    private RoleListItem? _editingRole;
+    private string _roleName = string.Empty;
+    private string _roleDescription = string.Empty;
+    private readonly HashSet<string> _rolePermissions = new(StringComparer.Ordinal);
+    private bool _roleBusy;
+    private string? _roleError;
+    private RoleListItem? _pendingRoleDelete;
+
+    // User editor
+    private UserListItem? _editingUser;
+    private readonly HashSet<string> _userSelectedRoles = new(StringComparer.OrdinalIgnoreCase);
+    private bool _userBusy;
+    private string? _userError;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    private bool RoleIsProtected => _editingRole?.IsProtected == true;
+
+    private string RoleDialogTitle => _editingRole is null
+        ? "Add role"
+        : RoleIsProtected ? $"Role {_editingRole.Name}" : $"Edit role {_editingRole.Name}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationState is not null)
+        {
+            var state = await AuthenticationState;
+            _currentUserId = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        }
+
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        try
+        {
+            _permissions = await Api.GetPermissionsAsync();
+            _roles = await Api.GetRolesAsync();
+            _users = await Api.GetUsersAsync();
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Could not load access control: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private string PermissionName(string key) =>
+        _permissions.FirstOrDefault(p => p.Key == key)?.Name ?? key;
+
+    private bool IsSelf(UserListItem user) =>
+        string.Equals(user.Id, _currentUserId, StringComparison.Ordinal);
+
+    // ---- Roles -----------------------------------------------------------------
+
+    private void StartAddRole()
+    {
+        _editingRole = null;
+        _roleName = string.Empty;
+        _roleDescription = string.Empty;
+        _rolePermissions.Clear();
+        _roleError = null;
+        _roleEditorOpen = true;
+    }
+
+    private void StartEditRole(RoleListItem role)
+    {
+        _editingRole = role;
+        _roleName = role.Name;
+        _roleDescription = role.Description ?? string.Empty;
+        _rolePermissions.Clear();
+        foreach (var key in role.Permissions)
+        {
+            _rolePermissions.Add(key);
+        }
+        _roleError = null;
+        _roleEditorOpen = true;
+    }
+
+    private void CloseRoleEditor()
+    {
+        if (_roleBusy) return;
+        _roleEditorOpen = false;
+        _editingRole = null;
+    }
+
+    private void TogglePermission(string key, ChangeEventArgs e)
+    {
+        if (e.Value is true) _rolePermissions.Add(key);
+        else _rolePermissions.Remove(key);
+    }
+
+    private async Task SaveRole()
+    {
+        _roleBusy = true;
+        _roleError = null;
+
+        try
+        {
+            var input = new RoleInput
+            {
+                Name = _roleName.Trim(),
+                Description = string.IsNullOrWhiteSpace(_roleDescription) ? null : _roleDescription.Trim(),
+                Permissions = _rolePermissions.ToList()
+            };
+
+            var result = _editingRole is null
+                ? await Api.CreateRoleAsync(input)
+                : await Api.UpdateRoleAsync(_editingRole.Id, input);
+
+            if (!result.Succeeded)
+            {
+                _roleError = result.Error;
+                return;
+            }
+
+            _notice = _editingRole is null
+                ? $"Created role {input.Name}."
+                : $"Saved role {input.Name}.";
+
+            _roleEditorOpen = false;
+            _editingRole = null;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _roleError = $"Could not save the role: {ex.Message}";
+        }
+        finally
+        {
+            _roleBusy = false;
+        }
+    }
+
+    private async Task ConfirmDeleteRole()
+    {
+        var role = _pendingRoleDelete;
+        if (role is null) return;
+
+        _busy = true;
+        _notice = null;
+
+        try
+        {
+            var result = await Api.DeleteRoleAsync(role.Id);
+            if (!result.Succeeded)
+            {
+                _error = result.Error;
+                return;
+            }
+
+            _notice = $"Deleted role {role.Name}.";
+            _error = null;
+            _pendingRoleDelete = null;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Could not delete the role: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // ---- Users -----------------------------------------------------------------
+
+    private void StartEditUser(UserListItem user)
+    {
+        _editingUser = user;
+        _userSelectedRoles.Clear();
+        foreach (var role in user.Roles)
+        {
+            _userSelectedRoles.Add(role);
+        }
+        _userError = null;
+    }
+
+    private void CloseUserEditor()
+    {
+        if (_userBusy) return;
+        _editingUser = null;
+    }
+
+    private void ToggleUserRole(string roleName, ChangeEventArgs e)
+    {
+        if (e.Value is true) _userSelectedRoles.Add(roleName);
+        else _userSelectedRoles.Remove(roleName);
+    }
+
+    /// <summary>
+    /// The Admin checkbox is locked when unchecking it would break a guardrail the server also
+    /// enforces: you can't remove your own Admin, and you can't remove the last admin. Shown as
+    /// a disabled, already-checked box so the reason is visible rather than a surprise on save.
+    /// </summary>
+    private bool IsAdminLockedForUser(RoleListItem role)
+    {
+        if (_editingUser is null || !role.IsProtected) return false;
+        if (!_editingUser.Roles.Contains(AppRoles.Admin)) return false;
+
+        return IsSelf(_editingUser) || AdminCount() <= 1;
+    }
+
+    private string AdminLockReason =>
+        _editingUser is not null && IsSelf(_editingUser)
+            ? " — you can't remove your own Admin role"
+            : " — the last admin can't be demoted";
+
+    private int AdminCount() => _users.Count(u => u.Roles.Contains(AppRoles.Admin));
+
+    private async Task SaveUserRoles()
+    {
+        if (_editingUser is null) return;
+
+        _userBusy = true;
+        _userError = null;
+
+        try
+        {
+            var input = new UserRolesInput { Roles = _userSelectedRoles.ToList() };
+            var result = await Api.SetUserRolesAsync(_editingUser.Id, input);
+
+            if (!result.Succeeded)
+            {
+                _userError = result.Error;
+                return;
+            }
+
+            _notice = $"Updated roles for {_editingUser.UserName}.";
+            _editingUser = null;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _userError = $"Could not update roles: {ex.Message}";
+        }
+        finally
+        {
+            _userBusy = false;
+        }
+    }
+}

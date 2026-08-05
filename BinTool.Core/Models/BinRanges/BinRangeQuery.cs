@@ -46,6 +46,13 @@ public class BinRangeQuery
     public BinRangeStatus? Status { get; set; }
 
     /// <summary>
+    /// User name of whoever added the range, matched case-insensitively - normally the
+    /// person who ran the import. The literal <c>system</c> selects rows written with no
+    /// user signed in.
+    /// </summary>
+    public string? CreatedBy { get; set; }
+
+    /// <summary>
     /// 1-based page number. Values below 1 are treated as 1.
     /// </summary>
     public int Page { get; set; } = 1;

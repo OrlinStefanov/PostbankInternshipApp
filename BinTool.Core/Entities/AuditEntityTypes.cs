@@ -7,4 +7,10 @@ namespace BinTool.Core.Entities;
 public static class AuditEntityTypes
 {
     public const string BinRange = "BinRange";
+
+    /// <summary>A role's name, description or permissions changed.</summary>
+    public const string Role = "Role";
+
+    /// <summary>The set of roles a user holds changed.</summary>
+    public const string UserRole = "UserRole";
 }

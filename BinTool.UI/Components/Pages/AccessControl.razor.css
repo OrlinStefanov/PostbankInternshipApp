@@ -1,0 +1,20 @@
+.page-head {
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.page-head p {
+    max-width: 70ch;
+    font-size: .925rem;
+}
+
+.perm-group-head {
+    letter-spacing: .04em;
+    font-weight: 600;
+    margin-bottom: .25rem;
+}
+
+/* A little breathing room between permission groups in the role editor. */
+.perm-group + .perm-group {
+    margin-top: .75rem;
+}

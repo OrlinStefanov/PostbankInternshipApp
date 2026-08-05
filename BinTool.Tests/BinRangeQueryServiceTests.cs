@@ -1,3 +1,4 @@
+using BinTool.Core.Entities;
 using BinTool.Core.Models.BinRanges;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
@@ -259,6 +260,37 @@ public class BinRangeQueryServiceTests : SqliteTestBase
         result.Items.Should().ContainSingle().Which.CreatedBy.Should().Be("system");
     }
 
+    // ---- Added-by filter -------------------------------------------------------
+
+    [Theory]
+    [InlineData("admin")]
+    [InlineData("ADMIN")]
+    public async Task Added_by_filter_returns_only_that_creators_ranges(string filter)
+    {
+        SeedBinRangeAddedBy("400001", "admin");
+        SeedBinRangeAddedBy("520000", "viewer");
+
+        var result = await Search(new BinRangeQuery { CreatedBy = filter });
+
+        result.Items.Should().ContainSingle().Which.Prefix.Should().Be("400001");
+    }
+
+    [Fact]
+    public async Task Added_by_can_reach_a_deleted_range_when_deleted_is_also_asked_for()
+    {
+        var deleted = SeedBinRangeAddedBy("400001", "admin");
+        deleted.IsDeleted = true;
+        Db.SaveChanges();
+
+        var result = await Search(new BinRangeQuery
+        {
+            CreatedBy = "admin",
+            Status = BinRangeStatus.Deleted
+        });
+
+        result.Items.Should().ContainSingle().Which.Prefix.Should().Be("400001");
+    }
+
     // ---- Filter options --------------------------------------------------------
 
     [Fact]
@@ -270,5 +302,28 @@ public class BinRangeQueryServiceTests : SqliteTestBase
         options.ProductTypes.Should().Contain(new[] { "Consumer", "Commercial", "Prepaid" });
         options.FundingTypes.Should().Contain(new[] { "Credit", "Debit" });
         options.Countries.Should().Contain(c => c.IsoCode == "BG" && c.Name == "Bulgaria");
+    }
+
+    [Fact]
+    public async Task Creators_option_lists_distinct_names_deleted_rows_included()
+    {
+        SeedBinRangeAddedBy("400001", "admin");
+        SeedBinRangeAddedBy("400002", "admin");
+        var deleted = SeedBinRangeAddedBy("520000", "viewer");
+        deleted.IsDeleted = true;
+        Db.SaveChanges();
+
+        var options = await _service.GetFilterOptionsAsync();
+
+        // Distinct, sorted, and the deleted row's creator is still offered.
+        options.Creators.Should().Equal("admin", "viewer");
+    }
+
+    private BinRange SeedBinRangeAddedBy(string prefix, string createdBy)
+    {
+        var range = SeedBinRange(prefix, VisaId, ConsumerId, CreditId, UsCountryId, Started);
+        range.CreatedBy = createdBy;
+        Db.SaveChanges();
+        return range;
     }
 }

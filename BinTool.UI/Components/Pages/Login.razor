@@ -2,6 +2,7 @@
 @layout Layout.BareLayout
 @using System.ComponentModel.DataAnnotations
 @using System.Security.Claims
+@using BinTool.Core.Authorization
 @using BinTool.Core.Models.Auth
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Authentication.Cookies
@@ -92,6 +93,10 @@
         };
 
         claims.AddRange(login.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
+
+        // The permissions the API baked into the token, mirrored onto the cookie so the UI can
+        // gate pages and controls on the same policies the API enforces.
+        claims.AddRange(login.Permissions.Select(p => new Claim(PermissionClaimTypes.Permission, p)));
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
