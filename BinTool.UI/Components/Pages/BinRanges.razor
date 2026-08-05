@@ -232,7 +232,7 @@ else
                                 @if (IsSystem(item.CreatedBy))
                                 {
                                     @* Not an account: nobody was signed in when this was written. *@
-                                    <span class="badge rounded-pill text-bg-light border">System</span>
+                                    <span class="badge rounded-pill text-bg-light">System</span>
                                 }
                                 else
                                 {
@@ -246,6 +246,9 @@ else
                                 </span>
                             </td>
                             <td class="pe-3 text-end text-nowrap">
+                                @* Each action carries its own colour - neutral to look, accent to
+                                   change, green to bring back, red to withdraw - so the row can be
+                                   read at a glance instead of button label by button label. *@
                                 <button class="btn btn-outline-secondary btn-sm me-1"
                                         @onclick="() => View(item)" disabled="@_busy">
                                     View
@@ -254,14 +257,14 @@ else
                                 {
                                     @if (item.Status == BinRangeStatus.Deleted)
                                     {
-                                        <button class="btn btn-outline-secondary btn-sm"
+                                        <button class="btn btn-outline-success btn-sm"
                                                 @onclick="() => Restore(item)" disabled="@_busy">
                                             Restore
                                         </button>
                                     }
                                     else
                                     {
-                                        <button class="btn btn-outline-secondary btn-sm me-1"
+                                        <button class="btn btn-outline-primary btn-sm me-1"
                                                 @onclick="() => StartEdit(item)" disabled="@_busy">
                                             Edit
                                         </button>
@@ -408,12 +411,13 @@ else
                 <div class="modal-footer">
                     @if (_canWrite && _viewing.Status == BinRangeStatus.Deleted)
                     {
-                        <button type="button" class="btn btn-outline-secondary"
+                        <button type="button" class="btn btn-outline-success"
                                 @onclick="() => RestoreFromView(_viewing)" disabled="@_busy">
                             Restore
                         </button>
                     }
-                    <button type="button" class="btn btn-primary" @onclick="CloseView">Close</button>
+                    @* Dismissal, not an action - it should not outrank Restore beside it. *@
+                    <button type="button" class="btn btn-outline-secondary" @onclick="CloseView">Close</button>
                 </div>
             </div>
         </div>

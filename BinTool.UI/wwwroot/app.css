@@ -1,51 +1,554 @@
+/* ==========================================================================
+   BinTool design layer
+
+   Sits on top of Bootstrap 5.1 and does two jobs.
+
+   1. Fills the gap left by the version. The component stylesheets were written
+      against Bootstrap 5.3 idioms - `--bs-border-color`, `--bs-secondary-color`,
+      `--bs-tertiary-bg`, `.text-bg-*` - none of which exist in 5.1. A missing
+      custom property makes the whole declaration invalid, so those borders,
+      muted greys and panel fills were being dropped silently, and `.badge` fell
+      back to its hardcoded `color: #fff` with no background: white on white.
+      Rather than swap the vendored Bootstrap out from under the app, the tokens
+      are defined here and the handful of missing utilities are ported.
+
+   2. Sets the actual look. Flat surfaces, hairline rules, one accent colour
+      reserved for the primary action, and tone pairs (a deep readable
+      foreground on a soft tinted background) for anything that carries meaning.
+      No gradients and no shadows beyond the one hairpin lift on a card - the
+      screens are dense tables, and depth effects only get in the way of them.
+   ========================================================================== */
+
+:root {
+    /* --- Neutrals ---------------------------------------------------------
+       Cool greys. The page sits a shade below white so that white cards read
+       as surfaces rather than as more page. */
+    --app-paper: #f4f6f8;
+    --app-surface: #ffffff;
+    --app-sunken: #eef1f4;
+    --app-line: #dde3e9;
+    --app-line-strong: #c3ccd5;
+
+    --app-ink: #0f1720;
+    --app-body: #29323c;
+    --app-muted: #667281;
+
+    /* --- Accent -----------------------------------------------------------
+       One deep steel blue, spent only on the primary action and the active nav
+       item. Deliberately not Bootstrap's #0d6efd: it needs to sit clearly apart
+       from the success green and the warning amber so that a blue control
+       always means "this is the main thing to press" and never a status. */
+    --app-accent: #17568c;
+    --app-accent-hover: #10406a;
+    --app-accent-soft: #e8f0f7;
+    --app-accent-line: #b9d2e6;
+
+    /* --- Shell ------------------------------------------------------------
+       The sidebar is its own dark surface, not a tint of the page. */
+    --app-shell: #151b23;
+    --app-shell-line: rgba(255, 255, 255, .09);
+    --app-shell-text: #9caabb;
+    --app-shell-bright: #6cb0e8;
+
+    /* --- Tone pairs -------------------------------------------------------
+       Foreground / background / border for anything that means something.
+       Every foreground clears 4.5:1 on its own background, which is what the
+       old solid-fill badges failed to do. */
+    --tone-neutral-fg: #4a5561;
+    --tone-neutral-bg: #edf0f3;
+    --tone-neutral-line: #d6dde4;
+
+    --tone-success-fg: #1a6b3f;
+    --tone-success-bg: #e7f3ec;
+    --tone-success-line: #bcdcc9;
+
+    --tone-warning-fg: #855107;
+    --tone-warning-bg: #fcf0dc;
+    --tone-warning-line: #ecd3a2;
+
+    --tone-danger-fg: #a02525;
+    --tone-danger-bg: #fbebeb;
+    --tone-danger-line: #f0c5c5;
+
+    --tone-info-fg: #1a5b82;
+    --tone-info-bg: #e6f1f8;
+    --tone-info-line: #b8d5e8;
+
+    --app-radius: .375rem;
+    --app-radius-lg: .5rem;
+
+    /* Segoe UI Variable is the good Windows 11 text face; the rest of the
+       stack is for anyone running this elsewhere. No web fonts - the app
+       should render identically with no network. */
+    --app-font: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text",
+                "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+    /* --- Bootstrap 5.3 tokens the component stylesheets reference ---------- */
+    --bs-body-bg: var(--app-surface);
+    --bs-body-color: var(--app-body);
+    --bs-border-color: var(--app-line);
+    --bs-secondary-color: var(--app-muted);
+    --bs-tertiary-bg: var(--app-sunken);
+    --bs-success-text-emphasis: var(--tone-success-fg);
+    --bs-danger-text-emphasis: var(--tone-danger-fg);
+    --bs-danger-rgb: 160, 37, 37;
+    --bs-font-monospace: ui-monospace, "Cascadia Mono", "Segoe UI Mono",
+                         "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: var(--app-font);
 }
 
-a, .btn-link {
-    color: #006bb7;
+body {
+    background-color: var(--app-paper);
+    color: var(--app-body);
+    font-size: .9375rem;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
 }
 
-.btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-.content {
-    padding-top: 1.1rem;
+h1, h2, h3, h4, h5, h6 {
+    color: var(--app-ink);
+    font-weight: 600;
+    letter-spacing: -.011em;
 }
 
 h1:focus {
     outline: none;
 }
 
+a {
+    color: var(--app-accent);
+    text-underline-offset: .15em;
+}
+
+a:hover {
+    color: var(--app-accent-hover);
+}
+
+code {
+    color: var(--app-ink);
+}
+
+hr {
+    border-color: var(--app-line);
+    opacity: 1;
+}
+
+.text-secondary {
+    color: var(--app-muted) !important;
+}
+
+/* Numbers in this app are read down a column - prefixes, counts, dates - so
+   they get fixed-width figures to line up. */
+.table,
+.stat-value,
+.mono {
+    font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   Focus
+
+   One consistent ring. The stock template drew a white halo first, which
+   disappears against anything that is not a white background.
+   -------------------------------------------------------------------------- */
+
+.btn:focus-visible,
+.btn-link.nav-link:focus-visible,
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus,
+.btn-close:focus {
+    outline: none;
+    border-color: var(--app-accent);
+    box-shadow: 0 0 0 3px rgba(23, 86, 140, .22);
+}
+
+/* Bootstrap 5.1 fires :focus on mouse-down for buttons too; keep the ring for
+   keyboards only and leave a pressed button clean. */
+.btn:focus:not(:focus-visible) {
+    box-shadow: none;
+}
+
+/* --------------------------------------------------------------------------
+   Buttons
+
+   Every control that performs an action is coloured by what the action *is*,
+   not by where it sits: accent for the main move, red for destructive, green
+   for recovery, grey for a read-only look. A row of same-coloured buttons
+   forces the label to do all the work.
+   -------------------------------------------------------------------------- */
+
+.btn {
+    --btn-fg: var(--app-body);
+    --btn-bg: transparent;
+    --btn-line: transparent;
+    --btn-fg-hover: var(--btn-fg);
+    --btn-bg-hover: var(--app-sunken);
+    --btn-line-hover: var(--btn-line);
+
+    color: var(--btn-fg);
+    background-color: var(--btn-bg);
+    border: 1px solid var(--btn-line);
+    border-radius: var(--app-radius);
+    padding: .4rem .85rem;
+    font-size: .875rem;
+    font-weight: 500;
+    line-height: 1.4;
+    transition: background-color .12s ease, border-color .12s ease, color .12s ease;
+}
+
+.btn:hover {
+    color: var(--btn-fg-hover);
+    background-color: var(--btn-bg-hover);
+    border-color: var(--btn-line-hover);
+}
+
+.btn-sm {
+    padding: .25rem .6rem;
+    font-size: .8125rem;
+    border-radius: .3rem;
+}
+
+/* Bootstrap 5.1 hardcodes a disabled colour per variant (`.btn-outline-danger:disabled`
+   and friends). Those land at the same specificity as this rule but earlier in the
+   cascade, so the tokens have to be restated here or a disabled button reverts to
+   stock Bootstrap red/blue while its enabled twin sits next to it in the palette. */
+.btn:disabled,
+.btn.disabled {
+    color: var(--btn-fg);
+    background-color: var(--btn-bg);
+    border-color: var(--btn-line);
+    opacity: .5;
+}
+
+/* Solid - the single primary action on a screen or in a dialog. */
+.btn-primary {
+    --btn-fg: #fff;
+    --btn-bg: var(--app-accent);
+    --btn-line: var(--app-accent);
+    --btn-fg-hover: #fff;
+    --btn-bg-hover: var(--app-accent-hover);
+    --btn-line-hover: var(--app-accent-hover);
+}
+
+.btn-danger {
+    --btn-fg: #fff;
+    --btn-bg: var(--tone-danger-fg);
+    --btn-line: var(--tone-danger-fg);
+    --btn-fg-hover: #fff;
+    --btn-bg-hover: #861d1d;
+    --btn-line-hover: #861d1d;
+}
+
+/* Outline - hairline border, tinted wash on hover. Bootstrap's stock outline
+   buttons invert to a saturated fill, which in a table makes whichever row you
+   happen to be pointing at shout louder than the data. */
+.btn-outline-primary {
+    --btn-fg: var(--app-accent);
+    --btn-line: var(--app-accent-line);
+    --btn-bg-hover: var(--app-accent-soft);
+    --btn-line-hover: var(--app-accent);
+    --btn-fg-hover: var(--app-accent-hover);
+}
+
+.btn-outline-secondary {
+    --btn-fg: var(--tone-neutral-fg);
+    --btn-line: var(--app-line-strong);
+    --btn-bg-hover: var(--app-sunken);
+    --btn-line-hover: var(--tone-neutral-fg);
+    --btn-fg-hover: var(--app-ink);
+}
+
+.btn-outline-danger {
+    --btn-fg: var(--tone-danger-fg);
+    --btn-line: var(--tone-danger-line);
+    --btn-bg-hover: var(--tone-danger-bg);
+    --btn-line-hover: var(--tone-danger-fg);
+    --btn-fg-hover: var(--tone-danger-fg);
+}
+
+.btn-outline-success {
+    --btn-fg: var(--tone-success-fg);
+    --btn-line: var(--tone-success-line);
+    --btn-bg-hover: var(--tone-success-bg);
+    --btn-line-hover: var(--tone-success-fg);
+    --btn-fg-hover: var(--tone-success-fg);
+}
+
+.btn-link {
+    --btn-fg: var(--app-accent);
+    --btn-bg-hover: transparent;
+    --btn-fg-hover: var(--app-accent-hover);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+}
+
+/* --------------------------------------------------------------------------
+   Badges
+
+   Ported from 5.3, but as tone pairs rather than saturated fills: a pill of
+   solid colour next to body text is louder than the status it reports.
+
+   The base rule matters as much as the variants - it means an unrecognised
+   `.text-bg-*` degrades to a legible grey chip instead of vanishing.
+   -------------------------------------------------------------------------- */
+
+.badge {
+    display: inline-block;
+    padding: .25em .6em;
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: .01em;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border: 1px solid var(--tone-neutral-line);
+    border-radius: var(--app-radius);
+    color: var(--tone-neutral-fg);
+    background-color: var(--tone-neutral-bg);
+}
+
+.badge.rounded-pill {
+    padding: .25em .7em;
+}
+
+.text-bg-light,
+.text-bg-secondary {
+    color: var(--tone-neutral-fg);
+    background-color: var(--tone-neutral-bg);
+    border-color: var(--tone-neutral-line);
+}
+
+.text-bg-success {
+    color: var(--tone-success-fg);
+    background-color: var(--tone-success-bg);
+    border-color: var(--tone-success-line);
+}
+
+.text-bg-warning {
+    color: var(--tone-warning-fg);
+    background-color: var(--tone-warning-bg);
+    border-color: var(--tone-warning-line);
+}
+
+.text-bg-danger {
+    color: var(--tone-danger-fg);
+    background-color: var(--tone-danger-bg);
+    border-color: var(--tone-danger-line);
+}
+
+.text-bg-info,
+.text-bg-primary {
+    color: var(--tone-info-fg);
+    background-color: var(--tone-info-bg);
+    border-color: var(--tone-info-line);
+}
+
+/* --------------------------------------------------------------------------
+   Cards and tables
+   -------------------------------------------------------------------------- */
+
+.card {
+    background-color: var(--app-surface);
+    border: 1px solid var(--app-line);
+    border-radius: var(--app-radius-lg);
+    box-shadow: 0 1px 2px rgba(15, 23, 32, .04);
+}
+
+.card-body {
+    padding: 1.15rem 1.25rem;
+}
+
+.table {
+    --bs-table-bg: transparent;
+    border-color: var(--app-line);
+    margin-bottom: 0;
+    color: var(--app-body);
+}
+
+.table > :not(caption) > * > * {
+    padding: .6rem .75rem;
+    border-bottom-color: var(--app-line);
+}
+
+/* 5.1 draws the header divider in `currentColor`, i.e. near-black. */
+.table > :not(:last-child) > :last-child > * {
+    border-bottom-color: var(--app-line);
+}
+
+.table thead th {
+    background-color: var(--app-sunken);
+    color: var(--app-muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--app-line);
+}
+
+.table tbody tr:last-child > * {
+    border-bottom-width: 0;
+}
+
+/* 5.1 tints rows through an inset shadow, so a hover has to go through the
+   same channel rather than `background-color`. */
+.table tbody tr:hover > * {
+    --bs-table-accent-bg: var(--app-sunken);
+}
+
+.card > .table-responsive:first-child .table thead th:first-child,
+.card > .table-responsive:first-child .table thead th {
+    border-top: 0;
+}
+
+/* Keep the header corners inside the card's rounding. */
+.card > .table-responsive {
+    border-radius: inherit;
+    overflow: auto;
+}
+
+/* --------------------------------------------------------------------------
+   Forms
+   -------------------------------------------------------------------------- */
+
+.form-control,
+.form-select {
+    border: 1px solid var(--app-line-strong);
+    border-radius: var(--app-radius);
+    padding: .4rem .7rem;
+    font-size: .875rem;
+    color: var(--app-body);
+    background-color: var(--app-surface);
+}
+
+.form-control::placeholder {
+    color: #97a1ad;
+}
+
+.form-label {
+    font-size: .8125rem;
+    font-weight: 500;
+    color: var(--app-body);
+    margin-bottom: .3rem;
+}
+
+.form-check-input {
+    border-color: var(--app-line-strong);
+}
+
+.form-check-input:checked {
+    background-color: var(--app-accent);
+    border-color: var(--app-accent);
+}
+
+.form-check-input:disabled ~ .form-check-label {
+    opacity: .65;
+}
+
+.darker-border-checkbox.form-check-input {
+    border-color: var(--app-line-strong);
+}
+
 .valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
+    outline: 1px solid var(--tone-success-fg);
 }
 
 .invalid {
-    outline: 1px solid #e50000;
+    outline: 1px solid var(--tone-danger-fg);
 }
 
 .validation-message {
-    color: #e50000;
+    color: var(--tone-danger-fg);
+    font-size: .8125rem;
 }
 
+/* --------------------------------------------------------------------------
+   Alerts and dialogs
+   -------------------------------------------------------------------------- */
+
+.alert {
+    border: 1px solid transparent;
+    border-radius: var(--app-radius);
+    padding: .7rem 1rem;
+    font-size: .875rem;
+}
+
+.alert-success {
+    color: var(--tone-success-fg);
+    background-color: var(--tone-success-bg);
+    border-color: var(--tone-success-line);
+}
+
+.alert-danger {
+    color: var(--tone-danger-fg);
+    background-color: var(--tone-danger-bg);
+    border-color: var(--tone-danger-line);
+}
+
+.alert-warning {
+    color: var(--tone-warning-fg);
+    background-color: var(--tone-warning-bg);
+    border-color: var(--tone-warning-line);
+}
+
+.alert-info {
+    color: var(--tone-info-fg);
+    background-color: var(--tone-info-bg);
+    border-color: var(--tone-info-line);
+}
+
+.modal-content {
+    border: 1px solid var(--app-line);
+    border-radius: var(--app-radius-lg);
+    box-shadow: 0 12px 32px rgba(15, 23, 32, .18);
+}
+
+.modal-header,
+.modal-footer {
+    border-color: var(--app-line);
+    padding: .9rem 1.25rem;
+}
+
+.modal-body {
+    padding: 1.25rem;
+}
+
+.modal-title {
+    font-size: 1.0625rem;
+}
+
+.modal-backdrop {
+    background-color: #0f1720;
+}
+
+/* --------------------------------------------------------------------------
+   Error boundary
+
+   The stock template ships a base64 warning glyph on a red block. Same
+   information, drawn with the palette everything else uses.
+   -------------------------------------------------------------------------- */
+
 .blazor-error-boundary {
-    background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNDkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIG92ZXJmbG93PSJoaWRkZW4iPjxkZWZzPjxjbGlwUGF0aCBpZD0iY2xpcDAiPjxyZWN0IHg9IjIzNSIgeT0iNTEiIHdpZHRoPSI1NiIgaGVpZ2h0PSI0OSIvPjwvY2xpcFBhdGg+PC9kZWZzPjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMCkiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yMzUgLTUxKSI+PHBhdGggZD0iTTI2My41MDYgNTFDMjY0LjcxNyA1MSAyNjUuODEzIDUxLjQ4MzcgMjY2LjYwNiA1Mi4yNjU4TDI2Ny4wNTIgNTIuNzk4NyAyNjcuNTM5IDUzLjYyODMgMjkwLjE4NSA5Mi4xODMxIDI5MC41NDUgOTIuNzk1IDI5MC42NTYgOTIuOTk2QzI5MC44NzcgOTMuNTEzIDI5MSA5NC4wODE1IDI5MSA5NC42NzgyIDI5MSA5Ny4wNjUxIDI4OS4wMzggOTkgMjg2LjYxNyA5OUwyNDAuMzgzIDk5QzIzNy45NjMgOTkgMjM2IDk3LjA2NTEgMjM2IDk0LjY3ODIgMjM2IDk0LjM3OTkgMjM2LjAzMSA5NC4wODg2IDIzNi4wODkgOTMuODA3MkwyMzYuMzM4IDkzLjAxNjIgMjM2Ljg1OCA5Mi4xMzE0IDI1OS40NzMgNTMuNjI5NCAyNTkuOTYxIDUyLjc5ODUgMjYwLjQwNyA1Mi4yNjU4QzI2MS4yIDUxLjQ4MzcgMjYyLjI5NiA1MSAyNjMuNTA2IDUxWk0yNjMuNTg2IDY2LjAxODNDMjYwLjczNyA2Ni4wMTgzIDI1OS4zMTMgNjcuMTI0NSAyNTkuMzEzIDY5LjMzNyAyNTkuMzEzIDY5LjYxMDIgMjU5LjMzMiA2OS44NjA4IDI1OS4zNzEgNzAuMDg4N0wyNjEuNzk1IDg0LjAxNjEgMjY1LjM4IDg0LjAxNjEgMjY3LjgyMSA2OS43NDc1QzI2Ny44NiA2OS43MzA5IDI2Ny44NzkgNjkuNTg3NyAyNjcuODc5IDY5LjMxNzkgMjY3Ljg3OSA2Ny4xMTgyIDI2Ni40NDggNjYuMDE4MyAyNjMuNTg2IDY2LjAxODNaTTI2My41NzYgODYuMDU0N0MyNjEuMDQ5IDg2LjA1NDcgMjU5Ljc4NiA4Ny4zMDA1IDI1OS43ODYgODkuNzkyMSAyNTkuNzg2IDkyLjI4MzcgMjYxLjA0OSA5My41Mjk1IDI2My41NzYgOTMuNTI5NSAyNjYuMTE2IDkzLjUyOTUgMjY3LjM4NyA5Mi4yODM3IDI2Ny4zODcgODkuNzkyMSAyNjcuMzg3IDg3LjMwMDUgMjY2LjExNiA4Ni4wNTQ3IDI2My41NzYgODYuMDU0N1oiIGZpbGw9IiNGRkU1MDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=) no-repeat 1rem/1.8rem, #b32121;
-    padding: 1rem 1rem 1rem 3.7rem;
-    color: white;
+    padding: .9rem 1.1rem;
+    color: var(--tone-danger-fg);
+    background-color: var(--tone-danger-bg);
+    border: 1px solid var(--tone-danger-line);
+    border-radius: var(--app-radius);
+    font-size: .875rem;
 }
 
     .blazor-error-boundary::after {
         content: "An error has occurred."
     }
-
-.darker-border-checkbox.form-check-input {
-    border-color: #929292;
-}

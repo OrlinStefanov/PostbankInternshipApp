@@ -2,24 +2,58 @@
 
 <PageTitle>BinTool</PageTitle>
 
-<h1 class="h3 mb-2">BinTool</h1>
-<p class="text-secondary">Card BIN classification &amp; commission configuration.</p>
+<div class="page-head">
+    <h1 class="h3 mb-1">BinTool</h1>
+    <p class="text-secondary mb-0">
+        Card BIN classification and commission configuration. Everything a lookup returns
+        comes from the imported ranges - no scheme is hard-coded.
+    </p>
+</div>
 
 <AuthorizeView>
     <Authorized>
-        <div class="d-flex flex-wrap gap-2 mt-4">
-            <a class="btn btn-outline-primary" href="bin-ranges">Browse BIN ranges</a>
+        @* Only the cards a signed-in user can actually act on. Each route is guarded in
+           its own right, so this is presentation rather than the control. *@
+        <div class="entry-grid mt-4">
+            <a class="entry" href="bin-ranges">
+                <span class="entry-title">BIN ranges</span>
+                <span class="entry-text">
+                    Browse and filter what is stored, check whether a prefix is active,
+                    scheduled, expired or withdrawn, and maintain ranges one at a time.
+                </span>
+            </a>
 
-            <AuthorizeView Roles="@AppRoles.Admin" Context="admin">
+            <AuthorizeView Policy="@Permissions.BinRangesImport" Context="import">
                 <Authorized>
-                    <a class="btn btn-primary" href="import">Import BIN CSV</a>
+                    <a class="entry" href="import">
+                        <span class="entry-title">Import CSV</span>
+                        <span class="entry-text">
+                            Load a batch of ranges. Rows that clash with a stored record are
+                            staged as conflicts for review instead of overwriting anything.
+                        </span>
+                    </a>
+                </Authorized>
+            </AuthorizeView>
+
+            <AuthorizeView Policy="@Permissions.RolesManage" Context="access">
+                <Authorized>
+                    <a class="entry" href="access-control">
+                        <span class="entry-title">Access control</span>
+                        <span class="entry-text">
+                            Compose roles from the permission catalogue and assign them to
+                            people. Changes reach a user on their next sign-in.
+                        </span>
+                    </a>
                 </Authorized>
             </AuthorizeView>
         </div>
     </Authorized>
     <NotAuthorized>
-        <div class="mt-4">
-            <a class="btn btn-primary" href="login">Sign in</a>
+        <div class="card mt-4">
+            <div class="card-body">
+                <p class="mb-3">Sign in to browse BIN ranges and import data.</p>
+                <a class="btn btn-primary" href="login">Sign in</a>
+            </div>
         </div>
     </NotAuthorized>
 </AuthorizeView>

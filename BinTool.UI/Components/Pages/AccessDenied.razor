@@ -5,16 +5,17 @@
 <div class="page-head">
     <h1 class="h3 mb-1">Access denied</h1>
     <p class="text-secondary mb-0">
-        You are signed in, but your role does not allow this page.
+        You are signed in, but none of your roles carry the permission this page needs.
     </p>
 </div>
 
 <div class="card mt-4">
     <div class="card-body">
         <p class="mb-2">
-            Importing BIN ranges and resolving conflicts are restricted to the
-            <strong>Admin</strong> role. Signing in again will not change that - the account
-            itself needs the role.
+            Each page requires a permission, granted by holding a role that carries it. An
+            admin can add the permission to one of your roles from <strong>Access
+            Control</strong> - and because permissions are baked into the token at sign-in,
+            you will need to sign in again afterwards for it to take effect.
         </p>
         <p class="text-secondary small mb-3">
             The API enforces the same rule, so this is not something a client can work around.

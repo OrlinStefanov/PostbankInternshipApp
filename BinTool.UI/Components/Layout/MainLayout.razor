@@ -6,22 +6,25 @@
     </div>
 
     <main>
-        <div class="top-row px-4 d-flex justify-content-end align-items-center gap-3">
+        <div class="top-row">
             <AuthorizeView>
                 <Authorized>
                     <span class="user-chip">
-                        <span class="user-name">@DisplayName(context.User)</span>
-                        <span class="user-roles">@Roles(context.User)</span>
+                        <span class="user-avatar" aria-hidden="true">@Initials(context.User)</span>
+                        <span class="user-lines">
+                            <span class="user-name">@DisplayName(context.User)</span>
+                            <span class="user-roles">@Roles(context.User)</span>
+                        </span>
                     </span>
-                    <a href="logout">Sign out</a>
+                    <a class="btn btn-outline-secondary btn-sm" href="logout">Sign out</a>
                 </Authorized>
                 <NotAuthorized>
-                    <a href="login">Sign in</a>
+                    <a class="btn btn-primary btn-sm" href="login">Sign in</a>
                 </NotAuthorized>
             </AuthorizeView>
         </div>
 
-        <article class="content px-4">
+        <article class="content">
             @Body
         </article>
     </main>
@@ -42,4 +45,21 @@
 
     private static string Roles(System.Security.Claims.ClaimsPrincipal user) =>
         string.Join(", ", user.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value));
+
+    /// <summary>
+    /// Up to two initials for the avatar. Decorative only - the name is next to it - so a
+    /// name that yields nothing usable just falls back to a dot rather than an empty circle.
+    /// </summary>
+    private static string Initials(System.Security.Claims.ClaimsPrincipal user)
+    {
+        var letters = DisplayName(user)
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(part => char.IsLetter(part[0]))
+            .Take(2)
+            .Select(part => char.ToUpperInvariant(part[0]));
+
+        var initials = string.Concat(letters);
+
+        return initials.Length == 0 ? "•" : initials;
+    }
 }

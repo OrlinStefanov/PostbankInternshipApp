@@ -1,16 +1,24 @@
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">BinTool</a>
-    </div>
+@*
+    Every label is wrapped in its own element so the icon rail can drop the text
+    without losing the icon. The `title` on each link is what carries the label
+    once it is hidden, so a rail item still says what it is on hover.
+*@
+
+<div class="nav-head">
+    <a class="brand" href="">
+        <span class="brand-mark" aria-hidden="true">B</span>
+        <span class="brand-text">BinTool</span>
+    </a>
 </div>
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+    <nav class="nav-list">
+        <div class="nav-item">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All" title="Home">
+                <span class="nav-icon icon-home" aria-hidden="true"></span>
+                <span class="nav-text">Home</span>
             </NavLink>
         </div>
 
@@ -18,9 +26,10 @@
            itself is guarded too, so hiding it is presentation, not the control. *@
         <AuthorizeView>
             <Authorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="bin-ranges">
-                        <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> BIN Ranges
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="bin-ranges" title="BIN Ranges">
+                        <span class="nav-icon icon-ranges" aria-hidden="true"></span>
+                        <span class="nav-text">BIN Ranges</span>
                     </NavLink>
                 </div>
             </Authorized>
@@ -28,9 +37,10 @@
 
         <AuthorizeView Policy="@Permissions.BinRangesImport">
             <Authorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="import">
-                        <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> BIN Import
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="import" title="BIN Import">
+                        <span class="nav-icon icon-import" aria-hidden="true"></span>
+                        <span class="nav-text">BIN Import</span>
                     </NavLink>
                 </div>
             </Authorized>
@@ -38,9 +48,10 @@
 
         <AuthorizeView Policy="@Permissions.RolesManage">
             <Authorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="access-control">
-                        <span class="bi bi-lock-nav-menu" aria-hidden="true"></span> Access Control
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="access-control" title="Access Control">
+                        <span class="nav-icon icon-access" aria-hidden="true"></span>
+                        <span class="nav-text">Access Control</span>
                     </NavLink>
                 </div>
             </Authorized>

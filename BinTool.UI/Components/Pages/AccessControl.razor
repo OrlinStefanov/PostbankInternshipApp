@@ -78,13 +78,15 @@ else
                                 {
                                     @foreach (var key in role.Permissions)
                                     {
-                                        <span class="badge rounded-pill text-bg-light border me-1 mb-1">@PermissionName(key)</span>
+                                        <span class="badge rounded-pill text-bg-light me-1 mb-1">@PermissionName(key)</span>
                                     }
                                 }
                             </td>
                             <td class="text-center">@role.MemberCount</td>
                             <td class="pe-3 text-end text-nowrap">
-                                <button class="btn btn-outline-secondary btn-sm me-1"
+                                @* Protected roles open read-only, so that button is a neutral
+                                   "look" rather than the accent used for a real edit. *@
+                                <button class="btn btn-sm me-1 @(role.IsProtected ? "btn-outline-secondary" : "btn-outline-primary")"
                                         @onclick="() => StartEditRole(role)" disabled="@_busy">
                                     @(role.IsProtected ? "View" : "Edit")
                                 </button>
@@ -136,7 +138,7 @@ else
                                 {
                                     @foreach (var role in user.Roles)
                                     {
-                                        <span class="badge rounded-pill text-bg-light border me-1 mb-1">@role</span>
+                                        <span class="badge rounded-pill text-bg-light me-1 mb-1">@role</span>
                                     }
                                 }
                             </td>
@@ -151,7 +153,7 @@ else
                                 }
                             </td>
                             <td class="pe-3 text-end">
-                                <button class="btn btn-outline-secondary btn-sm"
+                                <button class="btn btn-outline-primary btn-sm"
                                         @onclick="() => StartEditUser(user)" disabled="@_busy">
                                     Edit roles
                                 </button>
