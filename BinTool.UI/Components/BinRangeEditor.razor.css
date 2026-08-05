@@ -1,0 +1,15 @@
+.mono {
+    font-family: var(--bs-font-monospace);
+    font-weight: 600;
+    letter-spacing: .04em;
+}
+
+/* Bootstrap's modal is normally faded in by its own JavaScript. This one is rendered
+   by Blazor when it opens, so the visible state is set here instead. */
+.modal {
+    background: transparent;
+}
+
+.modal-backdrop {
+    opacity: .5;
+}

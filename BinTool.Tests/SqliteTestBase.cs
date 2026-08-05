@@ -47,6 +47,29 @@ public abstract class SqliteTestBase : IDisposable
             .Options);
 
     /// <summary>
+    /// Seeds an application user. Audit entries carry a foreign key to the user who made
+    /// the change, and SQLite enforces it - so a test that expects a change to be
+    /// attributed needs the account to exist.
+    /// </summary>
+    protected ApplicationUser SeedUser(string id, string userName)
+    {
+        var user = new ApplicationUser
+        {
+            Id = id,
+            UserName = userName,
+            NormalizedUserName = userName.ToUpperInvariant(),
+            Email = $"{userName}@bintool.local",
+            NormalizedEmail = $"{userName}@bintool.local".ToUpperInvariant(),
+            FullName = userName,
+            SecurityStamp = Guid.NewGuid().ToString()
+        };
+
+        Db.Users.Add(user);
+        Db.SaveChanges();
+        return user;
+    }
+
+    /// <summary>
     /// Seeds an existing BIN range so a test has something to match or compare against.
     /// </summary>
     protected BinRange SeedBinRange(string prefix, int cardSchemeId, int productTypeId,

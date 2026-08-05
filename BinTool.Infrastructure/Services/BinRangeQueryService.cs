@@ -33,31 +33,7 @@ public class BinRangeQueryService : IBinRangeQueryService
             .OrderBy(b => b.Prefix)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(b => new BinRangeListItem
-            {
-                BinRangeId = b.BinRangeId,
-                Prefix = b.Prefix,
-                PrefixLength = b.PrefixLength,
-                CardScheme = b.CardScheme!.Name,
-                ProductType = b.ProductType!.Name,
-                FundingType = b.FundingType!.Name,
-                CountryCode = b.Country!.IsoCode,
-                CountryName = b.Country.Name,
-                Region = b.Country.Region!.Name,
-                ValidFrom = b.ValidFrom,
-                ValidTo = b.ValidTo,
-                Status = b.IsDeleted
-                    ? BinRangeStatus.Deleted
-                    : b.ValidTo != null && b.ValidTo < today
-                        ? BinRangeStatus.Expired
-                        : b.ValidFrom > today
-                            ? BinRangeStatus.Scheduled
-                            : BinRangeStatus.Active,
-                CreatedAt = b.CreatedAt,
-                CreatedBy = b.CreatedBy,
-                UpdatedAt = b.UpdatedAt,
-                UpdatedBy = b.UpdatedBy
-            })
+            .Select(BinRangeProjection.ToListItem(today))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<BinRangeListItem>

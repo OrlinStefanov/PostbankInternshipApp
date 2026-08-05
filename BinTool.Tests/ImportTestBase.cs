@@ -26,7 +26,9 @@ public abstract class ImportTestBase : SqliteTestBase
     {
         // Resolved lazily through a wrapper so a test can replace CurrentUser after the
         // base constructor has already built the service.
-        Service = new BinCsvImportService(Db, new DeferredCurrentUser(() => CurrentUser));
+        var currentUser = new DeferredCurrentUser(() => CurrentUser);
+
+        Service = new BinCsvImportService(Db, currentUser, new AuditLog(Db, currentUser));
     }
 
     private sealed class DeferredCurrentUser : ICurrentUser

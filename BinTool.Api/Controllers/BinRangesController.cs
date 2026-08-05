@@ -1,3 +1,4 @@
+using BinTool.Core.Entities;
 using BinTool.Core.Models.BinRanges;
 using BinTool.Core.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -6,9 +7,11 @@ using Microsoft.AspNetCore.Mvc;
 namespace BinTool.Api.Controllers;
 
 /// <summary>
-/// Browses the stored BIN ranges.
+/// Browses and maintains the stored BIN ranges.
 /// <para>
-/// Open to any signed-in user: browsing only reads.
+/// Reading is open to any signed-in user. Adding, editing, deleting and restoring a
+/// range are Admin only - they change live BIN data, so they carry the same access rule
+/// as importing.
 /// </para>
 /// </summary>
 [ApiController]
@@ -18,10 +21,12 @@ namespace BinTool.Api.Controllers;
 public class BinRangesController : ControllerBase
 {
     private readonly IBinRangeQueryService _service;
+    private readonly IBinRangeAdminService _admin;
 
-    public BinRangesController(IBinRangeQueryService service)
+    public BinRangesController(IBinRangeQueryService service, IBinRangeAdminService admin)
     {
         _service = service;
+        _admin = admin;
     }
 
     /// <summary>
@@ -89,4 +94,177 @@ public class BinRangesController : ControllerBase
 
         return Ok(options);
     }
+
+    /// <summary>
+    /// Returns one BIN range by id.
+    /// </summary>
+    /// <remarks>
+    /// Soft-deleted ranges are returned too, with `status: Deleted` - otherwise there
+    /// would be no way to look at one before deciding whether to restore it.
+    /// </remarks>
+    /// <param name="id">Id of the range.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <response code="200">The range.</response>
+    /// <response code="404">No range has that id.</response>
+    [HttpGet("{id:int}", Name = nameof(GetById))]
+    [ProducesResponseType(typeof(BinRangeListItem), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
+    {
+        var range = await _admin.GetAsync(id, cancellationToken);
+
+        return range is null ? NotFound() : Ok(range);
+    }
+
+    /// <summary>
+    /// Adds a single BIN range by hand.
+    /// </summary>
+    /// <remarks>
+    /// For the ranges a CSV does not cover - a one-off correction, or a range that arrives
+    /// on its own. Sample request:
+    ///
+    ///     POST /api/BinRanges
+    ///     {
+    ///       "prefix": "400001",
+    ///       "cardScheme": "Visa",
+    ///       "productType": "Consumer",
+    ///       "fundingType": "Credit",
+    ///       "countryCode": "US",
+    ///       "validFrom": "2024-01-01",
+    ///       "validTo": null
+    ///     }
+    ///
+    /// `cardScheme`, `productType`, `fundingType` and `countryCode` name existing reference
+    /// data, matched case-insensitively, exactly as in the CSV. Naming something that does
+    /// not exist is rejected rather than creating it. Leave `validTo` null for an
+    /// open-ended range.
+    ///
+    /// The prefix must be free. One exception: if its only record was soft-deleted, that
+    /// row is revived with these values and the response comes back as `Restored` - the
+    /// prefix is unique across deleted rows too, so there is no second record to insert.
+    ///
+    /// The range records the signed-in user as having added it, which is what the browse
+    /// listing's "added by" reports.
+    /// </remarks>
+    /// <param name="input">The range to add.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <response code="201">Added. The body carries the stored range.</response>
+    /// <response code="200">An existing soft-deleted range was revived with these values.</response>
+    /// <response code="400">A field broke a rule, or named reference data that does not exist.</response>
+    /// <response code="409">A live range already owns that prefix.</response>
+    [HttpPost]
+    [Authorize(Roles = AppRoles.Admin)]
+    [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Create(
+        [FromBody] BinRangeInput input, CancellationToken cancellationToken)
+    {
+        var result = await _admin.CreateAsync(input, cancellationToken);
+
+        if (result.Status == BinRangeMutationStatus.Created)
+        {
+            return CreatedAtRoute(nameof(GetById), new { id = result.Range!.BinRangeId }, result);
+        }
+
+        return Respond(result);
+    }
+
+    /// <summary>
+    /// Overwrites a BIN range with new values.
+    /// </summary>
+    /// <remarks>
+    /// The whole range is replaced, so send every field - anything omitted is treated as
+    /// cleared, not left alone. The prefix may be changed as long as no other range owns
+    /// it. The range keeps its id, and the signed-in user is recorded as its last editor.
+    ///
+    /// A soft-deleted range cannot be edited: restore it first, so bringing it back is
+    /// never a side effect of a correction.
+    /// </remarks>
+    /// <param name="id">Id of the range to edit.</param>
+    /// <param name="input">The new values.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <response code="200">Updated. The body carries the stored range.</response>
+    /// <response code="400">A field broke a rule, or named reference data that does not exist.</response>
+    /// <response code="404">No such range, or it is deleted and must be restored first.</response>
+    /// <response code="409">Another range already owns that prefix.</response>
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = AppRoles.Admin)]
+    [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Update(
+        int id, [FromBody] BinRangeInput input, CancellationToken cancellationToken)
+    {
+        var result = await _admin.UpdateAsync(id, input, cancellationToken);
+
+        return Respond(result);
+    }
+
+    /// <summary>
+    /// Withdraws a BIN range.
+    /// </summary>
+    /// <remarks>
+    /// The delete is soft. The range stops matching classification and drops out of the
+    /// default listing, but the record stays - `GET /api/BinRanges?status=Deleted` still
+    /// finds it, and `POST /api/BinRanges/{id}/restore` brings it back with its history.
+    ///
+    /// The prefix stays reserved while the range is deleted. Adding it again revives this
+    /// record rather than creating a second one.
+    /// </remarks>
+    /// <param name="id">Id of the range to withdraw.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <response code="200">Deleted. The body carries the range with `status: Deleted`.</response>
+    /// <response code="404">No range has that id.</response>
+    /// <response code="409">The range is already deleted.</response>
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = AppRoles.Admin)]
+    [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        var result = await _admin.DeleteAsync(id, cancellationToken);
+
+        return Respond(result);
+    }
+
+    /// <summary>
+    /// Brings a soft-deleted BIN range back.
+    /// </summary>
+    /// <remarks>
+    /// The range returns with the values it had when it was deleted, and starts matching
+    /// classification again from the moment it is restored, subject to its own dates.
+    /// </remarks>
+    /// <param name="id">Id of the range to restore.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <response code="200">Restored. The body carries the stored range.</response>
+    /// <response code="404">No range has that id.</response>
+    /// <response code="409">The range was not deleted.</response>
+    [HttpPost("{id:int}/restore")]
+    [Authorize(Roles = AppRoles.Admin)]
+    [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Restore(int id, CancellationToken cancellationToken)
+    {
+        var result = await _admin.RestoreAsync(id, cancellationToken);
+
+        return Respond(result);
+    }
+
+    /// <summary>
+    /// Maps a refusal onto the status code that says the same thing. Every write returns
+    /// the same body either way, so a client reads one shape rather than two.
+    /// </summary>
+    private IActionResult Respond(BinRangeMutationResult result) => result.Status switch
+    {
+        BinRangeMutationStatus.NotFound => NotFound(result),
+        BinRangeMutationStatus.PrefixInUse => Conflict(result),
+        BinRangeMutationStatus.AlreadyInThatState => Conflict(result),
+        BinRangeMutationStatus.Invalid => BadRequest(result),
+        _ => Ok(result)
+    };
 }

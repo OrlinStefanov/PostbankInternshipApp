@@ -8,7 +8,8 @@ A .NET 8 application for classifying payment card BINs (Bank Identification Numb
 - **Commission Management**: Stores and resolves tiered commission rules based on card attributes
 - **Fee Calculation**: Calculates transaction fees based on classification and applicable commission rules
 - **Bulk Processing**: Imports BIN data from CSV files and classifies cards in bulk
-- **Audit Trail**: Records all configuration changes for compliance
+- **BIN Maintenance**: Lets an administrator add, edit, withdraw and restore individual BIN ranges without a CSV
+- **Audit Trail**: Records every change to BIN data — before and after values, and who made it
 
 ## Who it's for
 
@@ -117,6 +118,11 @@ Implemented:
 | `POST /api/bin/classify` — Classify a BIN | Any signed-in user |
 | `GET /api/binranges` — Browse stored BIN ranges | Any signed-in user |
 | `GET /api/binranges/filters` — Reference values for filters | Any signed-in user |
+| `GET /api/binranges/{id}` — One BIN range | Any signed-in user |
+| `POST /api/binranges` — Add a BIN range by hand | **Admin** |
+| `PUT /api/binranges/{id}` — Edit a BIN range | **Admin** |
+| `DELETE /api/binranges/{id}` — Withdraw a BIN range (soft) | **Admin** |
+| `POST /api/binranges/{id}/restore` — Bring a withdrawn range back | **Admin** |
 | `POST /api/BinCsvImport/import` — Import a CSV | **Admin** |
 | `GET /api/BinCsvImport/conflicts` — Conflicts awaiting a decision | **Admin** |
 | `POST /api/BinCsvImport/resolve-conflicts` — Apply decisions | **Admin** |
@@ -142,9 +148,41 @@ curl -k -X POST https://localhost:7258/api/auth/login -H "Content-Type: applicat
 In Swagger UI, use the **Authorize** button and paste the `accessToken` — Swagger adds the
 `Bearer ` prefix itself.
 
+#### If a correct password stops working
+
+**Five failed sign-ins lock the account for five minutes.** During that window the *right*
+password is refused too, and — because every rejection has to read the same, or the response
+would reveal which accounts exist — it is refused with the same message. Credentials that were
+working therefore appear to have gone bad.
+
+Retrying does not extend the lockout, but it does not clear it either. Wait it out. The API logs
+a warning naming the account and when the lockout ends, which is the only place it is visible:
+
+```
+warn: Sign-in refused for admin: the account is locked out until 2026-08-05 08:13:11Z.
+```
+
+Both numbers are set explicitly in `ServiceExtensions.AddApplicationServices`.
+
+#### Why a session ends after an hour
+
+There is no refresh token and no sliding expiration, both on purpose. The consequences are worth
+knowing before they look like bugs:
+
+- The token lasts **60 minutes** from sign-in (`Jwt:ExpiryMinutes`). An hour of inactivity ends
+  the session, and the next page load goes to `/login`.
+- The UI cookie's lifetime is pinned to the token's expiry, so the two always end together.
+- The cookie is **not persistent**, so closing the browser signs you out regardless of the hour
+  remaining.
+
+Restarting the API or the UI does *not* sign you out: the Data Protection key ring that encrypts
+the cookie is persisted per user under `%LOCALAPPDATA%\ASP.NET\DataProtection-Keys`, so the
+cookie still decrypts against a fresh process.
+
 Roles are enforced by the API, not by the client: reading (classify, browse) is open to any
-signed-in user, while importing and resolving conflicts require **Admin**. A `403` means the
-token is valid but the role is not enough; a `401` means no token, or an expired one.
+signed-in user, while anything that writes BIN data — importing, resolving conflicts, and
+adding, editing, deleting or restoring a range — requires **Admin**. A `403` means the token is
+valid but the role is not enough; a `401` means no token, or an expired one.
 
 #### Demo accounts
 
@@ -152,8 +190,8 @@ Created automatically on an empty database so the app can be signed into straigh
 
 | User name | Password | Role | Can do |
 |---|---|---|---|
-| `admin` | `Admin@123` | Admin | Everything, including CSV import and conflict resolution |
-| `viewer` | `Viewer@123` | Viewer | Browse BIN ranges and classify BINs; no import |
+| `admin` | `Admin@123` | Admin | Everything: CSV import, conflict resolution, and maintaining BIN ranges by hand |
+| `viewer` | `Viewer@123` | Viewer | Browse BIN ranges and classify BINs; cannot change anything |
 
 > **These are development credentials, published here on purpose so the project runs out of the
 > box.** They are not suitable for any shared or deployed environment. Existing accounts are never
@@ -239,6 +277,97 @@ countries currently in the database, so a client populates its dropdowns from da
 
 The Blazor UI exposes this at **`/bin-ranges`**.
 
+### Maintaining BIN ranges by hand
+
+A CSV is the right tool for a batch from a scheme. It is the wrong tool for a single correction,
+a range that arrives on its own, or withdrawing one that should no longer match. **Admins** can do
+those one at a time, from the same `/bin-ranges` page — an **Add BIN range** button, and **Edit**,
+**Delete** and **Restore** per row. A viewer sees none of these controls, and the API refuses them
+with a `403` regardless of what the client shows.
+
+| Action | Endpoint | Result |
+|---|---|---|
+| Add | `POST /api/binranges` | `201` with the stored range |
+| Edit | `PUT /api/binranges/{id}` | `200` with the stored range |
+| Withdraw | `DELETE /api/binranges/{id}` | `200`; the range is soft-deleted |
+| Restore | `POST /api/binranges/{id}/restore` | `200` with the range back |
+
+The body names reference data exactly as a CSV row does — `cardScheme`, `productType`,
+`fundingType`, `countryCode` — matched case-insensitively against what already exists. Naming
+something that does not exist is rejected rather than created, and all the bad names come back at
+once rather than one per attempt:
+
+```bash
+curl -k -X POST https://localhost:7258/api/binranges \
+  -H "Authorization: Bearer <accessToken>" -H "Content-Type: application/json" \
+  -d "{\"prefix\":\"400009\",\"cardScheme\":\"Visa\",\"productType\":\"Consumer\",\"fundingType\":\"Credit\",\"countryCode\":\"BG\",\"validFrom\":\"2024-01-01\"}"
+```
+
+Rules worth knowing:
+
+- **`PUT` replaces the whole range.** Send every field; anything omitted is cleared, not left
+  alone. The range keeps its id, and the signed-in user is recorded as its last editor.
+- **The prefix can be changed**, as long as no other range owns it. `prefixLength` is derived from
+  it, never supplied.
+- **Deletes are soft.** The range stops matching classification and drops out of the default
+  listing, but nothing is erased — `?status=Deleted` finds it and restore brings it back with the
+  values it had.
+- **A deleted range cannot be edited.** Restore it first, so bringing it back is never an
+  accidental side effect of a correction.
+- **A deleted prefix stays reserved.** The unique index on `prefix` spans deleted rows, so adding
+  that prefix again revives the existing record with the new values and answers `Restored` rather
+  than creating a second one. This is the same rule the CSV import follows.
+
+Every write answers with the same body — a `status`, an `error` when it was refused, and the
+stored `range` when it was not — so one shape covers `200`, `201`, `400`, `404` and `409`. A
+refused write is reported, not thrown: `409` for a prefix already in use or a range already in
+that state, `400` for a broken rule or an unknown reference name, `404` for an id that is not
+there.
+
+### Audit trail
+
+Every change to live BIN data writes an `AuditEntry` recording **what changed, from what, to
+what, by whom and when**:
+
+| Column | Holds |
+|---|---|
+| `entityType`, `entityId` | Which row changed — `BinRange` plus its id |
+| `action` | `Created`, `Updated`, `Deleted` or `Imported` |
+| `oldValues` | JSON snapshot before the change; null for an insert |
+| `newValues` | JSON snapshot after |
+| `performedByUserId` | The account that made it, or null if nobody was signed in |
+| `performedAt` | When |
+
+The snapshots hold reference data **by name** and dates as `yyyy-MM-dd`, because an audit trail
+is read by people — and the names are copied at the time of the change, so an entry keeps saying
+what the range was even if the reference data is renamed later:
+
+```json
+{"prefix":"888777","cardScheme":"Visa","productType":"Consumer","fundingType":"Credit",
+ "countryCode":"US","validFrom":"2024-01-01","validTo":null,"isDeleted":false}
+```
+
+What is recorded, and what deliberately is not:
+
+| Event | Entry |
+|---|---|
+| Range added by hand | `Created` — no old values |
+| Range edited | `Updated` — both sides |
+| Range deleted / restored | `Deleted` / `Updated` — the snapshots differ only in `isDeleted` |
+| Row inserted by an import | `Imported`, so the trail tells a file apart from a hand edit |
+| Import revives a deleted prefix | `Imported`, with the values it replaced |
+| Conflict applied | `Updated` — the values the import overwrote, and the ones it wrote |
+| Conflict discarded | *None.* No BIN data changed; who decided and when is on the conflict itself |
+| Row rejected or unchanged by an import | *None.* Rejections are kept, with reasons, on the import history |
+| A refused write (`400`/`404`/`409`) | *None.* Nothing changed, so there is nothing to account for |
+
+Entries are written in the **same transaction** as the change they describe. An insert has no id
+until it is saved, so those paths save twice inside one transaction rather than letting a range
+commit without its audit row — a silently incomplete trail is the one failure an audit trail
+cannot have.
+
+There is no read endpoint for the trail yet; query the `AuditEntries` table directly.
+
 ## CSV Import Format
 
 ### BIN Import
@@ -322,7 +451,11 @@ The full column and validation spec, including the decisions pending mentor sign
 - Demo accounts and the JWT signing key are committed for convenience — both must be replaced
   before this runs anywhere shared (see [Authentication](#authentication))
 - There is no refresh token, no password reset and no self-registration; accounts are seeded
-- Audit fields record the signed-in user, but no `AuditEntry` rows are written yet
+- The audit trail covers BIN ranges only; commission rules and reference data are not audited yet
+- There is no endpoint or screen for reading the audit trail — the rows are written, but only
+  reachable by querying `AuditEntries` directly
+- There is no optimistic concurrency check on a hand edit: two admins editing the same range at
+  once, last write wins
 - The application uses ASP.NET Core built-in authentication for internship purposes
 - Production deployment would require integration with the corporate identity provider
 - Bulk classification files are limited to reasonable sizes (currently tested up to 1000 rows)

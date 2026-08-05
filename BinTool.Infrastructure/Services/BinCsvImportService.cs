@@ -1,5 +1,6 @@
 using System.Globalization;
 using BinTool.Core.Entities;
+using BinTool.Core.Models.Audit;
 using BinTool.Core.Models.Import;
 using BinTool.Core.Services;
 using BinTool.Infrastructure.Data;
@@ -42,11 +43,13 @@ public class BinCsvImportService : IBinCsvImportService
 
     private readonly AppDbContext _db;
     private readonly ICurrentUser _currentUser;
+    private readonly IAuditLog _audit;
 
-    public BinCsvImportService(AppDbContext db, ICurrentUser currentUser)
+    public BinCsvImportService(AppDbContext db, ICurrentUser currentUser, IAuditLog audit)
     {
         _db = db;
         _currentUser = currentUser;
+        _audit = audit;
     }
 
     public async Task<BinImportResult> ImportAsync(
@@ -159,13 +162,17 @@ public class BinCsvImportService : IBinCsvImportService
         var stagedConflicts = new List<(PendingBinConflict Entity, int RowNumber, List<BinFieldDiff> Diffs)>();
         var revivals = new Dictionary<int, ResolvedRow>();
 
+        // Rows that changed live data, kept so each can be audited once its id exists.
+        var inserted = new List<(BinRange Entity, ResolvedRow Values)>();
+        var revivedFrom = new Dictionary<int, BinRangeSnapshot>();
+
         foreach (var candidate in candidates)
         {
             var v = candidate.Values;
 
             if (!existing.TryGetValue(v.Prefix, out var current))
             {
-                _db.BinRanges.Add(new BinRange
+                var added = new BinRange
                 {
                     Prefix = v.Prefix,
                     PrefixLength = v.Prefix.Length,
@@ -179,7 +186,10 @@ public class BinCsvImportService : IBinCsvImportService
                     UpdatedAt = now,
                     CreatedBy = _currentUser.Name,
                     UpdatedBy = _currentUser.Name
-                });
+                };
+
+                _db.BinRanges.Add(added);
+                inserted.Add((added, v));
                 result.InsertedCount++;
                 continue;
             }
@@ -191,6 +201,7 @@ public class BinCsvImportService : IBinCsvImportService
             if (current.IsDeleted)
             {
                 revivals[current.BinRangeId] = v;
+                revivedFrom[current.BinRangeId] = Snapshot(current, lookups);
                 result.InsertedCount++;
                 continue;
             }
@@ -259,7 +270,18 @@ public class BinCsvImportService : IBinCsvImportService
                 ? "Partial"
                 : "Success";
 
+        // Inserted ranges have no id until they are saved, and an audit entry has to carry
+        // one - so the trail is written in a second save, with a transaction holding the
+        // two together. Ranges committing without their audit rows would leave the trail
+        // quietly incomplete, which is the one failure an audit trail cannot have.
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+
         await _db.SaveChangesAsync(cancellationToken);
+
+        RecordImportedRanges(inserted, revivals, revivedFrom, lookups);
+
+        await _db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         // Ids are generated now, so build the response conflicts.
         foreach (var (entity, stagedRowNumber, diffs) in stagedConflicts)
@@ -303,11 +325,20 @@ public class BinCsvImportService : IBinCsvImportService
 
         var now = DateTime.UtcNow;
 
+        // Only needed to name the ids in the audit snapshots.
+        var lookups = conflicts.Count > 0
+            ? await Lookups.LoadAsync(_db, cancellationToken)
+            : null;
+
         foreach (var conflict in conflicts)
         {
             if (decisions[conflict.PendingBinConflictId] &&
                 targets.TryGetValue(conflict.TargetBinRangeId, out var target))
             {
+                // Applying a conflict overwrites live BIN data, so the values it replaces
+                // are captured before they are gone.
+                var before = Snapshot(target, lookups!);
+
                 target.CardSchemeId = conflict.CardSchemeId;
                 target.ProductTypeId = conflict.ProductTypeId;
                 target.FundingTypeId = conflict.FundingTypeId;
@@ -318,11 +349,16 @@ public class BinCsvImportService : IBinCsvImportService
                 target.UpdatedAt = now;
                 target.UpdatedBy = _currentUser.Name;
 
+                _audit.Record(AuditAction.Updated, AuditEntityTypes.BinRange, target.BinRangeId,
+                    before, Snapshot(target, lookups!));
+
                 conflict.Status = ConflictStatus.Applied;
                 result.UpdatedCount++;
             }
             else
             {
+                // Discarding changes no BIN range, so there is nothing to snapshot. Who
+                // decided, and when, is recorded on the conflict itself just below.
                 conflict.Status = ConflictStatus.Discarded;
                 result.DiscardedCount++;
             }
@@ -374,6 +410,60 @@ public class BinCsvImportService : IBinCsvImportService
 
         return conflicts;
     }
+
+    /// <summary>
+    /// Writes the audit trail for everything an import changed.
+    /// <para>
+    /// Only the rows that touched live BIN data are recorded. A rejected row changed
+    /// nothing and is already kept, with its reason, on the import history; an unchanged
+    /// row by definition changed nothing; and a staged conflict has not been decided yet,
+    /// so it is audited if and when someone applies it.
+    /// </para>
+    /// </summary>
+    private void RecordImportedRanges(
+        List<(BinRange Entity, ResolvedRow Values)> inserted,
+        Dictionary<int, ResolvedRow> revivals,
+        Dictionary<int, BinRangeSnapshot> revivedFrom,
+        Lookups lookups)
+    {
+        // Imported rather than Created: the trail should say a range arrived in a file
+        // rather than being typed in by hand.
+        foreach (var (entity, values) in inserted)
+        {
+            _audit.Record(AuditAction.Imported, AuditEntityTypes.BinRange, entity.BinRangeId,
+                null, Snapshot(values, lookups, isDeleted: false));
+        }
+
+        foreach (var (binRangeId, values) in revivals)
+        {
+            _audit.Record(AuditAction.Imported, AuditEntityTypes.BinRange, binRangeId,
+                revivedFrom[binRangeId], Snapshot(values, lookups, isDeleted: false));
+        }
+    }
+
+    /// <summary>
+    /// Describes a stored range for the audit trail, resolving its lookup ids through the
+    /// snapshot the import already loaded rather than going back to the database per row.
+    /// </summary>
+    private static BinRangeSnapshot Snapshot(BinRange range, Lookups lookups) => new(
+        range.Prefix,
+        lookups.CardSchemeName(range.CardSchemeId),
+        lookups.ProductTypeName(range.ProductTypeId),
+        lookups.FundingTypeName(range.FundingTypeId),
+        lookups.CountryCode(range.CountryId),
+        BinRangeSnapshot.Date(range.ValidFrom),
+        range.ValidTo is null ? null : BinRangeSnapshot.Date(range.ValidTo.Value),
+        range.IsDeleted);
+
+    private static BinRangeSnapshot Snapshot(ResolvedRow row, Lookups lookups, bool isDeleted) => new(
+        row.Prefix,
+        lookups.CardSchemeName(row.CardSchemeId),
+        lookups.ProductTypeName(row.ProductTypeId),
+        lookups.FundingTypeName(row.FundingTypeId),
+        lookups.CountryCode(row.CountryId),
+        BinRangeSnapshot.Date(row.ValidFrom),
+        row.ValidTo is null ? null : BinRangeSnapshot.Date(row.ValidTo.Value),
+        isDeleted);
 
     /// <summary>
     /// Structural validation only. Returns the first rule that fails so the message

@@ -1,9 +1,11 @@
 using System.Globalization;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using BinTool.Core.Models.BinRanges;
+using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.UI.Services;
 
@@ -67,6 +69,109 @@ public class BinRangeApiClient
 
         return await _http.GetFromJsonAsync<BinRangeFilterOptions>(
             "api/BinRanges/filters", Json, cancellationToken) ?? new BinRangeFilterOptions();
+    }
+
+    /// <summary>
+    /// Adds a BIN range via <c>POST /api/BinRanges</c>.
+    /// </summary>
+    public Task<BinRangeMutationResult> CreateAsync(
+        BinRangeInput input, CancellationToken cancellationToken = default) =>
+        SendAsync(HttpMethod.Post, "api/BinRanges", input, cancellationToken);
+
+    /// <summary>
+    /// Overwrites a BIN range via <c>PUT /api/BinRanges/{id}</c>.
+    /// </summary>
+    public Task<BinRangeMutationResult> UpdateAsync(
+        int binRangeId, BinRangeInput input, CancellationToken cancellationToken = default) =>
+        SendAsync(HttpMethod.Put, $"api/BinRanges/{binRangeId}", input, cancellationToken);
+
+    /// <summary>
+    /// Soft-deletes a BIN range via <c>DELETE /api/BinRanges/{id}</c>.
+    /// </summary>
+    public Task<BinRangeMutationResult> DeleteAsync(
+        int binRangeId, CancellationToken cancellationToken = default) =>
+        SendAsync(HttpMethod.Delete, $"api/BinRanges/{binRangeId}", null, cancellationToken);
+
+    /// <summary>
+    /// Restores a soft-deleted BIN range via <c>POST /api/BinRanges/{id}/restore</c>.
+    /// </summary>
+    public Task<BinRangeMutationResult> RestoreAsync(
+        int binRangeId, CancellationToken cancellationToken = default) =>
+        SendAsync(HttpMethod.Post, $"api/BinRanges/{binRangeId}/restore", null, cancellationToken);
+
+    /// <summary>
+    /// Runs one write and reads the outcome. A refusal is a normal answer here - the API
+    /// returns the same body with a 400, 404 or 409 - so the status code is not thrown on;
+    /// the caller reads <c>Status</c> and shows <c>Error</c>.
+    /// </summary>
+    private async Task<BinRangeMutationResult> SendAsync(
+        HttpMethod method, string url, BinRangeInput? body, CancellationToken cancellationToken)
+    {
+        await AuthorizeAsync();
+
+        using var request = new HttpRequestMessage(method, url);
+        if (body is not null)
+        {
+            request.Content = JsonContent.Create(body, options: Json);
+        }
+
+        using var response = await _http.SendAsync(request, cancellationToken);
+
+        var result = await ReadResultAsync(response, cancellationToken);
+        if (result is not null) return result;
+
+        // Anything that is not the API's own result shape - a validation problem raised
+        // before the action ran, an unauthorized call, a proxy error page.
+        return BinRangeMutationResult.Failure(
+            BinRangeMutationStatus.Invalid, await DescribeAsync(response, cancellationToken));
+    }
+
+    private static async Task<BinRangeMutationResult?> ReadResultAsync(
+        HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await response.Content
+                .ReadFromJsonAsync<BinRangeMutationResult>(Json, cancellationToken);
+
+            // A body that parses but says nothing is not the result shape - every refusal
+            // the API produces carries a reason.
+            return result is null || (!result.Succeeded && result.Error is null) ? null : result;
+        }
+        catch (Exception ex) when (ex is JsonException or NotSupportedException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Turns a response the client did not expect into one sentence a user can act on.
+    /// </summary>
+    private static async Task<string> DescribeAsync(
+        HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        if (response.StatusCode == HttpStatusCode.Unauthorized ||
+            response.StatusCode == HttpStatusCode.Forbidden)
+        {
+            return "You are not allowed to change BIN ranges. Sign in as an admin and try again.";
+        }
+
+        try
+        {
+            var problem = await response.Content
+                .ReadFromJsonAsync<ValidationProblemDetails>(Json, cancellationToken);
+
+            var messages = problem?.Errors.SelectMany(e => e.Value).ToArray();
+            if (messages is { Length: > 0 }) return string.Join(" ", messages);
+
+            if (!string.IsNullOrWhiteSpace(problem?.Title)) return problem!.Title!;
+        }
+        catch (Exception ex) when (ex is JsonException or NotSupportedException)
+        {
+            // Fall through to the status code.
+        }
+
+        return $"The request failed ({(int)response.StatusCode} {response.ReasonPhrase}).";
     }
 
     /// <summary>

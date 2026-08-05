@@ -24,15 +24,18 @@ public class AuthController : ControllerBase
     private readonly UserManager<ApplicationUser> _users;
     private readonly SignInManager<ApplicationUser> _signIn;
     private readonly IJwtTokenService _tokens;
+    private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         UserManager<ApplicationUser> users,
         SignInManager<ApplicationUser> signIn,
-        IJwtTokenService tokens)
+        IJwtTokenService tokens,
+        ILogger<AuthController> logger)
     {
         _users = users;
         _signIn = signIn;
         _tokens = tokens;
+        _logger = logger;
     }
 
     /// <summary>
@@ -51,9 +54,17 @@ public class AuthController : ControllerBase
     /// The token expires at `expiresAtUtc`. There is no refresh token: when it expires
     /// the user logs in again.
     ///
-    /// Either the user name or the email address works as `userName`. A wrong password,
-    /// an unknown user and a deactivated account all return the same 401 with the same
-    /// message, so the response cannot be used to discover which accounts exist.
+    /// Either the user name or the email address works as `userName`.
+    ///
+    /// A wrong password, an unknown user, a deactivated account and a locked-out account
+    /// all return the same 401 with the same message, so the response cannot be used to
+    /// discover which accounts exist.
+    ///
+    /// **Five failed attempts lock the account for five minutes.** During that window the
+    /// correct password is refused too, with that same message - so credentials that were
+    /// working can appear to have stopped. Retrying does not extend the lockout, but it
+    /// does not shorten it either: wait it out. The server log names the account and says
+    /// when the lockout ends.
     /// </remarks>
     /// <param name="request">The credentials.</param>
     /// <response code="200">The credentials were accepted. Returns the token and the user's roles.</response>
@@ -69,17 +80,27 @@ public class AuthController : ControllerBase
         var user = await _users.FindByNameAsync(request.UserName)
                    ?? await _users.FindByEmailAsync(request.UserName);
 
-        // Deliberately one message for every failure: a distinct "no such user" would
-        // let anyone enumerate accounts.
         if (user is null || !user.IsActive)
         {
-            return Unauthorized(new { message = "Invalid user name or password." });
+            return Unauthorized(new { message = LoginMessages.Rejected });
         }
 
         var check = await _signIn.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
         if (!check.Succeeded)
         {
-            return Unauthorized(new { message = "Invalid user name or password." });
+            if (check.IsLockedOut)
+            {
+                // The response cannot say which account is locked, so the server log is
+                // the only place this is visible. Without it, a lockout is indis-
+                // tinguishable from a wrong password and looks like the password itself
+                // stopped working.
+                _logger.LogWarning(
+                    "Sign-in refused for {UserName}: the account is locked out until {LockoutEnd:u}. " +
+                    "Correct credentials will keep being rejected until then.",
+                    user.UserName, await _users.GetLockoutEndDateAsync(user));
+            }
+
+            return Unauthorized(new { message = LoginMessages.Rejected });
         }
 
         var roles = await _users.GetRolesAsync(user);

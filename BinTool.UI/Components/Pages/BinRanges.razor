@@ -15,7 +15,10 @@
     </div>
     <AuthorizeView Roles="@AppRoles.Admin">
         <Authorized>
-            <a class="btn btn-outline-primary" href="import">Import CSV</a>
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-primary" href="import">Import CSV</a>
+                <button class="btn btn-primary" @onclick="StartAdd">Add BIN range</button>
+            </div>
         </Authorized>
     </AuthorizeView>
 </div>
@@ -101,6 +104,15 @@
     <div class="alert alert-danger mt-4" role="alert">@_error</div>
 }
 
+@if (_notice is not null)
+{
+    <div class="alert alert-success alert-dismissible mt-4" role="alert">
+        @_notice
+        <button type="button" class="btn-close" aria-label="Dismiss"
+                @onclick="() => _notice = null"></button>
+    </div>
+}
+
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-4 mb-2">
     <span class="text-secondary small">
         @if (_loading)
@@ -150,7 +162,8 @@
             {
                 <AuthorizeView Roles="@AppRoles.Admin">
                     <Authorized>
-                        <a class="btn btn-primary btn-sm" href="import">Import a CSV</a>
+                        <a class="btn btn-outline-primary btn-sm me-1" href="import">Import a CSV</a>
+                        <button class="btn btn-primary btn-sm" @onclick="StartAdd">Add one by hand</button>
                     </Authorized>
                 </AuthorizeView>
             }
@@ -173,7 +186,11 @@ else
                         <th>Valid from</th>
                         <th>Valid to</th>
                         <th>Added by</th>
-                        <th class="pe-3">Status</th>
+                        <th class="@(_isAdmin ? null : "pe-3")">Status</th>
+                        @if (_isAdmin)
+                        {
+                            <th class="pe-3 text-end">Actions</th>
+                        }
                     </tr>
                 </thead>
                 <tbody>
@@ -206,11 +223,34 @@ else
                                 }
                                 <span class="text-secondary small d-block">@Date(item.CreatedAt)</span>
                             </td>
-                            <td class="pe-3">
+                            <td class="@(_isAdmin ? null : "pe-3")">
                                 <span class="badge rounded-pill text-bg-@StatusColor(item.Status)">
                                     @item.Status
                                 </span>
                             </td>
+                            @if (_isAdmin)
+                            {
+                                <td class="pe-3 text-end">
+                                    @if (item.Status == BinRangeStatus.Deleted)
+                                    {
+                                        <button class="btn btn-outline-secondary btn-sm"
+                                                @onclick="() => Restore(item)" disabled="@_busy">
+                                            Restore
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-outline-secondary btn-sm me-1"
+                                                @onclick="() => StartEdit(item)" disabled="@_busy">
+                                            Edit
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm"
+                                                @onclick="() => _pendingDelete = item" disabled="@_busy">
+                                            Delete
+                                        </button>
+                                    }
+                                </td>
+                            }
                         </tr>
                     }
                 </tbody>
@@ -238,11 +278,58 @@ else
     }
 }
 
+@if (_editorOpen)
+{
+    <BinRangeEditor Options="_options" Range="_editing" OnSaved="OnSaved" OnCancel="CloseEditor" />
+}
+
+@if (_pendingDelete is not null)
+{
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true"
+         aria-label="Confirm delete">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete BIN range @_pendingDelete.Prefix?</h5>
+                    <button type="button" class="btn-close" aria-label="Close"
+                            @onclick="() => _pendingDelete = null" disabled="@_busy"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">
+                        @_pendingDelete.Prefix (@_pendingDelete.CardScheme,
+                        @_pendingDelete.CountryCode) will stop matching classification and
+                        drop out of this listing.
+                    </p>
+                    <p class="text-secondary small mb-0">
+                        Nothing is erased. Filter by <strong>Deleted</strong> to find it again,
+                        and restore it with the values it has now.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary"
+                            @onclick="() => _pendingDelete = null" disabled="@_busy">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete" disabled="@_busy">
+                        @if (_busy)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        }
+                        Delete range
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
+
 @code {
     private const string OpenEnded = "—";
 
     private bool _loading = true;
     private string? _error;
+    private string? _notice;
 
     private BinRangeFilterOptions _options = new();
     private PagedResult<BinRangeListItem> _page = new();
@@ -255,6 +342,17 @@ else
     private string _status = string.Empty;
     private int _pageSize = BinRangeQuery.DefaultPageSize;
     private int _currentPage = 1;
+
+    // Admin-only maintenance. The API enforces the role regardless; this decides whether
+    // the controls are worth rendering at all.
+    private bool _isAdmin;
+    private bool _busy;
+    private bool _editorOpen;
+    private BinRangeListItem? _editing;
+    private BinRangeListItem? _pendingDelete;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
 
     private bool HasFilters =>
         !string.IsNullOrWhiteSpace(_prefix)
@@ -270,6 +368,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        if (AuthenticationState is not null)
+        {
+            var state = await AuthenticationState;
+            _isAdmin = state.User.IsInRole(AppRoles.Admin);
+        }
+
         try
         {
             _options = await Api.GetFilterOptionsAsync();
@@ -369,6 +473,99 @@ else
     {
         _prefix = _cardScheme = _productType = _fundingType = _countryCode = _status = string.Empty;
         await ReloadFromFirstPage();
+    }
+
+    // ---- Maintenance -----------------------------------------------------------
+
+    private void StartAdd()
+    {
+        _editing = null;
+        _notice = null;
+        _editorOpen = true;
+    }
+
+    private void StartEdit(BinRangeListItem item)
+    {
+        _editing = item;
+        _notice = null;
+        _editorOpen = true;
+    }
+
+    private void CloseEditor()
+    {
+        _editorOpen = false;
+        _editing = null;
+    }
+
+    /// <summary>
+    /// Reloads rather than patching the row in place: a change can move a range out of the
+    /// current filter or page, and a listing that disagrees with the database is worse than
+    /// an extra call.
+    /// </summary>
+    private async Task OnSaved(BinRangeMutationResult result)
+    {
+        CloseEditor();
+
+        var range = result.Range!;
+        _notice = result.Status switch
+        {
+            BinRangeMutationStatus.Created => $"Added BIN range {range.Prefix}.",
+            BinRangeMutationStatus.Updated => $"Saved BIN range {range.Prefix}.",
+            BinRangeMutationStatus.Restored =>
+                $"{range.Prefix} already existed as a deleted range. It has been restored with these values.",
+            _ => $"BIN range {range.Prefix} saved."
+        };
+
+        await Load();
+    }
+
+    private async Task ConfirmDelete()
+    {
+        var item = _pendingDelete;
+        if (item is null) return;
+
+        await Run(() => Api.DeleteAsync(item.BinRangeId));
+
+        _pendingDelete = null;
+    }
+
+    private Task Restore(BinRangeListItem item) => Run(() => Api.RestoreAsync(item.BinRangeId));
+
+    /// <summary>
+    /// Runs one write, reports it, and reloads. Refusals arrive as an ordinary result, so
+    /// only a transport failure reaches the catch.
+    /// </summary>
+    private async Task Run(Func<Task<BinRangeMutationResult>> action)
+    {
+        _busy = true;
+        _notice = null;
+
+        try
+        {
+            var result = await action();
+
+            if (!result.Succeeded)
+            {
+                _error = result.Error;
+                return;
+            }
+
+            var range = result.Range!;
+            _notice = result.Status == BinRangeMutationStatus.Deleted
+                ? $"Deleted BIN range {range.Prefix}. Filter by Deleted to restore it."
+                : $"Restored BIN range {range.Prefix}.";
+
+            _error = null;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _error = $"The change could not be applied: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private static string Date(DateTime value) => value.ToString("yyyy-MM-dd");

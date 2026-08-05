@@ -31,6 +31,13 @@ public static class ServiceExtensions
             options.Password.RequiredLength = 8;
             options.Password.RequireNonAlphanumeric = true;
             options.SignIn.RequireConfirmedEmail = false;
+
+            // Stated rather than left to Identity's defaults, which are the same numbers
+            // but invisible: a lockout looks exactly like a wrong password from outside,
+            // so anyone hitting one needs to be able to read what the rule is.
+            options.Lockout.MaxFailedAccessAttempts = 5;
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+            options.Lockout.AllowedForNewUsers = true;
         })
         .AddEntityFrameworkStores<AppDbContext>()
         .AddDefaultTokenProviders();
@@ -69,10 +76,15 @@ public static class ServiceExtensions
                     "**Browsing what is stored** is `GET /api/BinRanges`, which filters and pages " +
                     "the BIN ranges and reports each one's status (active, scheduled, expired or " +
                     "deleted). `GET /api/BinRanges/filters` returns the reference values to filter by.\n\n" +
+                    "**Maintaining ranges one at a time** covers what a CSV does not: `POST`, `PUT` " +
+                    "and `DELETE` on `/api/BinRanges` add, edit and withdraw a single range, and " +
+                    "`POST /api/BinRanges/{id}/restore` brings a withdrawn one back. Deletes are " +
+                    "soft, so nothing is erased and every change records who made it.\n\n" +
                     "**Authentication.** Every endpoint except `POST /api/Auth/login` and " +
                     "`GET /api/Health` needs a bearer token. Call login, then use the **Authorize** " +
                     "button above with the `accessToken` it returns. Reading (classify, browse) is " +
-                    "open to both roles; importing and resolving conflicts require **Admin**."
+                    "open to both roles; anything that writes BIN data - importing, resolving " +
+                    "conflicts, and adding, editing, deleting or restoring a range - requires **Admin**."
             });
 
             // Surface the doc comments from the controllers and the shared import models.
@@ -126,9 +138,12 @@ public static class ServiceExtensions
         services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
+        services.AddScoped<IAuditLog, AuditLog>();
+
         services.AddScoped<IBinCsvImportService, BinCsvImportService>();
         services.AddScoped<IBinClassificationService, BinClassificationService>();
         services.AddScoped<IBinRangeQueryService, BinRangeQueryService>();
+        services.AddScoped<IBinRangeAdminService, BinRangeAdminService>();
 
         return services;
     }

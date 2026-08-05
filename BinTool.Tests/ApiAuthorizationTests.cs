@@ -36,6 +36,36 @@ public class ApiAuthorizationTests
         attribute!.Roles.Should().BeNull("both roles may read");
     }
 
+    /// <summary>
+    /// BinRanges is the one controller that mixes access levels: its class-level rule
+    /// admits both roles for reading, so each write has to raise the bar itself. Missing
+    /// one would hand a viewer the ability to edit live BIN data.
+    /// </summary>
+    [Theory]
+    [InlineData(nameof(BinRangesController.Create))]
+    [InlineData(nameof(BinRangesController.Update))]
+    [InlineData(nameof(BinRangesController.Delete))]
+    [InlineData(nameof(BinRangesController.Restore))]
+    public void Maintaining_a_single_range_requires_the_admin_role(string action)
+    {
+        var attribute = typeof(BinRangesController).GetMethod(action)!
+            .GetCustomAttribute<AuthorizeAttribute>();
+
+        attribute.Should().NotBeNull("{0} writes BIN data", action);
+        attribute!.Roles.Should().Be(AppRoles.Admin);
+    }
+
+    [Theory]
+    [InlineData(nameof(BinRangesController.Search))]
+    [InlineData(nameof(BinRangesController.Filters))]
+    [InlineData(nameof(BinRangesController.GetById))]
+    public void Reading_a_range_is_not_narrowed_to_admin(string action)
+    {
+        typeof(BinRangesController).GetMethod(action)!
+            .GetCustomAttribute<AuthorizeAttribute>()
+            .Should().BeNull("a viewer must still be able to browse");
+    }
+
     [Fact]
     public void Health_stays_anonymous()
     {

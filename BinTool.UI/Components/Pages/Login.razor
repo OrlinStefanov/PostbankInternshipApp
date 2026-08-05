@@ -2,6 +2,7 @@
 @layout Layout.BareLayout
 @using System.ComponentModel.DataAnnotations
 @using System.Security.Claims
+@using BinTool.Core.Models.Auth
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Authentication.Cookies
 @inject AuthApiClient AuthApi
@@ -75,7 +76,7 @@
 
         if (login is null)
         {
-            _error = "Invalid user name or password.";
+            _error = LoginMessages.Rejected;
             return;
         }
 
