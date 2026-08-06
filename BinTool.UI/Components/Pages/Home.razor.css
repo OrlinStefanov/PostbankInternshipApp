@@ -1,6 +1,6 @@
 .page-head {
     padding-bottom: 1.25rem;
-    border-bottom: 1px solid var(--bs-border-color);
+    border-bottom: 1px solid var(--bs-border-color, #dde3e9);
 }
 
 .page-head p {
@@ -22,9 +22,9 @@
     flex-direction: column;
     gap: .35rem;
     padding: 1.15rem 1.25rem;
-    background-color: var(--app-surface);
-    border: 1px solid var(--app-line);
-    border-radius: var(--app-radius-lg);
+    background-color: var(--app-surface, #ffffff);
+    border: 1px solid var(--app-line, #dde3e9);
+    border-radius: var(--app-radius-lg, .5rem);
     box-shadow: 0 1px 2px rgba(15, 23, 32, .04);
     color: inherit;
     text-decoration: none;
@@ -32,21 +32,21 @@
 }
 
 .entry:hover {
-    border-color: var(--app-accent-line);
+    border-color: var(--app-accent-line, #b9d2e6);
     box-shadow: 0 2px 10px rgba(15, 23, 32, .07);
     color: inherit;
 }
 
 .entry-title {
     font-weight: 600;
-    color: var(--app-ink);
+    color: var(--app-ink, #0f1720);
 }
 
 .entry:hover .entry-title {
-    color: var(--app-accent);
+    color: var(--app-accent, #17568c);
 }
 
 .entry-text {
     font-size: .875rem;
-    color: var(--app-muted);
+    color: var(--app-muted, #5d6875);
 }

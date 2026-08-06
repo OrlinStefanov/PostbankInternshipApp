@@ -19,11 +19,11 @@ main {
     min-width: 0; /* lets wide tables scroll inside the column instead of stretching it */
     display: flex;
     flex-direction: column;
-    background-color: var(--app-paper);
+    background-color: var(--app-paper, #f4f6f8);
 }
 
 .sidebar {
-    background-color: var(--app-shell);
+    background-color: var(--app-shell, #151b23);
 }
 
 .top-row {
@@ -33,8 +33,8 @@ main {
     gap: .85rem;
     height: 3.5rem;
     padding: 0 1.25rem;
-    background-color: var(--app-surface);
-    border-bottom: 1px solid var(--app-line);
+    background-color: var(--app-surface, #ffffff);
+    border-bottom: 1px solid var(--app-line, #dde3e9);
 }
 
 .content {
@@ -90,9 +90,9 @@ main {
     width: 2rem;
     height: 2rem;
     border-radius: 50%;
-    background-color: var(--app-accent-soft);
-    border: 1px solid var(--app-accent-line);
-    color: var(--app-accent);
+    background-color: var(--app-accent-soft, #e8f0f7);
+    border: 1px solid var(--app-accent-line, #b9d2e6);
+    color: var(--app-accent, #17568c);
     font-size: .75rem;
     font-weight: 600;
     letter-spacing: .02em;
@@ -108,7 +108,7 @@ main {
 .user-name {
     font-size: .875rem;
     font-weight: 600;
-    color: var(--app-ink);
+    color: var(--app-ink, #0f1720);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -118,7 +118,7 @@ main {
     font-size: .6875rem;
     text-transform: uppercase;
     letter-spacing: .05em;
-    color: var(--app-muted);
+    color: var(--app-muted, #5d6875);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -142,9 +142,9 @@ main {
     z-index: 1000;
     padding: .7rem 2.5rem .7rem 1.25rem;
     font-size: .875rem;
-    color: var(--tone-warning-fg);
-    background-color: var(--tone-warning-bg);
-    border-top: 1px solid var(--tone-warning-line);
+    color: var(--tone-warning-fg, #855107);
+    background-color: var(--tone-warning-bg, #fcf0dc);
+    border-top: 1px solid var(--tone-warning-line, #ecd3a2);
     box-shadow: 0 -2px 8px rgba(15, 23, 32, .08);
 }
 

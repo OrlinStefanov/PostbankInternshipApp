@@ -4,7 +4,7 @@
     align-items: center;
     justify-content: center;
     padding: 2rem 1rem;
-    background: var(--bs-tertiary-bg);
+    background: var(--bs-tertiary-bg, #eef1f4);
 }
 
 .logout-card {

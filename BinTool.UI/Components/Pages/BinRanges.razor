@@ -151,7 +151,7 @@
 
     <div class="d-flex align-items-center gap-2">
         <label class="text-secondary small mb-0" for="f-size">Per page</label>
-        <select id="f-size" class="form-select form-select-sm w-auto" value="@_pageSize"
+        <select id="f-size" style="min-width: 75px;" class="form-select form-select-sm w-auto" value="@_pageSize"
                 @onchange="OnPageSizeChanged">
             <option value="25">25</option>
             <option value="50">50</option>

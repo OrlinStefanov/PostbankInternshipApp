@@ -1,6 +1,6 @@
 .page-head {
     padding-bottom: 1.25rem;
-    border-bottom: 1px solid var(--bs-border-color);
+    border-bottom: 1px solid var(--bs-border-color, #dde3e9);
 }
 
 .page-head p {
@@ -11,12 +11,12 @@
 /* Empty-state / format guidance */
 .empty-state {
     border-style: dashed;
-    background: var(--bs-tertiary-bg);
+    background: var(--bs-tertiary-bg, #eef1f4);
 }
 
 .sample {
-    background: var(--bs-body-bg);
-    border: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg, #ffffff);
+    border: 1px solid var(--bs-border-color, #dde3e9);
     border-radius: .375rem;
     padding: .75rem 1rem;
     font-size: .85rem;
@@ -32,11 +32,11 @@
 }
 
 .stat {
-    border: 1px solid var(--bs-border-color);
+    border: 1px solid var(--bs-border-color, #dde3e9);
     border-radius: .5rem;
     padding: 1rem 1.1rem;
     height: 100%;
-    background: var(--bs-body-bg);
+    background: var(--bs-body-bg, #ffffff);
 }
 
 .stat-value {
@@ -50,7 +50,7 @@
     font-size: .8rem;
     text-transform: uppercase;
     letter-spacing: .04em;
-    color: var(--bs-secondary-color);
+    color: var(--bs-secondary-color, #5d6875);
 }
 
 /* Monospace prefixes and raw data */
@@ -61,7 +61,7 @@
 }
 
 .raw {
-    color: var(--bs-secondary-color);
+    color: var(--bs-secondary-color, #5d6875);
     word-break: break-all;
 }
 
@@ -90,20 +90,20 @@
 .diff-field {
     min-width: 6.5rem;
     font-weight: 600;
-    color: var(--bs-secondary-color);
+    color: var(--bs-secondary-color, #5d6875);
 }
 
 .diff-old {
-    color: var(--bs-danger-text-emphasis);
+    color: var(--bs-danger-text-emphasis, #a02525);
     text-decoration: line-through;
     text-decoration-color: rgba(var(--bs-danger-rgb), .5);
 }
 
 .diff-arrow {
-    color: var(--bs-secondary-color);
+    color: var(--bs-secondary-color, #5d6875);
 }
 
 .diff-new {
-    color: var(--bs-success-text-emphasis);
+    color: var(--bs-success-text-emphasis, #1a6b3f);
     font-weight: 600;
 }

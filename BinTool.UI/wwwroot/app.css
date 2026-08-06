@@ -31,7 +31,11 @@
 
     --app-ink: #0f1720;
     --app-body: #29323c;
-    --app-muted: #667281;
+
+    /* Muted has to clear 4.5:1 on the sunken fill as well as on white, because the
+       table headers sit on --app-sunken. The obvious lighter grey managed only
+       4.32:1 there; this reads just as secondary next to the 13:1 body colour. */
+    --app-muted: #5d6875;
 
     /* --- Accent -----------------------------------------------------------
        One deep steel blue, spent only on the primary action and the active nav

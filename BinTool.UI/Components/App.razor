@@ -1,13 +1,15 @@
-﻿<!DOCTYPE html>
+@inject IWebHostEnvironment Environment
+
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
-    <link rel="stylesheet" href="app.css" />
-    <link rel="stylesheet" href="BinTool.UI.styles.css" />
+    <link rel="stylesheet" href="@Versioned("bootstrap/bootstrap.min.css")" />
+    <link rel="stylesheet" href="@Versioned("app.css")" />
+    <link rel="stylesheet" href="@ScopedStyles" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <HeadOutlet />
 </head>
@@ -18,3 +20,37 @@
 </body>
 
 </html>
+
+@code {
+    // Static files are served with an ETag but no Cache-Control, which leaves the browser
+    // free to reuse a stored copy without revalidating. That is invisible for most edits,
+    // but the design tokens live in app.css while the rules that consume them live in the
+    // scoped bundle: serve a stale app.css against a fresh bundle and every `var(--app-*)`
+    // declaration is dropped, which turns the sidebar transparent and paints white text on
+    // white. Stamping each URL with the file's own timestamp makes a changed file a
+    // different URL, so that pairing cannot happen.
+
+    private string Versioned(string path)
+    {
+        var file = Environment.WebRootFileProvider.GetFileInfo(path);
+
+        return file.Exists ? $"{path}?v={file.LastModified.UtcTicks}" : path;
+    }
+
+    /// <summary>
+    /// The scoped-CSS bundle is generated at build time rather than served out of wwwroot,
+    /// so it is stamped with the build itself - which is exactly when its contents change.
+    /// </summary>
+    private string ScopedStyles
+    {
+        get
+        {
+            var assembly = typeof(App).Assembly.Location;
+            var stamp = string.IsNullOrEmpty(assembly)
+                ? DateTime.UtcNow.Ticks
+                : File.GetLastWriteTimeUtc(assembly).Ticks;
+
+            return $"BinTool.UI.styles.css?v={stamp}";
+        }
+    }
+}

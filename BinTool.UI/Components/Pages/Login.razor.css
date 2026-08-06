@@ -4,7 +4,7 @@
     align-items: center;
     justify-content: center;
     padding: 2rem 1rem;
-    background: var(--bs-tertiary-bg);
+    background: var(--bs-tertiary-bg, #eef1f4);
 }
 
 .login-card {
@@ -21,7 +21,7 @@
     list-style: none;
     padding: 0;
     margin: 0;
-    color: var(--bs-secondary-color);
+    color: var(--bs-secondary-color, #5d6875);
 }
 
 .demo-list li + li {
