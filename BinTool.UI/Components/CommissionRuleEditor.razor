@@ -39,7 +39,7 @@
                     </p>
 
                     <div class="row g-3">
-                        <div class="col-12 col-md-4">
+                        <div class="col-6 col-lg-3">
                             <label class="form-label" for="e-scheme">Card scheme</label>
                             <InputSelect id="e-scheme" class="form-select" @bind-Value="_input.CardSchemeId">
                                 <option value="">Any</option>
@@ -50,7 +50,7 @@
                             </InputSelect>
                         </div>
 
-                        <div class="col-12 col-md-4">
+                        <div class="col-6 col-lg-3">
                             <label class="form-label" for="e-product">Product type</label>
                             <InputSelect id="e-product" class="form-select" @bind-Value="_input.ProductTypeId">
                                 <option value="">Any</option>
@@ -61,7 +61,18 @@
                             </InputSelect>
                         </div>
 
-                        <div class="col-12 col-md-4">
+                        <div class="col-6 col-lg-3">
+                            <label class="form-label" for="e-funding">Funding type</label>
+                            <InputSelect id="e-funding" class="form-select" @bind-Value="_input.FundingTypeId">
+                                <option value="">Any</option>
+                                @foreach (var f in FundingTypes)
+                                {
+                                    <option value="@f.Id">@f.Name</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="col-6 col-lg-3">
                             <label class="form-label" for="e-region">Region</label>
                             <InputSelect id="e-region" class="form-select" @bind-Value="_input.RegionId">
                                 <option value="">Any</option>
@@ -161,6 +172,10 @@
     [Parameter, EditorRequired]
     public IReadOnlyList<LookupListItem> Products { get; set; } = Array.Empty<LookupListItem>();
 
+    /// <summary>Live funding types to choose from.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<LookupListItem> FundingTypes { get; set; } = Array.Empty<LookupListItem>();
+
     /// <summary>Live regions to choose from.</summary>
     [Parameter, EditorRequired]
     public IReadOnlyList<LookupListItem> Regions { get; set; } = Array.Empty<LookupListItem>();
@@ -191,6 +206,7 @@
                 RuleName = Rule.RuleName,
                 CardSchemeId = Rule.CardSchemeId,
                 ProductTypeId = Rule.ProductTypeId,
+                FundingTypeId = Rule.FundingTypeId,
                 RegionId = Rule.RegionId,
                 PercentageRate = Rule.PercentageRate,
                 FixedAmount = Rule.FixedAmount,

@@ -14,6 +14,7 @@ public interface ICommissionResolver
     /// </summary>
     /// <param name="cardSchemeId">The card's scheme id.</param>
     /// <param name="productTypeId">The card's product type id.</param>
+    /// <param name="fundingTypeId">The card's funding type id.</param>
     /// <param name="regionId">The issuing country's region id.</param>
     /// <param name="amount">The transaction amount.</param>
     /// <param name="onDate">The date the transaction is priced on.</param>
@@ -25,6 +26,7 @@ public interface ICommissionResolver
     Task<CommissionCalculation?> ResolveAsync(
         int cardSchemeId,
         int productTypeId,
+        int fundingTypeId,
         int regionId,
         decimal amount,
         DateTime onDate,

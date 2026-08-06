@@ -9,7 +9,7 @@ namespace BinTool.Api.Controllers;
 /// <summary>
 /// Maintains commission rules - the pricing an admin changes without a developer or a
 /// release. A rule is a percentage plus a fixed amount with a minimum fee, keyed on a
-/// scheme/product/region combination where any field may be a wildcard.
+/// scheme/product/funding/region combination where any field may be a wildcard.
 /// <para>
 /// Reads take <c>commissionrules.read</c>; writes take <c>commissionrules.write</c>. Saving a
 /// rule that overlaps an existing one on the same key is refused with 409, and the response

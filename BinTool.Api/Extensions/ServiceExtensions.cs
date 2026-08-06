@@ -79,7 +79,7 @@ public static class ServiceExtensions
                     "percentage + fixed amount raised to a minimum.\n\n" +
                     "**Configuring commission** is `GET/POST/PUT/DELETE /api/CommissionRules`, plus " +
                     "`POST /api/CommissionRules/{id}/default` to set the fallback rule. A rule is " +
-                    "keyed on a scheme/product/region combination where any field may be a wildcard, " +
+                    "keyed on a scheme/product/funding/region combination where any field may be a wildcard, " +
                     "and a save that overlaps an existing rule's validity on the same key is refused.\n\n" +
                     "**Browsing what is stored** is `GET /api/BinRanges`, which filters and pages " +
                     "the BIN ranges and reports each one's status (active, scheduled, expired or " +

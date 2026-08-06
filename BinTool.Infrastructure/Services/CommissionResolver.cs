@@ -25,6 +25,7 @@ public class CommissionResolver : ICommissionResolver
     public async Task<CommissionCalculation?> ResolveAsync(
         int cardSchemeId,
         int productTypeId,
+        int fundingTypeId,
         int regionId,
         decimal amount,
         DateTime onDate,
@@ -42,6 +43,7 @@ public class CommissionResolver : ICommissionResolver
             .Where(r => r.RuleCriteria.Any(c =>
                 (c.CardSchemeId == null || c.CardSchemeId == cardSchemeId)
                 && (c.ProductTypeId == null || c.ProductTypeId == productTypeId)
+                && (c.FundingTypeId == null || c.FundingTypeId == fundingTypeId)
                 && (c.RegionId == null || c.RegionId == regionId)))
             .ToListAsync(cancellationToken);
 
@@ -109,6 +111,7 @@ public class CommissionResolver : ICommissionResolver
 
         return (c.CardSchemeId is null ? 0 : 1)
             + (c.ProductTypeId is null ? 0 : 1)
+            + (c.FundingTypeId is null ? 0 : 1)
             + (c.RegionId is null ? 0 : 1);
     }
 
@@ -125,6 +128,7 @@ public class CommissionResolver : ICommissionResolver
         var wildcard = new List<string>();
         (c?.CardSchemeId is null ? wildcard : matched).Add("scheme");
         (c?.ProductTypeId is null ? wildcard : matched).Add("product");
+        (c?.FundingTypeId is null ? wildcard : matched).Add("funding");
         (c?.RegionId is null ? wildcard : matched).Add("region");
 
         var parts = matched.Count > 0

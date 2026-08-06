@@ -21,6 +21,9 @@ public class CommissionRuleInput
     /// <summary>Product type this rule applies to, or null for any product.</summary>
     public int? ProductTypeId { get; set; }
 
+    /// <summary>Funding type this rule applies to, or null for any funding.</summary>
+    public int? FundingTypeId { get; set; }
+
     /// <summary>Region this rule applies to, or null for any region.</summary>
     public int? RegionId { get; set; }
 

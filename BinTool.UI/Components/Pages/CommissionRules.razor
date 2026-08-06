@@ -14,8 +14,8 @@
         <h1 class="h3 mb-1">Commission rules</h1>
         <p class="text-secondary mb-0">
             The pricing a lookup applies to a transaction amount. A rule is a percentage plus a
-            fixed amount with a minimum fee, keyed on a scheme, product and region where any
-            field may be a wildcard. The most specific rule that matches a card wins.
+            fixed amount with a minimum fee, keyed on a scheme, product, funding and region
+            where any field may be a wildcard. The most specific rule that matches a card wins.
         </p>
     </div>
     <div>
@@ -128,6 +128,7 @@ else if (!_loading)
                         <th class="ps-3">Rule</th>
                         <th>Scheme</th>
                         <th>Product</th>
+                        <th>Funding</th>
                         <th>Region</th>
                         <th class="text-end">Rate</th>
                         <th class="text-end">Fixed</th>
@@ -147,10 +148,11 @@ else if (!_loading)
                                 {
                                     <span class="badge rounded-pill text-bg-primary ms-1">Default</span>
                                 }
-                                <span class="text-secondary small d-block">Specificity @item.Specificity/3</span>
+                                <span class="text-secondary small d-block">Specificity @item.Specificity/4</span>
                             </td>
                             <td>@Wild(item.CardSchemeName)</td>
                             <td>@Wild(item.ProductTypeName)</td>
+                            <td>@Wild(item.FundingTypeName)</td>
                             <td>@Wild(item.RegionName)</td>
                             <td class="text-end mono">@Num(item.PercentageRate)%</td>
                             <td class="text-end mono">@Num(item.FixedAmount)</td>
@@ -211,8 +213,8 @@ else if (!_loading)
 
 @if (_editorOpen)
 {
-    <CommissionRuleEditor Schemes="_schemes" Products="_products" Regions="_regions"
-                          Rule="_editing" OnSaved="OnSaved" OnCancel="CloseEditor" />
+    <CommissionRuleEditor Schemes="_schemes" Products="_products" FundingTypes="_fundingTypes"
+                          Regions="_regions" Rule="_editing" OnSaved="OnSaved" OnCancel="CloseEditor" />
 }
 
 @if (_pendingDelete is not null)
@@ -269,6 +271,7 @@ else if (!_loading)
     // Reference lists for the editor's wildcard dropdowns, loaded once.
     private List<LookupListItem> _schemes = new();
     private List<LookupListItem> _products = new();
+    private List<LookupListItem> _fundingTypes = new();
     private List<LookupListItem> _regions = new();
 
     private bool _canWrite;
@@ -297,6 +300,7 @@ else if (!_loading)
         {
             _schemes = await LookupApi.SearchAsync(LookupKind.CardScheme, includeDeleted: false);
             _products = await LookupApi.SearchAsync(LookupKind.ProductType, includeDeleted: false);
+            _fundingTypes = await LookupApi.SearchAsync(LookupKind.FundingType, includeDeleted: false);
             _regions = await LookupApi.SearchAsync(LookupKind.Region, includeDeleted: false);
         }
         catch (Exception ex)

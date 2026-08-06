@@ -20,6 +20,11 @@ public class CommissionRuleListItem
     /// <summary>Resolved product name, or null when the rule wildcards the product.</summary>
     public string? ProductTypeName { get; set; }
 
+    public int? FundingTypeId { get; set; }
+
+    /// <summary>Resolved funding name, or null when the rule wildcards the funding.</summary>
+    public string? FundingTypeName { get; set; }
+
     public int? RegionId { get; set; }
 
     /// <summary>Resolved region name, or null when the rule wildcards the region.</summary>
@@ -34,7 +39,7 @@ public class CommissionRuleListItem
     public int Priority { get; set; }
 
     /// <summary>
-    /// The number of non-wildcard key fields, 0 to 3. Higher is more specific and wins
+    /// The number of non-wildcard key fields, 0 to 4. Higher is more specific and wins
     /// resolution. Kept in sync with the entity's stored PriorityScore.
     /// </summary>
     public int Specificity { get; set; }

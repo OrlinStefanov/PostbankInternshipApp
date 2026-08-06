@@ -9,6 +9,7 @@ public sealed record CommissionRuleSnapshot(
     string RuleName,
     string CardScheme,
     string ProductType,
+    string FundingType,
     string Region,
     decimal PercentageRate,
     decimal FixedAmount,

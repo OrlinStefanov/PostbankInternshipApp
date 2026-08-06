@@ -24,6 +24,11 @@ public class RuleCriteria
     public int? ProductTypeId { get; set; }
 
     /// <summary>
+    /// Funding type this rule applies to (nullable = wildcard/any funding)
+    /// </summary>
+    public int? FundingTypeId { get; set; }
+
+    /// <summary>
     /// Region this rule applies to (nullable = wildcard/any region)
     /// </summary>
     public int? RegionId { get; set; }
@@ -41,6 +46,8 @@ public class RuleCriteria
     public CardScheme? CardScheme { get; set; }
 
     public ProductType? ProductType { get; set; }
+
+    public FundingType? FundingType { get; set; }
 
     public Region? Region { get; set; }
 

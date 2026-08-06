@@ -382,7 +382,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                 .IsRequired();
 
             // Index for rule resolution lookups
-            entity.HasIndex(e => new { e.CardSchemeId, e.ProductTypeId, e.RegionId })
+            entity.HasIndex(e => new { e.CardSchemeId, e.ProductTypeId, e.FundingTypeId, e.RegionId })
                 .HasDatabaseName("IX_RuleCriteria_Lookup");
 
             entity.HasOne(e => e.CommissionRule)
@@ -399,6 +399,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             entity.HasOne(e => e.ProductType)
                 .WithMany(pt => pt.RuleCriteria)
                 .HasForeignKey(e => e.ProductTypeId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.FundingType)
+                .WithMany(ft => ft.RuleCriteria)
+                .HasForeignKey(e => e.FundingTypeId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(e => e.Region)

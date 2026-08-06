@@ -57,6 +57,7 @@ public class BinClassificationService : IBinClassificationService
                 CardScheme = b.CardScheme!.Name,
                 ProductTypeId = b.ProductTypeId,
                 ProductType = b.ProductType!.Name,
+                FundingTypeId = b.FundingTypeId,
                 FundingType = b.FundingType!.Name,
                 CountryCode = b.Country!.IsoCode,
                 CountryName = b.Country.Name,
@@ -92,7 +93,7 @@ public class BinClassificationService : IBinClassificationService
         if (amount is { } transactionAmount)
         {
             result.Commission = await _commissionResolver.ResolveAsync(
-                match.CardSchemeId, match.ProductTypeId, match.RegionId,
+                match.CardSchemeId, match.ProductTypeId, match.FundingTypeId, match.RegionId,
                 transactionAmount, today, cancellationToken);
         }
 
@@ -110,6 +111,7 @@ public class BinClassificationService : IBinClassificationService
         public string CardScheme { get; init; } = string.Empty;
         public int ProductTypeId { get; init; }
         public string ProductType { get; init; } = string.Empty;
+        public int FundingTypeId { get; init; }
         public string FundingType { get; init; } = string.Empty;
         public string CountryCode { get; init; } = string.Empty;
         public string CountryName { get; init; } = string.Empty;

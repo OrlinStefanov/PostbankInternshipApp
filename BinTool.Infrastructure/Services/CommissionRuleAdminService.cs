@@ -91,6 +91,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         {
             CardSchemeId = input.CardSchemeId,
             ProductTypeId = input.ProductTypeId,
+            FundingTypeId = input.FundingTypeId,
             RegionId = input.RegionId,
             PriorityScore = Specificity(input)
         });
@@ -155,6 +156,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
 
         criteria.CardSchemeId = input.CardSchemeId;
         criteria.ProductTypeId = input.ProductTypeId;
+        criteria.FundingTypeId = input.FundingTypeId;
         criteria.RegionId = input.RegionId;
         criteria.PriorityScore = Specificity(input);
 
@@ -336,6 +338,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         query
             .Include(r => r.RuleCriteria).ThenInclude(c => c.CardScheme)
             .Include(r => r.RuleCriteria).ThenInclude(c => c.ProductType)
+            .Include(r => r.RuleCriteria).ThenInclude(c => c.FundingType)
             .Include(r => r.RuleCriteria).ThenInclude(c => c.Region);
 
     private static CommissionRuleListItem ToListItem(
@@ -351,6 +354,8 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
             CardSchemeName = criteria?.CardScheme?.Name,
             ProductTypeId = criteria?.ProductTypeId,
             ProductTypeName = criteria?.ProductType?.Name,
+            FundingTypeId = criteria?.FundingTypeId,
+            FundingTypeName = criteria?.FundingType?.Name,
             RegionId = criteria?.RegionId,
             RegionName = criteria?.Region?.Name,
             PercentageRate = rule.PercentageRate,
@@ -395,6 +400,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
     private static int Specificity(CommissionRuleInput input) =>
         (input.CardSchemeId is null ? 0 : 1)
         + (input.ProductTypeId is null ? 0 : 1)
+        + (input.FundingTypeId is null ? 0 : 1)
         + (input.RegionId is null ? 0 : 1);
 
     private async Task<int?> CurrentDefaultRuleIdAsync(CancellationToken cancellationToken) =>
@@ -409,7 +415,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
     private async Task<(ResolvedKey Resolved, CommissionRuleMutationResult? Failure)> ResolveKeyAsync(
         CommissionRuleInput input, CancellationToken cancellationToken)
     {
-        string? schemeName = null, productName = null, regionName = null;
+        string? schemeName = null, productName = null, fundingName = null, regionName = null;
         var missing = new List<string>();
 
         if (input.CardSchemeId is { } schemeId)
@@ -428,6 +434,14 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
             if (productName is null) missing.Add($"Product type {productId} does not exist.");
         }
 
+        if (input.FundingTypeId is { } fundingId)
+        {
+            fundingName = await _db.FundingTypes.AsNoTracking()
+                .Where(x => !x.IsDeleted && x.FundingTypeId == fundingId)
+                .Select(x => x.Name).FirstOrDefaultAsync(cancellationToken);
+            if (fundingName is null) missing.Add($"Funding type {fundingId} does not exist.");
+        }
+
         if (input.RegionId is { } regionId)
         {
             regionName = await _db.Regions.AsNoTracking()
@@ -442,7 +456,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
                 CommissionRuleMutationStatus.Invalid, string.Join(" ", missing)));
         }
 
-        return (new ResolvedKey(schemeName, productName, regionName), null);
+        return (new ResolvedKey(schemeName, productName, fundingName, regionName), null);
     }
 
     /// <summary>
@@ -461,6 +475,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
             .Where(r => r.RuleCriteria.Any(c =>
                 c.CardSchemeId == input.CardSchemeId
                 && c.ProductTypeId == input.ProductTypeId
+                && c.FundingTypeId == input.FundingTypeId
                 && c.RegionId == input.RegionId))
             // Inclusive overlap: r.From <= input.To AND input.From <= r.To.
             .Where(r => r.ValidFrom <= inputTo
@@ -473,7 +488,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
 
         return CommissionRuleMutationResult.Conflict(
             $"This rule's validity overlaps rule '{conflict.RuleName}', which already covers " +
-            "the same scheme, product and region for part of that period.",
+            "the same scheme, product, funding and region for part of that period.",
             conflict.CommissionRuleId, conflict.RuleName);
     }
 
@@ -488,6 +503,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
             rule.RuleName,
             criteria?.CardScheme?.Name ?? CommissionRuleSnapshot.AnyValue,
             criteria?.ProductType?.Name ?? CommissionRuleSnapshot.AnyValue,
+            criteria?.FundingType?.Name ?? CommissionRuleSnapshot.AnyValue,
             criteria?.Region?.Name ?? CommissionRuleSnapshot.AnyValue,
             rule.PercentageRate,
             rule.FixedAmount,
@@ -504,6 +520,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         new(input.RuleName.Trim(),
             resolved.CardScheme ?? CommissionRuleSnapshot.AnyValue,
             resolved.ProductType ?? CommissionRuleSnapshot.AnyValue,
+            resolved.FundingType ?? CommissionRuleSnapshot.AnyValue,
             resolved.Region ?? CommissionRuleSnapshot.AnyValue,
             input.PercentageRate,
             input.FixedAmount,
@@ -566,5 +583,6 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         return true;
     }
 
-    private readonly record struct ResolvedKey(string? CardScheme, string? ProductType, string? Region);
+    private readonly record struct ResolvedKey(
+        string? CardScheme, string? ProductType, string? FundingType, string? Region);
 }
