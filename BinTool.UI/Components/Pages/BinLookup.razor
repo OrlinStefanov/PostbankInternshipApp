@@ -1,0 +1,238 @@
+@page "/lookup"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Permissions.BinClassify)]
+@using System.Globalization
+@using BinTool.Core.Models.Classification
+@using BinTool.Core.Models.Commission
+@inject BinLookupApiClient Api
+
+<PageTitle>BIN lookup</PageTitle>
+
+<div class="page-head">
+    <h1 class="h3 mb-1">BIN lookup</h1>
+    <p class="text-secondary mb-0">
+        Classify a BIN against the stored ranges. Add an amount to also price it: the most
+        specific commission rule that matches the card is applied, falling back to the
+        configured default. Everything returned comes from data - no scheme is hard-coded.
+    </p>
+</div>
+
+<div class="card mt-4">
+    <div class="card-body">
+        <EditForm Model="_input" OnValidSubmit="Classify" FormName="bin-lookup">
+            <DataAnnotationsValidator />
+
+            <div class="row g-3 align-items-start">
+                <div class="col-12 col-md-6 col-lg-5">
+                    <label class="form-label" for="l-bin">BIN or card number</label>
+                    <InputText id="l-bin" class="form-control mono" inputmode="numeric"
+                               placeholder="6 to 19 digits" @bind-Value="_input.Bin" />
+                    <div class="form-text">
+                        Only the leading 8 digits are used; the rest is discarded before the lookup.
+                    </div>
+                    <ValidationMessage For="() => _input.Bin" class="form-text text-danger" />
+                </div>
+
+                <div class="col-12 col-md-6 col-lg-4">
+                    <label class="form-label" for="l-amount">Amount <span class="text-secondary">(optional)</span></label>
+                    <InputNumber id="l-amount" class="form-control" step="0.01"
+                                 placeholder="e.g. 100" @bind-Value="_input.Amount" />
+                    <div class="form-text">Leave empty to classify without pricing.</div>
+                    <ValidationMessage For="() => _input.Amount" class="form-text text-danger" />
+                </div>
+
+                <div class="col-12 col-lg-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary" disabled="@_busy">
+                        @if (_busy)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        }
+                        Classify
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger mt-4" role="alert">@_error</div>
+}
+
+@if (_result is not null)
+{
+    <div class="row g-4 mt-0">
+        <div class="col-12 col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span class="fw-semibold">Classification</span>
+                    @if (_result.Matched)
+                    {
+                        <span class="badge rounded-pill text-bg-success">Matched</span>
+                    }
+                    else
+                    {
+                        <span class="badge rounded-pill text-bg-secondary">No match</span>
+                    }
+                </div>
+                <div class="card-body">
+                    @if (_result.Matched)
+                    {
+                        <dl class="row mb-0 detail-list">
+                            <dt class="col-5">BIN used</dt>
+                            <dd class="col-7"><code class="mono">@_result.Bin</code></dd>
+
+                            <dt class="col-5">Matched prefix</dt>
+                            <dd class="col-7"><code class="mono">@_result.MatchedPrefix</code></dd>
+
+                            <dt class="col-5">Scheme</dt>
+                            <dd class="col-7">@_result.CardScheme</dd>
+
+                            <dt class="col-5">Product</dt>
+                            <dd class="col-7">@_result.ProductType</dd>
+
+                            <dt class="col-5">Funding</dt>
+                            <dd class="col-7">@_result.FundingType</dd>
+
+                            <dt class="col-5">Country</dt>
+                            <dd class="col-7">@_result.CountryCode — @_result.CountryName</dd>
+
+                            <dt class="col-5">Region</dt>
+                            <dd class="col-7">@_result.Region</dd>
+
+                            <dt class="col-5">Valid</dt>
+                            <dd class="col-7">
+                                @Date(_result.ValidFrom)
+                                to @(_result.ValidTo is null ? OpenEnded : Date(_result.ValidTo))
+                            </dd>
+                        </dl>
+                    }
+                    else
+                    {
+                        <p class="mb-1">
+                            No BIN range covers <code class="mono">@_result.Bin</code>.
+                        </p>
+                        <p class="text-secondary small mb-0">
+                            Nothing is known about the card beyond the digits supplied. A range
+                            that has expired, not started, or been withdrawn is not matched.
+                        </p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span class="fw-semibold">Commission</span>
+                    @if (_result.Commission is { IsFallback: true })
+                    {
+                        <span class="badge rounded-pill text-bg-warning" title="No rule matched the card; the configured default was used">
+                            Default
+                        </span>
+                    }
+                    else if (_result.Commission is not null)
+                    {
+                        <span class="badge rounded-pill text-bg-success">Rule matched</span>
+                    }
+                </div>
+                <div class="card-body">
+                    @if (_result.Commission is { } c)
+                    {
+                        <div class="mb-3">
+                            <div class="text-secondary small">Fee</div>
+                            <div class="h4 mb-0 mono">@Num(c.Fee)</div>
+                            <div class="text-secondary small">
+                                applied by <span class="fw-semibold">@c.AppliedRuleName</span>
+                            </div>
+                        </div>
+
+                        <dl class="row mb-0 detail-list">
+                            <dt class="col-6">Amount</dt>
+                            <dd class="col-6 text-end mono">@Num(c.Amount)</dd>
+
+                            <dt class="col-6">Percentage rate</dt>
+                            <dd class="col-6 text-end mono">@Num(c.PercentageRate)%</dd>
+
+                            <dt class="col-6">Fixed amount</dt>
+                            <dd class="col-6 text-end mono">@Num(c.FixedAmount)</dd>
+
+                            <dt class="col-6">Raw fee</dt>
+                            <dd class="col-6 text-end mono">@Num(c.RawFee)</dd>
+
+                            <dt class="col-6">Minimum fee</dt>
+                            <dd class="col-6 text-end mono">@Num(c.MinimumFee)</dd>
+
+                            <dt class="col-6">Minimum applied</dt>
+                            <dd class="col-6 text-end">@(c.MinimumApplied ? "Yes" : "No")</dd>
+
+                            <dt class="col-12 mt-2">Why</dt>
+                            <dd class="col-12 text-secondary">@c.Reason</dd>
+                        </dl>
+                    }
+                    else if (_amountAsked)
+                    {
+                        <p class="mb-1">No commission was worked out.</p>
+                        <p class="text-secondary small mb-0">
+                            @(_result.Matched
+                                ? "The card matched, but no commission rule covers it and no default rule is configured."
+                                : "The BIN did not match a range, so there is no card to price.")
+                        </p>
+                    }
+                    else
+                    {
+                        <p class="text-secondary mb-0">
+                            No amount was supplied. Enter one above to price this card.
+                        </p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private const string OpenEnded = "—";
+
+    private BinClassificationRequest _input = new();
+    private BinClassificationResult? _result;
+    private bool _amountAsked;
+    private bool _busy;
+    private string? _error;
+
+    private async Task Classify()
+    {
+        _busy = true;
+        _error = null;
+
+        try
+        {
+            // Remembered from the request, not read back off the result, so the "no amount"
+            // and "amount but no price" cases can be told apart when the response is null.
+            _amountAsked = _input.Amount is not null;
+
+            _result = await Api.ClassifyAsync(_input);
+        }
+        catch (Exception ex)
+        {
+            _result = null;
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // ---- Formatting ------------------------------------------------------------
+
+    /// <summary>
+    /// Money and rates are shown with a dot decimal separator regardless of the server's
+    /// locale, so the panel matches what was typed and what the API returned.
+    /// </summary>
+    private static string Num(decimal value) => value.ToString("0.####", CultureInfo.InvariantCulture);
+
+    private static string Date(DateTime? value) =>
+        value is null ? OpenEnded : value.Value.ToString("yyyy-MM-dd");
+}

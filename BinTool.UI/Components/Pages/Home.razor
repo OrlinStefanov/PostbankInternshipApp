@@ -15,6 +15,18 @@
         @* Only the cards a signed-in user can actually act on. Each route is guarded in
            its own right, so this is presentation rather than the control. *@
         <div class="entry-grid mt-4">
+            <AuthorizeView Policy="@Permissions.BinClassify" Context="lookup">
+                <Authorized>
+                    <a class="entry" href="lookup">
+                        <span class="entry-title">BIN lookup</span>
+                        <span class="entry-text">
+                            Classify a BIN against the stored ranges, and add an amount to
+                            price it with the commission rule that matches the card.
+                        </span>
+                    </a>
+                </Authorized>
+            </AuthorizeView>
+
             <a class="entry" href="bin-ranges">
                 <span class="entry-title">BIN ranges</span>
                 <span class="entry-text">

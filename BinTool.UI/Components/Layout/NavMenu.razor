@@ -24,6 +24,17 @@
 
         @* A link is only shown to someone whose role can actually follow it. The route
            itself is guarded too, so hiding it is presentation, not the control. *@
+        <AuthorizeView Policy="@Permissions.BinClassify">
+            <Authorized>
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="lookup" title="BIN Lookup">
+                        <span class="nav-icon icon-lookup" aria-hidden="true"></span>
+                        <span class="nav-text">BIN Lookup</span>
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
         <AuthorizeView>
             <Authorized>
                 <div class="nav-item">
