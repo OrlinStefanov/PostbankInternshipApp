@@ -73,7 +73,14 @@ public static class ServiceExtensions
                     "**Classifying a BIN** with `POST /api/Bin/classify` matches it against the " +
                     "imported ranges, longest prefix first, and returns the card scheme, product " +
                     "type, funding type, issuing country and region. No scheme ranges are " +
-                    "hard-coded - every answer comes from data in the database.\n\n" +
+                    "hard-coded - every answer comes from data in the database. Pass an optional " +
+                    "`amount` to also get the commission: the most specific rule that matches the " +
+                    "card wins, falling back to the configured default rule, and the fee is " +
+                    "percentage + fixed amount raised to a minimum.\n\n" +
+                    "**Configuring commission** is `GET/POST/PUT/DELETE /api/CommissionRules`, plus " +
+                    "`POST /api/CommissionRules/{id}/default` to set the fallback rule. A rule is " +
+                    "keyed on a scheme/product/region combination where any field may be a wildcard, " +
+                    "and a save that overlaps an existing rule's validity on the same key is refused.\n\n" +
                     "**Browsing what is stored** is `GET /api/BinRanges`, which filters and pages " +
                     "the BIN ranges and reports each one's status (active, scheduled, expired or " +
                     "deleted). `GET /api/BinRanges/filters` returns the reference values to filter by.\n\n" +
@@ -86,7 +93,8 @@ public static class ServiceExtensions
                     "button above with the `accessToken` it returns.\n\n" +
                     "**Authorization is permission-based.** Each endpoint requires a permission " +
                     "(`binranges.read`, `binranges.write`, `binranges.import`, `bin.classify`, " +
-                    "`roles.manage`, `audit.read`, `referencedata.manage`), granted by holding a role that carries it. An admin composes " +
+                    "`roles.manage`, `audit.read`, `referencedata.manage`, `commissionrules.read`, " +
+                    "`commissionrules.write`), granted by holding a role that carries it. An admin composes " +
                     "roles from these permissions and assigns them to users via `/api/roles` and " +
                     "`/api/users`. The **Admin** role is a superuser that holds every permission and " +
                     "is protected from being weakened. Permissions are baked into the token, so a " +
@@ -153,6 +161,8 @@ public static class ServiceExtensions
         services.AddScoped<IAuditQueryService, AuditQueryService>();
         services.AddScoped<ILookupAdminService, LookupAdminService>();
         services.AddScoped<ICountryAdminService, CountryAdminService>();
+        services.AddScoped<ICommissionRuleAdminService, CommissionRuleAdminService>();
+        services.AddScoped<ICommissionResolver, CommissionResolver>();
         services.AddScoped<IRoleAdminService, RoleAdminService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
 

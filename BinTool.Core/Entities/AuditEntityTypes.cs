@@ -28,4 +28,13 @@ public static class AuditEntityTypes
 
     /// <summary>Country reference row (ISO code, name and region assignment).</summary>
     public const string Country = "Country";
+
+    /// <summary>Commission rule header (name, rates, validity, active flag).</summary>
+    public const string CommissionRule = "CommissionRule";
+
+    /// <summary>The scheme/product/region key triple a commission rule matches on.</summary>
+    public const string RuleCriteria = "RuleCriteria";
+
+    /// <summary>Which commission rule is the configured fallback default.</summary>
+    public const string DefaultRule = "DefaultRule";
 }

@@ -47,6 +47,18 @@
                 </Authorized>
             </AuthorizeView>
 
+            <AuthorizeView Policy="@Permissions.CommissionRulesRead" Context="commission">
+                <Authorized>
+                    <a class="entry" href="commission-rules">
+                        <span class="entry-title">Commission rules</span>
+                        <span class="entry-text">
+                            Configure the pricing a lookup applies to an amount - a percentage
+                            plus a fixed fee with a minimum, keyed on scheme, product and region.
+                        </span>
+                    </a>
+                </Authorized>
+            </AuthorizeView>
+
             <AuthorizeView Policy="@Permissions.AuditRead" Context="audit">
                 <Authorized>
                     <a class="entry" href="audit">

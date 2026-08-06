@@ -24,19 +24,22 @@ public class BinClassificationService : IBinClassificationService
     private const int MaxInputLength = 19;
 
     private readonly AppDbContext _db;
+    private readonly ICommissionResolver _commissionResolver;
 
-    public BinClassificationService(AppDbContext db)
+    public BinClassificationService(AppDbContext db, ICommissionResolver commissionResolver)
     {
         _db = db;
+        _commissionResolver = commissionResolver;
     }
 
     public async Task<BinClassificationResult> ClassifyAsync(
-        string bin, CancellationToken cancellationToken = default)
+        string bin, decimal? amount = null, CancellationToken cancellationToken = default)
     {
         var lookupKey = Normalize(bin);
 
         // One query for all three candidate lengths, longest first: an 8-digit range is
-        // more specific than the 6-digit range it sits inside, so it wins.
+        // more specific than the 6-digit range it sits inside, so it wins. The key ids come
+        // back alongside the names so a fee can be resolved without a second lookup.
         var candidates = Candidates(lookupKey);
         var today = DateTime.UtcNow.Date;
 
@@ -47,23 +50,73 @@ public class BinClassificationService : IBinClassificationService
                         && b.ValidFrom <= today
                         && (b.ValidTo == null || b.ValidTo >= today))
             .OrderByDescending(b => b.PrefixLength)
-            .Select(b => new BinClassificationResult
+            .Select(b => new MatchedRange
             {
-                Bin = lookupKey,
-                Matched = true,
-                MatchedPrefix = b.Prefix,
+                Prefix = b.Prefix,
+                CardSchemeId = b.CardSchemeId,
                 CardScheme = b.CardScheme!.Name,
+                ProductTypeId = b.ProductTypeId,
                 ProductType = b.ProductType!.Name,
                 FundingType = b.FundingType!.Name,
                 CountryCode = b.Country!.IsoCode,
                 CountryName = b.Country.Name,
+                RegionId = b.Country.RegionId,
                 Region = b.Country.Region!.Name,
                 ValidFrom = b.ValidFrom,
                 ValidTo = b.ValidTo
             })
             .FirstOrDefaultAsync(cancellationToken);
 
-        return match ?? new BinClassificationResult { Bin = lookupKey, Matched = false };
+        if (match is null)
+        {
+            return new BinClassificationResult { Bin = lookupKey, Matched = false };
+        }
+
+        var result = new BinClassificationResult
+        {
+            Bin = lookupKey,
+            Matched = true,
+            MatchedPrefix = match.Prefix,
+            CardScheme = match.CardScheme,
+            ProductType = match.ProductType,
+            FundingType = match.FundingType,
+            CountryCode = match.CountryCode,
+            CountryName = match.CountryName,
+            Region = match.Region,
+            ValidFrom = match.ValidFrom,
+            ValidTo = match.ValidTo
+        };
+
+        // Pricing only when the caller asked for it. The card matched, so every key id is
+        // present - the resolver decides whether any rule (or the default) applies.
+        if (amount is { } transactionAmount)
+        {
+            result.Commission = await _commissionResolver.ResolveAsync(
+                match.CardSchemeId, match.ProductTypeId, match.RegionId,
+                transactionAmount, today, cancellationToken);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// The matched range's projected fields, including the key ids the commission resolver
+    /// needs. Kept private - the API surface only ever sees <see cref="BinClassificationResult"/>.
+    /// </summary>
+    private sealed class MatchedRange
+    {
+        public string Prefix { get; init; } = string.Empty;
+        public int CardSchemeId { get; init; }
+        public string CardScheme { get; init; } = string.Empty;
+        public int ProductTypeId { get; init; }
+        public string ProductType { get; init; } = string.Empty;
+        public string FundingType { get; init; } = string.Empty;
+        public string CountryCode { get; init; } = string.Empty;
+        public string CountryName { get; init; } = string.Empty;
+        public int RegionId { get; init; }
+        public string Region { get; init; } = string.Empty;
+        public DateTime ValidFrom { get; init; }
+        public DateTime? ValidTo { get; init; }
     }
 
     /// <summary>

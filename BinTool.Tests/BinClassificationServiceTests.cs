@@ -14,7 +14,7 @@ public class BinClassificationServiceTests : SqliteTestBase
 
     public BinClassificationServiceTests()
     {
-        _service = new BinClassificationService(Db);
+        _service = new BinClassificationService(Db, new CommissionResolver(Db));
     }
 
     // ---- Matching --------------------------------------------------------------

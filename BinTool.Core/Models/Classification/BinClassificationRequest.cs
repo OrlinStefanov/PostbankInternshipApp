@@ -17,4 +17,13 @@ public class BinClassificationRequest
     [RegularExpression(@"^\d{6,19}$",
         ErrorMessage = "The BIN must be 6 to 19 digits, with no spaces or separators.")]
     public string Bin { get; set; } = string.Empty;
+
+    /// <summary>
+    /// An optional transaction amount. When supplied, the response also carries the
+    /// commission worked out for it: the applicable rule is resolved and the fee is
+    /// calculated. Omit it to classify the card without pricing.
+    /// </summary>
+    /// <example>100</example>
+    [Range(0, 1_000_000_000_000, ErrorMessage = "The amount must be between 0 and 1,000,000,000,000.")]
+    public decimal? Amount { get; set; }
 }

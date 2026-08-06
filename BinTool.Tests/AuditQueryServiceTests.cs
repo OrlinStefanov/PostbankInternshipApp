@@ -214,6 +214,8 @@ public class AuditQueryServiceTests : SqliteTestBase
             AuditEntityTypes.FundingType,
             AuditEntityTypes.Region,
             AuditEntityTypes.Country,
+            AuditEntityTypes.CommissionRule,
+            AuditEntityTypes.DefaultRule,
             AuditEntityTypes.Role,
             AuditEntityTypes.UserRole
         });

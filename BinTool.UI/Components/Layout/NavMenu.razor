@@ -57,6 +57,17 @@
             </Authorized>
         </AuthorizeView>
 
+        <AuthorizeView Policy="@Permissions.CommissionRulesRead">
+            <Authorized>
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="commission-rules" title="Commission Rules">
+                        <span class="nav-icon icon-commission" aria-hidden="true"></span>
+                        <span class="nav-text">Commission Rules</span>
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
         <AuthorizeView Policy="@Permissions.AuditRead">
             <Authorized>
                 <div class="nav-item">

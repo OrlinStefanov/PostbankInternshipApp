@@ -1,0 +1,246 @@
+@using BinTool.Core.Models.Commission
+@using BinTool.Core.Models.ReferenceData
+@inject CommissionRuleApiClient Api
+
+@* Rendered only while open, so the surrounding page owns "is the dialog up?" and this
+   component owns everything inside it. *@
+<div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-label="@Title">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <EditForm Model="_input" OnValidSubmit="Save" FormName="commission-rule-editor">
+                <DataAnnotationsValidator />
+
+                <div class="modal-header">
+                    <h5 class="modal-title">@Title</h5>
+                    <button type="button" class="btn-close" aria-label="Close"
+                            @onclick="Cancel" disabled="@_saving"></button>
+                </div>
+
+                <div class="modal-body">
+                    @if (_error is not null)
+                    {
+                        <div class="alert alert-danger" role="alert">@_error</div>
+                    }
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label" for="e-name">Rule name</label>
+                            <InputText id="e-name" class="form-control" maxlength="200"
+                                       placeholder="e.g. Amex Consumer Inter-Regional"
+                                       @bind-Value="_input.RuleName" />
+                            <ValidationMessage For="() => _input.RuleName" class="form-text text-danger" />
+                        </div>
+                    </div>
+
+                    <p class="text-secondary small mt-3 mb-2">
+                        The three keys below decide which cards the rule matches. Leave any of
+                        them on <strong>Any</strong> to wildcard it - the fewer wildcards a rule
+                        has, the more specific it is, and the more specific rule wins.
+                    </p>
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="e-scheme">Card scheme</label>
+                            <InputSelect id="e-scheme" class="form-select" @bind-Value="_input.CardSchemeId">
+                                <option value="">Any</option>
+                                @foreach (var s in Schemes)
+                                {
+                                    <option value="@s.Id">@s.Name</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="e-product">Product type</label>
+                            <InputSelect id="e-product" class="form-select" @bind-Value="_input.ProductTypeId">
+                                <option value="">Any</option>
+                                @foreach (var p in Products)
+                                {
+                                    <option value="@p.Id">@p.Name</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="e-region">Region</label>
+                            <InputSelect id="e-region" class="form-select" @bind-Value="_input.RegionId">
+                                <option value="">Any</option>
+                                @foreach (var r in Regions)
+                                {
+                                    <option value="@r.Id">@r.Name</option>
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+
+                    <hr class="my-3" />
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="e-rate">Percentage rate</label>
+                            <div class="input-group">
+                                <InputNumber id="e-rate" class="form-control" step="0.0001"
+                                             @bind-Value="_input.PercentageRate" />
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <div class="form-text">0.85 means 0.85% of the amount.</div>
+                            <ValidationMessage For="() => _input.PercentageRate" class="form-text text-danger" />
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="e-fixed">Fixed amount</label>
+                            <InputNumber id="e-fixed" class="form-control" step="0.0001"
+                                         @bind-Value="_input.FixedAmount" />
+                            <div class="form-text">Added on top of the percentage.</div>
+                            <ValidationMessage For="() => _input.FixedAmount" class="form-text text-danger" />
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="e-min">Minimum fee</label>
+                            <InputNumber id="e-min" class="form-control" step="0.0001"
+                                         @bind-Value="_input.MinimumFee" />
+                            <div class="form-text">The fee is raised to this floor.</div>
+                            <ValidationMessage For="() => _input.MinimumFee" class="form-text text-danger" />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-0">
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="e-from">Valid from</label>
+                            <InputDate id="e-from" class="form-control" @bind-Value="_input.ValidFrom" />
+                            <ValidationMessage For="() => _input.ValidFrom" class="form-text text-danger" />
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="e-to">Valid to</label>
+                            <InputDate id="e-to" class="form-control" @bind-Value="_input.ValidTo" />
+                            <div class="form-text">Leave empty for open-ended.</div>
+                            <ValidationMessage For="() => _input.ValidTo" class="form-text text-danger" />
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="e-priority">Priority</label>
+                            <InputNumber id="e-priority" class="form-control" @bind-Value="_input.Priority" />
+                            <div class="form-text">Manual tiebreak; higher wins.</div>
+                        </div>
+                    </div>
+
+                    <div class="form-check mt-3">
+                        <InputCheckbox id="e-active" class="form-check-input" @bind-Value="_input.IsActive" />
+                        <label class="form-check-label" for="e-active">
+                            Active - an inactive rule is never applied.
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary"
+                            @onclick="Cancel" disabled="@_saving">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary" disabled="@_saving">
+                        @if (_saving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        }
+                        @(Rule is null ? "Add rule" : "Save changes")
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+<div class="modal-backdrop show"></div>
+
+@code {
+    /// <summary>Live card schemes to choose from, loaded once by the page.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<LookupListItem> Schemes { get; set; } = Array.Empty<LookupListItem>();
+
+    /// <summary>Live product types to choose from.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<LookupListItem> Products { get; set; } = Array.Empty<LookupListItem>();
+
+    /// <summary>Live regions to choose from.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<LookupListItem> Regions { get; set; } = Array.Empty<LookupListItem>();
+
+    /// <summary>The rule being edited, or null to add a new one.</summary>
+    [Parameter]
+    public CommissionRuleListItem? Rule { get; set; }
+
+    /// <summary>Raised with the API's outcome once the rule has been written.</summary>
+    [Parameter]
+    public EventCallback<CommissionRuleMutationResult> OnSaved { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    private CommissionRuleInput _input = new();
+    private bool _saving;
+    private string? _error;
+
+    private string Title => Rule is null ? "Add commission rule" : $"Edit commission rule — {Rule.RuleName}";
+
+    protected override void OnParametersSet()
+    {
+        _input = Rule is null
+            ? new CommissionRuleInput { ValidFrom = DateTime.UtcNow.Date, IsActive = true }
+            : new CommissionRuleInput
+            {
+                RuleName = Rule.RuleName,
+                CardSchemeId = Rule.CardSchemeId,
+                ProductTypeId = Rule.ProductTypeId,
+                RegionId = Rule.RegionId,
+                PercentageRate = Rule.PercentageRate,
+                FixedAmount = Rule.FixedAmount,
+                MinimumFee = Rule.MinimumFee,
+                Priority = Rule.Priority,
+                ValidFrom = Rule.ValidFrom,
+                ValidTo = Rule.ValidTo,
+                IsActive = Rule.IsActive
+            };
+
+        _error = null;
+    }
+
+    private async Task Save()
+    {
+        _saving = true;
+        _error = null;
+
+        try
+        {
+            var result = Rule is null
+                ? await Api.CreateAsync(_input)
+                : await Api.UpdateAsync(Rule.Id, _input);
+
+            if (!result.Succeeded)
+            {
+                // A refusal - an overlapping window, a key id that no longer exists - belongs
+                // next to the form the user is still filling in, not on the page behind it.
+                _error = result.ConflictingRuleName is null
+                    ? result.Error
+                    : $"{result.Error} (conflicts with '{result.ConflictingRuleName}')";
+                return;
+            }
+
+            await OnSaved.InvokeAsync(result);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Could not save the rule: {ex.Message}";
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task Cancel()
+    {
+        if (_saving) return;
+
+        await OnCancel.InvokeAsync();
+    }
+}

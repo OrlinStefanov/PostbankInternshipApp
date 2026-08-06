@@ -59,6 +59,9 @@ builder.Services.AddHttpClient<ReferenceDataApiClient>(client => client.BaseAddr
 builder.Services.AddHttpClient<CountryApiClient>(client => client.BaseAddress = new Uri(apiBaseUrl))
     .ConfigurePrimaryHttpMessageHandler(ApiHandler);
 
+builder.Services.AddHttpClient<CommissionRuleApiClient>(client => client.BaseAddress = new Uri(apiBaseUrl))
+    .ConfigurePrimaryHttpMessageHandler(ApiHandler);
+
 HttpClientHandler ApiHandler()
 {
     var handler = new HttpClientHandler();

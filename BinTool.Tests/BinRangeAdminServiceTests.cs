@@ -261,7 +261,8 @@ public class BinRangeAdminServiceTests : SqliteTestBase
         var range = SeedBinRange("400001", VisaId, ConsumerId, CreditId, UsCountryId, Started);
         await _service.DeleteAsync(range.BinRangeId);
 
-        var classification = await new BinClassificationService(NewContext())
+        var context = NewContext();
+        var classification = await new BinClassificationService(context, new CommissionResolver(context))
             .ClassifyAsync("4000011234567");
 
         classification.Matched.Should().BeFalse();

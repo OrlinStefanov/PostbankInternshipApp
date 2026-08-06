@@ -23,6 +23,8 @@ public class AuditQueryService : IAuditQueryService
         AuditEntityTypes.FundingType,
         AuditEntityTypes.Region,
         AuditEntityTypes.Country,
+        AuditEntityTypes.CommissionRule,
+        AuditEntityTypes.DefaultRule,
         AuditEntityTypes.Role,
         AuditEntityTypes.UserRole
     };

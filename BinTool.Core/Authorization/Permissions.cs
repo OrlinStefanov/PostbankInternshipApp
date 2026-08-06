@@ -26,6 +26,8 @@ public static class Permissions
     public const string RolesManage = "roles.manage";
     public const string AuditRead = "audit.read";
     public const string ReferenceDataManage = "referencedata.manage";
+    public const string CommissionRulesRead = "commissionrules.read";
+    public const string CommissionRulesWrite = "commissionrules.write";
 
     /// <summary>Headings the role editor groups the privileges under.</summary>
     public static class Groups
@@ -33,6 +35,7 @@ public static class Permissions
         public const string Classification = "Classification";
         public const string BinRanges = "BIN ranges";
         public const string Administration = "Administration";
+        public const string CommissionRules = "Commission rules";
     }
 
     /// <summary>Every privilege, in the order a role editor should present them.</summary>
@@ -52,6 +55,10 @@ public static class Permissions
             "Read the trail of who changed which record and when.", Groups.Administration),
         new PermissionInfo(ReferenceDataManage, "Manage reference data",
             "Add, edit, deactivate and restore card schemes, product types, funding types, regions and countries.", Groups.Administration),
+        new PermissionInfo(CommissionRulesRead, "Browse commission rules",
+            "View the stored commission rules, their key combination, rates and validity.", Groups.CommissionRules),
+        new PermissionInfo(CommissionRulesWrite, "Maintain commission rules",
+            "Add, edit, deactivate, restore and set the default commission rule.", Groups.CommissionRules)
     };
 
     /// <summary>The keys alone, for seeding the Admin role with the whole catalog.</summary>

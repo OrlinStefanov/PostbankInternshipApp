@@ -1,3 +1,5 @@
+using BinTool.Core.Models.Commission;
+
 namespace BinTool.Core.Models.Classification;
 
 /// <summary>
@@ -63,4 +65,12 @@ public class BinClassificationResult
     /// End of the matched range's validity (inclusive). Null for an open-ended range.
     /// </summary>
     public DateTime? ValidTo { get; set; }
+
+    /// <summary>
+    /// The commission worked out for the request's amount. Null when no amount was supplied,
+    /// when the BIN did not match, or when no rule matched and no default is configured.
+    /// A non-null value with <see cref="CommissionCalculation.IsFallback"/> set means the
+    /// fee came from the default rule rather than a rule matching the card.
+    /// </summary>
+    public CommissionCalculation? Commission { get; set; }
 }
