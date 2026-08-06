@@ -1,0 +1,112 @@
+using System.Globalization;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using BinTool.Core.Entities;
+using BinTool.Core.Models.Audit;
+using BinTool.Core.Models.BinRanges;
+
+namespace BinTool.UI.Services;
+
+/// <summary>
+/// Thin typed client over the BinTool API's audit endpoints. Runs on the Blazor server,
+/// so calls are server-to-server (no CORS involved).
+/// </summary>
+public class AuditApiClient
+{
+    /// <summary>
+    /// The API writes enums as their names, which the default options will not read back.
+    /// </summary>
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    private readonly HttpClient _http;
+    private readonly IAccessTokenProvider _tokens;
+
+    public AuditApiClient(HttpClient http, IAccessTokenProvider tokens)
+    {
+        _http = http;
+        _tokens = tokens;
+    }
+
+    private async Task AuthorizeAsync()
+    {
+        var token = await _tokens.GetTokenAsync();
+
+        _http.DefaultRequestHeaders.Authorization = token is null
+            ? null
+            : new AuthenticationHeaderValue("Bearer", token);
+    }
+
+    /// <summary>
+    /// Fetches one page of audit entries from <c>GET /api/Audit</c>.
+    /// </summary>
+    public async Task<PagedResult<AuditLogItem>> SearchAsync(
+        AuditQuery query, CancellationToken cancellationToken = default)
+    {
+        await AuthorizeAsync();
+
+        var result = await _http.GetFromJsonAsync<PagedResult<AuditLogItem>>(
+            $"api/Audit?{BuildQueryString(query)}", Json, cancellationToken);
+
+        return result ?? new PagedResult<AuditLogItem>();
+    }
+
+    /// <summary>
+    /// Fetches the entity-type filter values from <c>GET /api/Audit/entity-types</c>.
+    /// </summary>
+    public async Task<IReadOnlyList<string>> GetEntityTypesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await AuthorizeAsync();
+
+        var result = await _http.GetFromJsonAsync<List<string>>(
+            "api/Audit/entity-types", Json, cancellationToken);
+
+        return result ?? new List<string>();
+    }
+
+    /// <summary>
+    /// Only the filters that are set are sent, so the URL stays readable and an empty
+    /// filter is never mistaken for a filter on an empty string.
+    /// </summary>
+    private static string BuildQueryString(AuditQuery query)
+    {
+        var parts = new List<string>
+        {
+            $"page={query.Page.ToString(CultureInfo.InvariantCulture)}",
+            $"pageSize={query.PageSize.ToString(CultureInfo.InvariantCulture)}"
+        };
+
+        if (query.From is { } from)
+        {
+            parts.Add($"from={Uri.EscapeDataString(from.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture))}");
+        }
+
+        if (query.To is { } to)
+        {
+            parts.Add($"to={Uri.EscapeDataString(to.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture))}");
+        }
+
+        Add(parts, "entityType", query.EntityType);
+        Add(parts, "userName", query.UserName);
+
+        if (query.Action is { } action)
+        {
+            parts.Add($"action={action}");
+        }
+
+        return string.Join('&', parts);
+    }
+
+    private static void Add(List<string> parts, string name, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            parts.Add($"{name}={Uri.EscapeDataString(value.Trim())}");
+        }
+    }
+}

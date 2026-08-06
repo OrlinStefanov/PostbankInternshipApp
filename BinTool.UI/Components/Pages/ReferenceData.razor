@@ -1,0 +1,678 @@
+@page "/reference-data"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Permissions.ReferenceDataManage)]
+@inject ReferenceDataApiClient LookupApi
+@inject CountryApiClient CountryApi
+
+<PageTitle>Reference data</PageTitle>
+
+<div class="page-head d-flex flex-wrap justify-content-between align-items-start gap-3">
+    <div>
+        <h1 class="h3 mb-1">Reference data</h1>
+        <p class="text-secondary mb-0">
+            The card schemes, product types, funding types, regions and countries every
+            BIN range and every commission rule is built on. Names, not ids, are what
+            imports and audit records refer to.
+        </p>
+    </div>
+    <div>
+        <button class="btn btn-primary" @onclick="StartAdd" disabled="@_busy">
+            Add @CurrentSingular
+        </button>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mt-4 ref-tabs">
+    @foreach (var tab in _tabs)
+    {
+        <li class="nav-item">
+            <button type="button"
+                    class="nav-link @(tab.IsCountry == _countryTab && tab.Kind == _kind ? "active" : null)"
+                    @onclick="() => SelectTab(tab)">
+                @tab.Label
+            </button>
+        </li>
+    }
+</ul>
+
+<div class="filters card mt-3">
+    <div class="card-body py-2 d-flex flex-wrap align-items-center gap-3">
+        <div class="form-check mb-0">
+            <input id="f-include-deleted" class="form-check-input" type="checkbox"
+                   checked="@_includeDeleted" @onchange="OnIncludeDeletedChanged" />
+            <label class="form-check-label" for="f-include-deleted">Include deleted</label>
+        </div>
+
+        <span class="text-secondary small ms-auto">
+            @if (_loading)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                <span>Loading…</span>
+            }
+            else if (_countryTab)
+            {
+                <span>@_countries.Count @(Word("country", "countries", _countries.Count))</span>
+            }
+            else
+            {
+                <span>@_lookups.Count @(Word("row", "rows", _lookups.Count))</span>
+            }
+        </span>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger mt-3" role="alert">@_error</div>
+}
+
+@if (_notice is not null)
+{
+    <div class="alert alert-success alert-dismissible mt-3" role="alert">
+        @_notice
+        <button type="button" class="btn-close" aria-label="Dismiss"
+                @onclick="() => _notice = null"></button>
+    </div>
+}
+
+@if (!_loading && ((_countryTab && _countries.Count == 0) || (!_countryTab && _lookups.Count == 0)) && _error is null)
+{
+    <div class="card empty-state mt-3">
+        <div class="card-body text-center py-5">
+            <p class="mb-1 fw-semibold">Nothing to show</p>
+            <p class="text-secondary mb-3">
+                No @CurrentPlural have been added yet.
+                @if (_includeDeleted)
+                {
+                    <span>Not even a deleted one.</span>
+                }
+                else
+                {
+                    <span>Toggle <strong>Include deleted</strong> to look for withdrawn rows.</span>
+                }
+            </p>
+            <button class="btn btn-primary btn-sm" @onclick="StartAdd">Add @CurrentSingular</button>
+        </div>
+    </div>
+}
+else if (_countryTab)
+{
+    <div class="card mt-3">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-3">ISO</th>
+                        <th>Name</th>
+                        <th>Region</th>
+                        <th>Status</th>
+                        <th>Last changed</th>
+                        <th class="pe-3 text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in _countries)
+                    {
+                        <tr class="@(c.Status == LookupStatus.Deleted ? "row-muted" : null)">
+                            <td class="ps-3"><code class="mono">@c.IsoCode</code></td>
+                            <td>@c.Name</td>
+                            <td class="text-secondary">@c.RegionName</td>
+                            <td>
+                                <span class="badge rounded-pill text-bg-@StatusColor(c.Status)">@c.Status</span>
+                            </td>
+                            <td class="text-secondary small">
+                                @Date(c.UpdatedAt) @if (!string.IsNullOrEmpty(c.UpdatedBy)) { <span>by @c.UpdatedBy</span> }
+                            </td>
+                            <td class="pe-3 text-end text-nowrap">
+                                @if (c.Status == LookupStatus.Deleted)
+                                {
+                                    <button class="btn btn-outline-success btn-sm"
+                                            @onclick="() => RestoreCountry(c)" disabled="@_busy">Restore</button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-outline-primary btn-sm me-1"
+                                            @onclick="() => StartEditCountry(c)" disabled="@_busy">Edit</button>
+                                    <button class="btn btn-outline-danger btn-sm"
+                                            @onclick="() => _pendingDelete = c" disabled="@_busy">Delete</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card mt-3">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-3">Name</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th class="pe-3 text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in _lookups)
+                    {
+                        <tr class="@(item.Status == LookupStatus.Deleted ? "row-muted" : null)">
+                            <td class="ps-3 fw-semibold">@item.Name</td>
+                            <td class="text-secondary">@(item.Description ?? "—")</td>
+                            <td>
+                                <span class="badge rounded-pill text-bg-@StatusColor(item.Status)">@item.Status</span>
+                            </td>
+                            <td class="pe-3 text-end text-nowrap">
+                                @if (item.Status == LookupStatus.Deleted)
+                                {
+                                    <button class="btn btn-outline-success btn-sm"
+                                            @onclick="() => RestoreLookup(item)" disabled="@_busy">Restore</button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-outline-primary btn-sm me-1"
+                                            @onclick="() => StartEditLookup(item)" disabled="@_busy">Edit</button>
+                                    <button class="btn btn-outline-danger btn-sm"
+                                            @onclick="() => _pendingDelete = item" disabled="@_busy">Delete</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (_editorOpen && !_countryTab)
+{
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true"
+         aria-label="@(_editingLookup is null ? $"Add {CurrentSingular}" : $"Edit {CurrentSingular}")">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        @(_editingLookup is null ? $"Add {CurrentSingular}" : $"Edit {CurrentSingular} — {_editingLookup.Name}")
+                    </h5>
+                    <button type="button" class="btn-close" aria-label="Close"
+                            @onclick="CloseEditor" disabled="@_busy"></button>
+                </div>
+                <div class="modal-body">
+                    @if (_editorError is not null)
+                    {
+                        <div class="alert alert-danger py-2 px-3 small" role="alert">@_editorError</div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label" for="ed-name">Name</label>
+                        <input id="ed-name" class="form-control" maxlength="100"
+                               @bind-value="_lookupDraft.Name" @bind-value:event="oninput" />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label" for="ed-desc">Description</label>
+                        <textarea id="ed-desc" class="form-control" rows="3" maxlength="500"
+                                  @bind="_lookupDraft.Description" @bind:event="oninput"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary"
+                            @onclick="CloseEditor" disabled="@_busy">Cancel</button>
+                    <button type="button" class="btn btn-primary"
+                            @onclick="SaveLookup" disabled="@_busy">
+                        @if (_busy)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        }
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
+
+@if (_editorOpen && _countryTab)
+{
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true"
+         aria-label="@(_editingCountry is null ? "Add country" : "Edit country")">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        @(_editingCountry is null ? "Add country" : $"Edit country — {_editingCountry.IsoCode}")
+                    </h5>
+                    <button type="button" class="btn-close" aria-label="Close"
+                            @onclick="CloseEditor" disabled="@_busy"></button>
+                </div>
+                <div class="modal-body">
+                    @if (_editorError is not null)
+                    {
+                        <div class="alert alert-danger py-2 px-3 small" role="alert">@_editorError</div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label" for="ed-iso">ISO code</label>
+                        <input id="ed-iso" class="form-control mono" maxlength="2"
+                               style="max-width: 6rem; text-transform: uppercase;"
+                               @bind-value="_countryDraft.IsoCode" @bind-value:event="oninput" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="ed-name">Name</label>
+                        <input id="ed-name" class="form-control" maxlength="100"
+                               @bind-value="_countryDraft.Name" @bind-value:event="oninput" />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label" for="ed-region">Region</label>
+                        <select id="ed-region" class="form-select" @bind="_countryDraft.RegionId">
+                            <option value="0">— Choose a region —</option>
+                            @foreach (var region in _liveRegions)
+                            {
+                                <option value="@region.Id">@region.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary"
+                            @onclick="CloseEditor" disabled="@_busy">Cancel</button>
+                    <button type="button" class="btn btn-primary"
+                            @onclick="SaveCountry" disabled="@_busy">
+                        @if (_busy)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        }
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
+
+@if (_pendingDelete is not null)
+{
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-label="Confirm delete">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete @DeleteLabel?</h5>
+                    <button type="button" class="btn-close" aria-label="Close"
+                            @onclick="() => _pendingDelete = null" disabled="@_busy"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">
+                        Deleting is a soft withdrawal: the row stays in the database and can be
+                        restored, but it stops being offered as a choice in imports and editors.
+                    </p>
+                    <p class="text-secondary small mb-0">
+                        A row still referenced by a live BIN range (or by a live country, for a
+                        region) will not be deleted - the API refuses and tells you what still
+                        points at it.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary"
+                            @onclick="() => _pendingDelete = null" disabled="@_busy">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete" disabled="@_busy">
+                        @if (_busy)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        }
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
+
+@code {
+    private sealed record TabDefinition(LookupKind Kind, bool IsCountry, string Label, string Singular, string Plural);
+
+    private static readonly TabDefinition[] _tabs =
+    {
+        new(LookupKind.CardScheme, false, "Card schemes", "card scheme", "card schemes"),
+        new(LookupKind.ProductType, false, "Product types", "product type", "product types"),
+        new(LookupKind.FundingType, false, "Funding types", "funding type", "funding types"),
+        new(LookupKind.Region, false, "Regions", "region", "regions"),
+        new(LookupKind.CardScheme /* unused */, true, "Countries", "country", "countries")
+    };
+
+    private LookupKind _kind = LookupKind.CardScheme;
+    private bool _countryTab;
+    private bool _includeDeleted;
+    private bool _loading = true;
+    private bool _busy;
+
+    private string? _error;
+    private string? _notice;
+
+    private List<LookupListItem> _lookups = new();
+    private List<CountryListItem> _countries = new();
+
+    /// <summary>Cached live regions for the country editor's dropdown.</summary>
+    private List<LookupListItem> _liveRegions = new();
+
+    // Editor state.
+    private bool _editorOpen;
+    private string? _editorError;
+    private LookupListItem? _editingLookup;
+    private CountryListItem? _editingCountry;
+    private LookupInput _lookupDraft = new();
+    private CountryInput _countryDraft = new();
+
+    // Delete confirmation carries whichever list item was clicked; the delete handler picks
+    // the right service call from its type at commit time.
+    private object? _pendingDelete;
+
+    private string CurrentSingular =>
+        _tabs.First(t => t.IsCountry == _countryTab && (t.IsCountry || t.Kind == _kind)).Singular;
+
+    private string CurrentPlural =>
+        _tabs.First(t => t.IsCountry == _countryTab && (t.IsCountry || t.Kind == _kind)).Plural;
+
+    private string DeleteLabel => _pendingDelete switch
+    {
+        LookupListItem l => $"{CurrentSingular} '{l.Name}'",
+        CountryListItem c => $"country '{c.IsoCode}'",
+        _ => "row"
+    };
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task SelectTab(TabDefinition tab)
+    {
+        _kind = tab.Kind;
+        _countryTab = tab.IsCountry;
+        _notice = null;
+        _error = null;
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        _lookups = new();
+        _countries = new();
+
+        try
+        {
+            if (_countryTab)
+            {
+                var (countries, regions) = (
+                    await CountryApi.SearchAsync(_includeDeleted),
+                    // Countries need a region dropdown - always load fresh so a region that was
+                    // just added or deleted on another tab shows up correctly.
+                    await LookupApi.SearchAsync(LookupKind.Region, includeDeleted: false));
+
+                _countries = countries;
+                _liveRegions = regions;
+            }
+            else
+            {
+                _lookups = await LookupApi.SearchAsync(_kind, _includeDeleted);
+            }
+
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Could not load reference data: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnIncludeDeletedChanged(ChangeEventArgs e)
+    {
+        _includeDeleted = e.Value is true;
+        await Load();
+    }
+
+    // ---- Editor ----------------------------------------------------------------
+
+    private async Task StartAdd()
+    {
+        _editorError = null;
+        _notice = null;
+
+        if (_countryTab)
+        {
+            _editingCountry = null;
+            _countryDraft = new CountryInput();
+            // Load regions if they weren't already brought in with the tab.
+            if (_liveRegions.Count == 0)
+            {
+                _liveRegions = await LookupApi.SearchAsync(LookupKind.Region, includeDeleted: false);
+            }
+        }
+        else
+        {
+            _editingLookup = null;
+            _lookupDraft = new LookupInput();
+        }
+
+        _editorOpen = true;
+    }
+
+    private void StartEditLookup(LookupListItem item)
+    {
+        _editingLookup = item;
+        _lookupDraft = new LookupInput { Name = item.Name, Description = item.Description };
+        _editorError = null;
+        _notice = null;
+        _editorOpen = true;
+    }
+
+    private async Task StartEditCountry(CountryListItem item)
+    {
+        _editingCountry = item;
+        _countryDraft = new CountryInput
+        {
+            IsoCode = item.IsoCode,
+            Name = item.Name,
+            RegionId = item.RegionId
+        };
+        _editorError = null;
+        _notice = null;
+
+        if (_liveRegions.Count == 0)
+        {
+            _liveRegions = await LookupApi.SearchAsync(LookupKind.Region, includeDeleted: false);
+        }
+
+        _editorOpen = true;
+    }
+
+    private void CloseEditor()
+    {
+        _editorOpen = false;
+        _editingLookup = null;
+        _editingCountry = null;
+        _editorError = null;
+    }
+
+    private async Task SaveLookup()
+    {
+        _busy = true;
+        _editorError = null;
+
+        try
+        {
+            var result = _editingLookup is null
+                ? await LookupApi.CreateAsync(_kind, _lookupDraft)
+                : await LookupApi.UpdateAsync(_kind, _editingLookup.Id, _lookupDraft);
+
+            if (!result.Succeeded)
+            {
+                _editorError = result.Error;
+                return;
+            }
+
+            _notice = result.Status switch
+            {
+                LookupMutationStatus.Created => $"Added {CurrentSingular} '{result.Item!.Name}'.",
+                LookupMutationStatus.Restored =>
+                    $"'{result.Item!.Name}' already existed as a deleted row. It has been restored with these values.",
+                _ => $"Saved {CurrentSingular} '{result.Item!.Name}'."
+            };
+
+            CloseEditor();
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _editorError = $"The change could not be applied: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task SaveCountry()
+    {
+        _busy = true;
+        _editorError = null;
+
+        try
+        {
+            var result = _editingCountry is null
+                ? await CountryApi.CreateAsync(_countryDraft)
+                : await CountryApi.UpdateAsync(_editingCountry.Id, _countryDraft);
+
+            if (!result.Succeeded)
+            {
+                _editorError = result.Error;
+                return;
+            }
+
+            _notice = result.Status switch
+            {
+                LookupMutationStatus.Created => $"Added country '{result.Country!.IsoCode}'.",
+                LookupMutationStatus.Restored =>
+                    $"'{result.Country!.IsoCode}' already existed as a deleted row. It has been restored with these values.",
+                _ => $"Saved country '{result.Country!.IsoCode}'."
+            };
+
+            CloseEditor();
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _editorError = $"The change could not be applied: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // ---- Delete / restore ------------------------------------------------------
+
+    private async Task ConfirmDelete()
+    {
+        _busy = true;
+
+        try
+        {
+            switch (_pendingDelete)
+            {
+                case LookupListItem l:
+                    {
+                        var r = await LookupApi.DeleteAsync(_kind, l.Id);
+                        if (!r.Succeeded) { _error = r.Error; return; }
+                        _notice = $"Deleted {CurrentSingular} '{l.Name}'. Toggle 'Include deleted' to restore it.";
+                        break;
+                    }
+                case CountryListItem c:
+                    {
+                        var r = await CountryApi.DeleteAsync(c.Id);
+                        if (!r.Succeeded) { _error = r.Error; return; }
+                        _notice = $"Deleted country '{c.IsoCode}'. Toggle 'Include deleted' to restore it.";
+                        break;
+                    }
+            }
+
+            _error = null;
+            _pendingDelete = null;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _error = $"The delete could not be applied: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RestoreLookup(LookupListItem item)
+    {
+        _busy = true;
+
+        try
+        {
+            var r = await LookupApi.RestoreAsync(_kind, item.Id);
+            if (!r.Succeeded) { _error = r.Error; return; }
+
+            _notice = $"Restored {CurrentSingular} '{r.Item!.Name}'.";
+            _error = null;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _error = $"The restore could not be applied: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RestoreCountry(CountryListItem item)
+    {
+        _busy = true;
+
+        try
+        {
+            var r = await CountryApi.RestoreAsync(item.Id);
+            if (!r.Succeeded) { _error = r.Error; return; }
+
+            _notice = $"Restored country '{r.Country!.IsoCode}'.";
+            _error = null;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _error = $"The restore could not be applied: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // ---- Formatting ------------------------------------------------------------
+
+    private static string Date(DateTime value) => value.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+
+    private static string StatusColor(LookupStatus status) => status switch
+    {
+        LookupStatus.Active => "success",
+        LookupStatus.Deleted => "secondary",
+        _ => "secondary"
+    };
+
+    private static string Word(string singular, string plural, int count) => count == 1 ? singular : plural;
+}

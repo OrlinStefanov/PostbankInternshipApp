@@ -1,0 +1,33 @@
+/* The tab strip sits on the same page-head baseline the other admin screens use,
+   so it takes the app's own line colour and its active tab wears the accent. */
+
+.ref-tabs {
+    border-bottom: 1px solid var(--app-line);
+    gap: .1rem;
+}
+
+.ref-tabs ::deep .nav-link {
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-top-left-radius: var(--app-radius);
+    border-top-right-radius: var(--app-radius);
+    color: var(--app-muted);
+    font-weight: 500;
+    padding: .55rem 1rem;
+    cursor: pointer;
+    transition: color .12s ease, background-color .12s ease, border-color .12s ease;
+}
+
+.ref-tabs ::deep .nav-link:hover {
+    color: var(--app-ink);
+    background-color: var(--app-sunken);
+}
+
+.ref-tabs ::deep .nav-link.active {
+    background-color: var(--app-surface);
+    border-color: var(--app-line);
+    border-bottom-color: var(--app-surface);
+    color: var(--app-accent);
+    margin-bottom: -1px;
+}

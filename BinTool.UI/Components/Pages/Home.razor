@@ -35,6 +35,30 @@
                 </Authorized>
             </AuthorizeView>
 
+            <AuthorizeView Policy="@Permissions.ReferenceDataManage" Context="reference">
+                <Authorized>
+                    <a class="entry" href="reference-data">
+                        <span class="entry-title">Reference data</span>
+                        <span class="entry-text">
+                            Add or retire card schemes, product types, funding types,
+                            regions and countries without a code change.
+                        </span>
+                    </a>
+                </Authorized>
+            </AuthorizeView>
+
+            <AuthorizeView Policy="@Permissions.AuditRead" Context="audit">
+                <Authorized>
+                    <a class="entry" href="audit">
+                        <span class="entry-title">Audit log</span>
+                        <span class="entry-text">
+                            Read the trail of who changed which BIN range, role or role
+                            assignment, with the before and after of each change.
+                        </span>
+                    </a>
+                </Authorized>
+            </AuthorizeView>
+
             <AuthorizeView Policy="@Permissions.RolesManage" Context="access">
                 <Authorized>
                     <a class="entry" href="access-control">

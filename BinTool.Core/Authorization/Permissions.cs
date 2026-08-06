@@ -24,6 +24,8 @@ public static class Permissions
     public const string BinRangesWrite = "binranges.write";
     public const string BinRangesImport = "binranges.import";
     public const string RolesManage = "roles.manage";
+    public const string AuditRead = "audit.read";
+    public const string ReferenceDataManage = "referencedata.manage";
 
     /// <summary>Headings the role editor groups the privileges under.</summary>
     public static class Groups
@@ -46,6 +48,10 @@ public static class Permissions
             "Upload a CSV and resolve import conflicts.", Groups.BinRanges),
         new PermissionInfo(RolesManage, "Manage access",
             "Create roles, set their permissions, and assign roles to users.", Groups.Administration),
+        new PermissionInfo(AuditRead, "View audit log",
+            "Read the trail of who changed which record and when.", Groups.Administration),
+        new PermissionInfo(ReferenceDataManage, "Manage reference data",
+            "Add, edit, deactivate and restore card schemes, product types, funding types, regions and countries.", Groups.Administration),
     };
 
     /// <summary>The keys alone, for seeding the Admin role with the whole catalog.</summary>

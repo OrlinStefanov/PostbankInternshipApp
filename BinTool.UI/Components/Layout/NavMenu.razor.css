@@ -122,6 +122,16 @@
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2.25v6.5'/%3E%3Cpath d='M5.5 6.25 8 8.75l2.5-2.5'/%3E%3Cpath d='M2.75 10.75V12a1.25 1.25 0 0 0 1.25 1.25h8A1.25 1.25 0 0 0 13.25 12v-1.25'/%3E%3C/svg%3E");
 }
 
+.nav-item ::deep .icon-reference {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 3.5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-9Z'/%3E%3Cpath d='M5.25 5.5h5.5M5.25 8h5.5M5.25 10.5h3.5'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 3.5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-9Z'/%3E%3Cpath d='M5.25 5.5h5.5M5.25 8h5.5M5.25 10.5h3.5'/%3E%3C/svg%3E");
+}
+
+.nav-item ::deep .icon-audit {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 2.25h6l2.75 2.75V13.25a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V2.75a.5.5 0 0 1 .5-.5Z'/%3E%3Cpath d='M9.75 2.5v2.75h2.75'/%3E%3Cpath d='M5.75 7.75h4.5M5.75 10h4.5M5.75 12h2.5'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 2.25h6l2.75 2.75V13.25a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V2.75a.5.5 0 0 1 .5-.5Z'/%3E%3Cpath d='M9.75 2.5v2.75h2.75'/%3E%3Cpath d='M5.75 7.75h4.5M5.75 10h4.5M5.75 12h2.5'/%3E%3C/svg%3E");
+}
+
 .nav-item ::deep .icon-access {
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Cpath d='M5 7.25V4.9a3 3 0 0 1 6 0v2.35'/%3E%3Crect x='2.75' y='7.25' width='10.5' height='6.5' rx='1.5'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Cpath d='M5 7.25V4.9a3 3 0 0 1 6 0v2.35'/%3E%3Crect x='2.75' y='7.25' width='10.5' height='6.5' rx='1.5'/%3E%3C/svg%3E");

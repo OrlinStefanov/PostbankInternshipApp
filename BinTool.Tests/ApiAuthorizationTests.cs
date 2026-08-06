@@ -80,6 +80,23 @@ public class ApiAuthorizationTests
     }
 
     [Fact]
+    public void Reading_the_audit_log_requires_the_audit_read_permission()
+    {
+        Authorize(typeof(AuditController))!.Policy.Should().Be(Permissions.AuditRead);
+    }
+
+    [Theory]
+    [InlineData(typeof(CardSchemesController))]
+    [InlineData(typeof(ProductTypesController))]
+    [InlineData(typeof(FundingTypesController))]
+    [InlineData(typeof(RegionsController))]
+    [InlineData(typeof(CountriesController))]
+    public void Reference_data_controllers_require_the_reference_data_manage_permission(Type controller)
+    {
+        Authorize(controller)!.Policy.Should().Be(Permissions.ReferenceDataManage);
+    }
+
+    [Fact]
     public void Health_stays_anonymous()
     {
         typeof(HealthController).GetCustomAttribute<AllowAnonymousAttribute>()

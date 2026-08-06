@@ -50,6 +50,15 @@ builder.Services.AddHttpClient<BinRangeApiClient>(client => client.BaseAddress =
 builder.Services.AddHttpClient<AccessControlApiClient>(client => client.BaseAddress = new Uri(apiBaseUrl))
     .ConfigurePrimaryHttpMessageHandler(ApiHandler);
 
+builder.Services.AddHttpClient<AuditApiClient>(client => client.BaseAddress = new Uri(apiBaseUrl))
+    .ConfigurePrimaryHttpMessageHandler(ApiHandler);
+
+builder.Services.AddHttpClient<ReferenceDataApiClient>(client => client.BaseAddress = new Uri(apiBaseUrl))
+    .ConfigurePrimaryHttpMessageHandler(ApiHandler);
+
+builder.Services.AddHttpClient<CountryApiClient>(client => client.BaseAddress = new Uri(apiBaseUrl))
+    .ConfigurePrimaryHttpMessageHandler(ApiHandler);
+
 HttpClientHandler ApiHandler()
 {
     var handler = new HttpClientHandler();

@@ -86,7 +86,7 @@ public static class ServiceExtensions
                     "button above with the `accessToken` it returns.\n\n" +
                     "**Authorization is permission-based.** Each endpoint requires a permission " +
                     "(`binranges.read`, `binranges.write`, `binranges.import`, `bin.classify`, " +
-                    "`roles.manage`), granted by holding a role that carries it. An admin composes " +
+                    "`roles.manage`, `audit.read`, `referencedata.manage`), granted by holding a role that carries it. An admin composes " +
                     "roles from these permissions and assigns them to users via `/api/roles` and " +
                     "`/api/users`. The **Admin** role is a superuser that holds every permission and " +
                     "is protected from being weakened. Permissions are baked into the token, so a " +
@@ -150,6 +150,9 @@ public static class ServiceExtensions
         services.AddScoped<IBinClassificationService, BinClassificationService>();
         services.AddScoped<IBinRangeQueryService, BinRangeQueryService>();
         services.AddScoped<IBinRangeAdminService, BinRangeAdminService>();
+        services.AddScoped<IAuditQueryService, AuditQueryService>();
+        services.AddScoped<ILookupAdminService, LookupAdminService>();
+        services.AddScoped<ICountryAdminService, CountryAdminService>();
         services.AddScoped<IRoleAdminService, RoleAdminService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
 

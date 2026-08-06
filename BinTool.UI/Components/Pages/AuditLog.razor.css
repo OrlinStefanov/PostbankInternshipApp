@@ -1,0 +1,17 @@
+.audit-detail > td {
+    background-color: var(--app-sunken);
+}
+
+.audit-json {
+    max-height: 20rem;
+    overflow: auto;
+    padding: .6rem .8rem;
+    border: 1px solid var(--app-line);
+    border-radius: var(--app-radius);
+    background-color: var(--app-surface);
+    color: var(--app-body);
+    font-family: var(--bs-font-monospace);
+    font-size: .8125rem;
+    line-height: 1.5;
+    white-space: pre;
+}
