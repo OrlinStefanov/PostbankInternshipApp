@@ -71,15 +71,37 @@
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
+    /// <summary>
+    /// Start the login page from a clean, signed-out state. The antiforgery token this form
+    /// posts is bound to whoever is signed in when it renders, so a leftover cookie - a still
+    /// valid session, or one whose token has expired - would render a token bound to the old
+    /// identity and the POST would fail antiforgery. Clearing the cookie AND resetting
+    /// <c>HttpContext.User</c> makes the token render for the anonymous caller the POST will
+    /// actually present. This is also the natural "switch account" path.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpContext.User.Identity?.IsAuthenticated == true)
+        {
+            Nav.NavigateTo("/", forceLoad: true);
+            /*await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity());*/
+        }
+    }
+
     private async Task SignIn()
     {
-        var login = await AuthApi.LoginAsync(Input.UserName, Input.Password);
+        var outcome = await AuthApi.LoginAsync(Input.UserName, Input.Password);
 
-        if (login is null)
+        if (!outcome.Succeeded)
         {
-            _error = LoginMessages.Rejected;
+            _error = outcome.Rejection is { Reason: LoginRejectionReason.LockedOut, LockoutEndsUtc: { } endsUtc }
+                ? LoginMessages.LockedOut(RemainingMinutes(endsUtc))
+                : LoginMessages.Rejected;
             return;
         }
+
+        var login = outcome.Response!;
 
         var claims = new List<Claim>
         {
@@ -112,6 +134,16 @@
             });
 
         Nav.NavigateTo(SafeReturnUrl(), forceLoad: true);
+    }
+
+    /// <summary>
+    /// Whole minutes left on a lockout, rounded up and never below one, so the message reads
+    /// "a minute" rather than "0 minutes" in the final seconds.
+    /// </summary>
+    private static int RemainingMinutes(DateTime lockoutEndsUtc)
+    {
+        var remaining = lockoutEndsUtc - DateTime.UtcNow;
+        return remaining <= TimeSpan.Zero ? 1 : Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes));
     }
 
     /// <summary>

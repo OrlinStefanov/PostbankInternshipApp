@@ -19,4 +19,20 @@ public static class LoginMessages
     public const string Rejected =
         "Invalid user name or password, or the account is temporarily locked after too " +
         "many failed attempts.";
+
+    /// <summary>
+    /// Shown when a sign-in is refused specifically because the account is locked out.
+    /// <para>
+    /// Unlike <see cref="Rejected"/>, this names the cause and how long is left, because a
+    /// lockout is the one refusal the person signing in can neither see nor fix by retrying -
+    /// so leaving them to guess only makes them hammer a lock that only time (or their
+    /// correct password) clears. Shared by the API and the UI so the two cannot drift apart.
+    /// </para>
+    /// </summary>
+    public static string LockedOut(int minutes)
+    {
+        var window = minutes <= 1 ? "a minute" : $"{minutes} minutes";
+        return $"This account is locked after too many failed attempts. Try again in {window}, " +
+               "or sign in with the correct password to unlock it now.";
+    }
 }

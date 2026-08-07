@@ -24,20 +24,17 @@ public class AuthController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _users;
     private readonly RoleManager<ApplicationRole> _roles;
-    private readonly SignInManager<ApplicationUser> _signIn;
     private readonly IJwtTokenService _tokens;
     private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         UserManager<ApplicationUser> users,
         RoleManager<ApplicationRole> roles,
-        SignInManager<ApplicationUser> signIn,
         IJwtTokenService tokens,
         ILogger<AuthController> logger)
     {
         _users = users;
         _roles = roles;
-        _signIn = signIn;
         _tokens = tokens;
         _logger = logger;
     }
@@ -60,25 +57,27 @@ public class AuthController : ControllerBase
     ///
     /// Either the user name or the email address works as `userName`.
     ///
-    /// A wrong password, an unknown user, a deactivated account and a locked-out account
-    /// all return the same 401 with the same message, so the response cannot be used to
-    /// discover which accounts exist.
+    /// A wrong password, an unknown user and a deactivated account all return the same 401
+    /// with <c>Reason: InvalidCredentials</c>, so the response cannot be used to discover
+    /// which accounts exist.
     ///
-    /// **Five failed attempts lock the account for five minutes.** During that window the
-    /// correct password is refused too, with that same message - so credentials that were
-    /// working can appear to have stopped. Retrying does not extend the lockout, but it
-    /// does not shorten it either: wait it out. The server log names the account and says
-    /// when the lockout ends.
+    /// **Five failed attempts lock the account for five minutes.** A locked-out account is
+    /// reported distinctly as <c>Reason: LockedOut</c> with <c>lockoutEndsUtc</c>, because a
+    /// lockout is the one refusal the caller can neither see nor fix by retrying. The
+    /// password is still checked first, so **the correct password releases the lockout and
+    /// signs in immediately** - it clears the failed-attempt count and the lock rather than
+    /// making the owner wait it out.
     /// </remarks>
     /// <param name="request">The credentials.</param>
     /// <response code="200">The credentials were accepted. Returns the token and the user's roles.</response>
     /// <response code="400">The user name or password was missing.</response>
-    /// <response code="401">The credentials were rejected, or the account is deactivated.</response>
+    /// <response code="401">The credentials were rejected, or the account is locked out.
+    /// The body is a <see cref="LoginRejection"/> whose <c>reason</c> distinguishes the two.</response>
     [AllowAnonymous]
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(LoginRejection), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         var user = await _users.FindByNameAsync(request.UserName)
@@ -86,25 +85,45 @@ public class AuthController : ControllerBase
 
         if (user is null || !user.IsActive)
         {
-            return Unauthorized(new { message = LoginMessages.Rejected });
+            return Unauthorized(new LoginRejection { Reason = LoginRejectionReason.InvalidCredentials });
         }
 
-        var check = await _signIn.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
-        if (!check.Succeeded)
+        // Check the password first, before the lockout - so the account's real owner is
+        // never shut out by their own typos. CheckPasswordAsync only verifies the hash; it
+        // does not touch the failed-attempt count or the lock.
+        if (await _users.CheckPasswordAsync(user, request.Password))
         {
-            if (check.IsLockedOut)
+            // The correct password releases any lock and wipes the failed-attempt count,
+            // rather than making the owner wait the window out.
+            if (await _users.GetLockoutEndDateAsync(user) is not null)
             {
-                // The response cannot say which account is locked, so the server log is
-                // the only place this is visible. Without it, a lockout is indis-
-                // tinguishable from a wrong password and looks like the password itself
-                // stopped working.
-                _logger.LogWarning(
-                    "Sign-in refused for {UserName}: the account is locked out until {LockoutEnd:u}. " +
-                    "Correct credentials will keep being rejected until then.",
-                    user.UserName, await _users.GetLockoutEndDateAsync(user));
+                await _users.SetLockoutEndDateAsync(user, null);
             }
 
-            return Unauthorized(new { message = LoginMessages.Rejected });
+            await _users.ResetAccessFailedCountAsync(user);
+        }
+        else
+        {
+            // A wrong password is recorded; the fifth in a row sets the lock.
+            await _users.AccessFailedAsync(user);
+
+            if (await _users.IsLockedOutAsync(user))
+            {
+                var lockoutEnd = await _users.GetLockoutEndDateAsync(user);
+
+                _logger.LogWarning(
+                    "Sign-in refused for {UserName}: the account is locked out until {LockoutEnd:u}. " +
+                    "The correct password would unlock it now; otherwise it clears on its own then.",
+                    user.UserName, lockoutEnd);
+
+                return Unauthorized(new LoginRejection
+                {
+                    Reason = LoginRejectionReason.LockedOut,
+                    LockoutEndsUtc = lockoutEnd?.UtcDateTime
+                });
+            }
+
+            return Unauthorized(new LoginRejection { Reason = LoginRejectionReason.InvalidCredentials });
         }
 
         var roles = await _users.GetRolesAsync(user);

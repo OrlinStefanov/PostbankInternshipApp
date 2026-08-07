@@ -28,4 +28,20 @@ public class LoginRejectionTests
         LoginMessages.Rejected.Should().NotContainEquivalentOf("does not exist");
         LoginMessages.Rejected.Should().NotContainEquivalentOf("deactivated");
     }
+
+    [Fact]
+    public void The_lockout_message_names_lockout_and_the_wait()
+    {
+        var message = LoginMessages.LockedOut(3);
+
+        message.Should().ContainEquivalentOf("locked");
+        message.Should().Contain("3 minutes");
+    }
+
+    [Fact]
+    public void The_lockout_message_reads_naturally_for_a_single_minute()
+    {
+        LoginMessages.LockedOut(1).Should().Contain("a minute");
+        LoginMessages.LockedOut(1).Should().NotContain("1 minutes");
+    }
 }
