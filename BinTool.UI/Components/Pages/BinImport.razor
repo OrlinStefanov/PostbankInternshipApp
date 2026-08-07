@@ -10,8 +10,8 @@
         <h1 class="h3 mb-1">BIN Range Import</h1>
         <p class="text-secondary mb-0">
             Upload a CSV of BIN ranges. New prefixes are added, unknown or malformed rows
-            are rejected, and prefixes that already exist with different values are held
-            for your review.
+            are rejected, and rows held for your review — a prefix that already exists with
+            different values, or a declared scheme that does not match the prefix.
         </p>
     </div>
     <button class="btn btn-primary" @onclick="OpenUpload">
@@ -86,8 +86,8 @@ else
         <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 mt-4" role="alert">
             <div>
                 <strong>@_conflicts.Count</strong>
-                @(_conflicts.Count == 1 ? "prefix" : "prefixes") already exist with different
-                values and need your decision.
+                @(_conflicts.Count == 1 ? "row needs" : "rows need") your decision — an existing prefix
+                with different values, or a declared scheme that does not match the prefix.
             </div>
             <button class="btn btn-sm btn-warning" @onclick="OpenConflicts">
                 Review conflicts
@@ -209,7 +209,7 @@ else
                     <div>
                         <h2 class="modal-title h5 mb-0">Resolve conflicts</h2>
                         <p class="text-secondary small mb-0">
-                            Choose whether to overwrite each existing record or keep it.
+                            Choose whether to apply each row — overwriting or adding a range — or discard it.
                         </p>
                     </div>
                     <button type="button" class="btn-close" aria-label="Close"
@@ -255,17 +255,27 @@ else
                                             }
                                         </td>
                                         <td>
-                                            <ul class="diff-list">
-                                                @foreach (var diff in conflict.Differences)
-                                                {
-                                                    <li>
-                                                        <span class="diff-field">@diff.Field</span>
-                                                        <span class="diff-old">@Show(diff.OldValue)</span>
-                                                        <span class="diff-arrow">→</span>
-                                                        <span class="diff-new">@Show(diff.NewValue)</span>
-                                                    </li>
-                                                }
-                                            </ul>
+                                            @if (conflict.ConflictType == "SchemeMismatch")
+                                            {
+                                                <div class="d-flex align-items-start gap-2">
+                                                    <span class="badge rounded-pill text-bg-warning flex-shrink-0">Scheme mismatch</span>
+                                                    <span>@conflict.Message</span>
+                                                </div>
+                                            }
+                                            @if (conflict.Differences.Count > 0)
+                                            {
+                                                <ul class="diff-list @(conflict.ConflictType == "SchemeMismatch" ? "mt-2" : null)">
+                                                    @foreach (var diff in conflict.Differences)
+                                                    {
+                                                        <li>
+                                                            <span class="diff-field">@diff.Field</span>
+                                                            <span class="diff-old">@Show(diff.OldValue)</span>
+                                                            <span class="diff-arrow">→</span>
+                                                            <span class="diff-new">@Show(diff.NewValue)</span>
+                                                        </li>
+                                                    }
+                                                </ul>
+                                            }
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm w-100" role="group">

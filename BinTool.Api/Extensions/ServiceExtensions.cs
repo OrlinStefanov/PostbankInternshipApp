@@ -154,6 +154,7 @@ public static class ServiceExtensions
 
         services.AddScoped<IAuditLog, AuditLog>();
 
+        services.AddSingleton<ICardSchemeDetector, CardSchemeDetector>();
         services.AddScoped<IBinCsvImportService, BinCsvImportService>();
         services.AddScoped<IImportHistoryQueryService, ImportHistoryQueryService>();
         services.AddScoped<IBinClassificationService, BinClassificationService>();

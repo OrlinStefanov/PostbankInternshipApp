@@ -563,6 +563,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                 .IsRequired()
                 .HasConversion<int>();
 
+            entity.Property(e => e.ConflictType)
+                .IsRequired()
+                .HasConversion<int>();
+
             entity.Property(e => e.ResolvedBy)
                 .HasMaxLength(450);
 
@@ -581,11 +585,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
             // Keep the staged conflict even if the target row is hard-deleted; the
             // resolution step re-checks the target still exists before applying.
+            // Optional: a scheme mismatch on a new prefix has no existing target and
+            // applies by inserting a fresh range instead.
             entity.HasOne(e => e.TargetBinRange)
                 .WithMany()
                 .HasForeignKey(e => e.TargetBinRangeId)
                 .OnDelete(DeleteBehavior.Restrict)
-                .IsRequired();
+                .IsRequired(false);
 
             entity.ToTable("PendingBinConflicts");
         });

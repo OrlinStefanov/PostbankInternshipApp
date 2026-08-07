@@ -55,10 +55,12 @@ public class BinCsvImportServiceTests : ImportTestBase
     }
 
     [Theory]
-    [InlineData("123456")]   // 6 digits - lower boundary
-    [InlineData("12345678")] // 8 digits - upper boundary
+    [InlineData("400001")]   // 6 digits - lower boundary
+    [InlineData("40000001")] // 8 digits - upper boundary
     public async Task Prefix_at_length_boundaries_is_accepted(string prefix)
     {
+        // Visa-range prefixes (4…) declared as Visa, so the length boundary is what is
+        // under test, not the scheme-consistency check.
         var result = await Run($"{prefix},Visa,Consumer,Credit,US,2024-01-01,");
 
         result.InsertedCount.Should().Be(1);
@@ -69,10 +71,12 @@ public class BinCsvImportServiceTests : ImportTestBase
     [Fact]
     public async Task Multiple_new_rows_are_all_inserted()
     {
+        // Prefixes chosen to match their declared scheme's IIN range (4=Visa, 52=Mastercard,
+        // 34=American Express) so the scheme-consistency check passes and all three insert.
         var result = await Run(
             "400001,Visa,Consumer,Credit,US,2024-01-01,",
-            "400002,Mastercard,Commercial,Debit,BG,2024-02-01,",
-            "400003,American Express,Prepaid,Credit,DE,2024-03-01,");
+            "520002,Mastercard,Commercial,Debit,BG,2024-02-01,",
+            "340003,American Express,Prepaid,Credit,DE,2024-03-01,");
 
         result.InsertedCount.Should().Be(3);
         result.RejectedCount.Should().Be(0);
@@ -447,14 +451,16 @@ public class BinCsvImportServiceTests : ImportTestBase
     {
         // The unique index on Prefix covers soft-deleted rows, so inserting a second
         // row for the same prefix would breach it. The range is revived instead.
-        var deleted = SeedBinRange("400001", VisaId, ConsumerId, CreditId, UsCountryId,
+        // A Mastercard-range prefix (52) declared as Mastercard, so the revive is about the
+        // soft-delete path, not the scheme-consistency check.
+        var deleted = SeedBinRange("520001", VisaId, ConsumerId, CreditId, UsCountryId,
             new DateTime(2024, 1, 1));
         deleted.IsDeleted = true;
         deleted.DeletedAt = new DateTime(2025, 1, 1);
         deleted.DeletedBy = "someone";
         await Db.SaveChangesAsync();
 
-        var result = await Run("400001,Mastercard,Commercial,Debit,BG,2024-06-01,");
+        var result = await Run("520001,Mastercard,Commercial,Debit,BG,2024-06-01,");
 
         result.InsertedCount.Should().Be(1);
         result.ConflictCount.Should().Be(0);
@@ -477,14 +483,15 @@ public class BinCsvImportServiceTests : ImportTestBase
     [Fact]
     public async Task Reviving_a_soft_deleted_prefix_does_not_stage_a_conflict()
     {
-        var deleted = SeedBinRange("400001", VisaId, ConsumerId, CreditId, UsCountryId,
+        var deleted = SeedBinRange("520001", VisaId, ConsumerId, CreditId, UsCountryId,
             new DateTime(2024, 1, 1));
         deleted.IsDeleted = true;
         await Db.SaveChangesAsync();
 
         // Different values from the deleted row: there is no live record to arbitrate,
-        // so this must not ask the user to decide anything.
-        var result = await Run("400001,Mastercard,Consumer,Debit,US,2024-01-01,");
+        // so this must not ask the user to decide anything. The declared Mastercard scheme
+        // matches the 52 prefix, so the scheme check does not stage a conflict either.
+        var result = await Run("520001,Mastercard,Consumer,Debit,US,2024-01-01,");
 
         result.ConflictCount.Should().Be(0);
         Db.PendingBinConflicts.Should().BeEmpty();
@@ -493,20 +500,21 @@ public class BinCsvImportServiceTests : ImportTestBase
     [Fact]
     public async Task A_revived_row_behaves_normally_on_the_next_import()
     {
-        var deleted = SeedBinRange("400001", VisaId, ConsumerId, CreditId, UsCountryId,
+        var deleted = SeedBinRange("520001", VisaId, ConsumerId, CreditId, UsCountryId,
             new DateTime(2024, 1, 1));
         deleted.IsDeleted = true;
         await Db.SaveChangesAsync();
 
-        await Run("400001,Mastercard,Consumer,Debit,US,2024-01-01,");
+        await Run("520001,Mastercard,Consumer,Debit,US,2024-01-01,");
 
         // Same file again - now it is a live row, so it reconciles as unchanged.
-        var second = await Run("400001,Mastercard,Consumer,Debit,US,2024-01-01,");
+        var second = await Run("520001,Mastercard,Consumer,Debit,US,2024-01-01,");
         second.UnchangedCount.Should().Be(1);
         second.InsertedCount.Should().Be(0);
 
-        // And a differing file now goes through the conflict workflow.
-        var third = await Run("400001,Visa,Consumer,Debit,US,2024-01-01,");
+        // And a differing file now goes through the conflict workflow. Declaring Visa on a
+        // Mastercard-range prefix is itself a mismatch, which is exactly a staged conflict.
+        var third = await Run("520001,Visa,Consumer,Debit,US,2024-01-01,");
         third.ConflictCount.Should().Be(1);
     }
 

@@ -28,7 +28,8 @@ public abstract class ImportTestBase : SqliteTestBase
         // base constructor has already built the service.
         var currentUser = new DeferredCurrentUser(() => CurrentUser);
 
-        Service = new BinCsvImportService(Db, currentUser, new AuditLog(Db, currentUser));
+        Service = new BinCsvImportService(
+            Db, currentUser, new AuditLog(Db, currentUser), new CardSchemeDetector());
     }
 
     private sealed class DeferredCurrentUser : ICurrentUser

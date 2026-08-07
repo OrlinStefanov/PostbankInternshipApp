@@ -58,7 +58,8 @@ public class BinConflictWorkflowTests : ImportTestBase
         var staged = await StageConflict();
 
         await using var fresh = NewContext();
-        var freshService = new BinCsvImportService(fresh, CurrentUser, new AuditLog(fresh, CurrentUser));
+        var freshService = new BinCsvImportService(
+            fresh, CurrentUser, new AuditLog(fresh, CurrentUser), new CardSchemeDetector());
 
         var conflicts = await freshService.GetPendingConflictsAsync();
 

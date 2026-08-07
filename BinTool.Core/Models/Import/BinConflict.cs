@@ -20,7 +20,21 @@ public class BinConflict
     public string Prefix { get; set; } = string.Empty;
 
     /// <summary>
-    /// The fields that differ between the incoming row and the existing record.
+    /// Why the row was staged: <c>ValueConflict</c> (the prefix exists with different
+    /// values) or <c>SchemeMismatch</c> (the declared scheme contradicts the prefix).
+    /// A plain string so the API contract stays independent of the internal enum.
+    /// </summary>
+    public string ConflictType { get; set; } = "ValueConflict";
+
+    /// <summary>
+    /// A human explanation, set for a scheme mismatch (e.g. why the prefix and the
+    /// declared scheme disagree). Null for a plain value conflict.
+    /// </summary>
+    public string? Message { get; set; }
+
+    /// <summary>
+    /// The fields that differ between the incoming row and the existing record. Empty
+    /// for a scheme mismatch on a new prefix, where there is no existing row to diff.
     /// </summary>
     public List<BinFieldDiff> Differences { get; set; } = new();
 }

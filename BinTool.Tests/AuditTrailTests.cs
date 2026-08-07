@@ -186,11 +186,13 @@ public class AuditTrailTests : ImportTestBase
     [Fact]
     public async Task Reviving_a_deleted_range_by_import_records_what_it_replaced()
     {
-        var deleted = SeedBinRange("400001", VisaId, ConsumerId, CreditId, UsCountryId, Started);
+        // A Mastercard-range prefix (52) declared as Mastercard, so the import revives the
+        // soft-deleted row rather than staging a scheme mismatch.
+        var deleted = SeedBinRange("520001", VisaId, ConsumerId, CreditId, UsCountryId, Started);
         deleted.IsDeleted = true;
         Db.SaveChanges();
 
-        await Run("400001,Mastercard,Commercial,Debit,BG,2024-06-01,");
+        await Run("520001,Mastercard,Commercial,Debit,BG,2024-06-01,");
 
         var entry = Entries().Should().ContainSingle().Subject;
         entry.EntityId.Should().Be(deleted.BinRangeId);
