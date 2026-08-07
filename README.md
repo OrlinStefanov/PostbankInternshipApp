@@ -46,8 +46,8 @@ cd BinTool.Api
 dotnet run
 ```
 
-The API starts at `https://localhost:5001` and `http://localhost:5000`.  
-Swagger UI is available at `http://localhost:5000/swagger/ui/index.html` in development.
+The API starts at `https://localhost:7258` and `http://localhost:5095`.  
+Swagger UI is available at `https://localhost:7258/swagger` in development.
 
 ### Run the UI
 
