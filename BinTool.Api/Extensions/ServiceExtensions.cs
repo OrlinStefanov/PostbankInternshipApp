@@ -155,6 +155,7 @@ public static class ServiceExtensions
         services.AddScoped<IAuditLog, AuditLog>();
 
         services.AddScoped<IBinCsvImportService, BinCsvImportService>();
+        services.AddScoped<IImportHistoryQueryService, ImportHistoryQueryService>();
         services.AddScoped<IBinClassificationService, BinClassificationService>();
         services.AddScoped<IBinRangeQueryService, BinRangeQueryService>();
         services.AddScoped<IBinRangeAdminService, BinRangeAdminService>();

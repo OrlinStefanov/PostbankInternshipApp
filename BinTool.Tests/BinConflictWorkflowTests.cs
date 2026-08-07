@@ -170,6 +170,35 @@ public class BinConflictWorkflowTests : ImportTestBase
     }
 
     [Fact]
+    public async Task Applying_a_conflict_increments_the_import_history_updated_count()
+    {
+        var staged = await StageConflict();
+
+        await Service.ResolveConflictsAsync(new[]
+        {
+            new ConflictResolution { PendingBinConflictId = staged.PendingBinConflictId, Update = true }
+        });
+
+        // The update lands against the import that raised the conflict, not the import run
+        // itself (which only inserts and stages) - so its UpdatedRows now reflects the one
+        // existing row the file ultimately changed.
+        Db.ImportHistories.Single().UpdatedRows.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Discarding_a_conflict_leaves_the_import_history_updated_count_at_zero()
+    {
+        var staged = await StageConflict();
+
+        await Service.ResolveConflictsAsync(new[]
+        {
+            new ConflictResolution { PendingBinConflictId = staged.PendingBinConflictId, Update = false }
+        });
+
+        Db.ImportHistories.Single().UpdatedRows.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Discard_leaves_the_existing_row_untouched()
     {
         var staged = await StageConflict();

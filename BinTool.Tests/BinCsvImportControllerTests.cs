@@ -17,8 +17,9 @@ namespace BinTool.Tests;
 public class BinCsvImportControllerTests
 {
     private readonly Mock<IBinCsvImportService> _service = new(MockBehavior.Strict);
+    private readonly Mock<IImportHistoryQueryService> _history = new(MockBehavior.Strict);
 
-    private BinCsvImportController CreateController() => new(_service.Object);
+    private BinCsvImportController CreateController() => new(_service.Object, _history.Object);
 
     private static IFormFile FileWith(string content, string fileName = "bins.csv")
     {
@@ -132,6 +133,30 @@ public class BinCsvImportControllerTests
         result.Should().BeOfType<OkObjectResult>()
             .Which.Value.Should().BeAssignableTo<List<BinConflict>>()
             .Which.Should().BeEmpty();
+    }
+
+    // ---- History ----------------------------------------------------------------
+
+    [Fact]
+    public async Task GetHistory_returns_the_service_result()
+    {
+        var query = new ImportHistoryQuery { Status = "Partial" };
+        var expected = new BinTool.Core.Models.BinRanges.PagedResult<ImportHistoryItem>
+        {
+            Items = new List<ImportHistoryItem> { new() { ImportHistoryId = 3, FileName = "bins.csv" } },
+            Page = 1,
+            PageSize = 25,
+            TotalCount = 1
+        };
+
+        _history
+            .Setup(s => s.SearchAsync(query, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var result = await CreateController().GetHistory(query, CancellationToken.None);
+
+        result.Should().BeOfType<OkObjectResult>()
+            .Which.Value.Should().BeSameAs(expected);
     }
 
     // ---- Resolve conflicts -------------------------------------------------------

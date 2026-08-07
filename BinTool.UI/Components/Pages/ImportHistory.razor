@@ -1,0 +1,291 @@
+@page "/import-history"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Permissions.BinRangesImport)]
+@inject BinImportApiClient Api
+
+<PageTitle>Import History</PageTitle>
+
+<div class="page-head">
+    <h1 class="h3 mb-1">Import history</h1>
+    <p class="text-secondary mb-0">
+        Every BIN CSV import, newest first. <strong>Updated</strong> counts existing ranges an
+        import ultimately changed - it grows as the conflicts that import staged are resolved
+        with an update, so a fresh import shows zero until its conflicts are worked through.
+    </p>
+</div>
+
+<div class="filters card mt-4">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="f-from">From</label>
+                <input id="f-from" class="form-control" type="date"
+                       value="@_from" @onchange="e => ApplyFilter(v => _from = v, e)" />
+            </div>
+
+            <div class="col-6 col-md-3">
+                <label class="form-label" for="f-to">To</label>
+                <input id="f-to" class="form-control" type="date"
+                       value="@_to" @onchange="e => ApplyFilter(v => _to = v, e)" />
+            </div>
+
+            <div class="col-6 col-md-3 col-lg-2">
+                <label class="form-label" for="f-status">Status</label>
+                <select id="f-status" class="form-select" value="@_status"
+                        @onchange="e => ApplyFilter(v => _status = v, e)">
+                    <option value="">Any</option>
+                    @foreach (var name in Statuses)
+                    {
+                        <option value="@name">@name</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        @if (HasNonDefaultFilters)
+        {
+            <button class="btn btn-link btn-sm px-0 mt-2" @onclick="ClearFilters">Clear filters</button>
+        }
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger mt-4" role="alert">@_error</div>
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-4 mb-2">
+    <span class="text-secondary small">
+        @if (_loading)
+        {
+            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            <span>Loading…</span>
+        }
+        else if (_page.TotalCount == 0)
+        {
+            <span>No imports match</span>
+        }
+        else
+        {
+            <span>
+                @FirstOnPage–@LastOnPage of <strong class="text-body">@_page.TotalCount</strong>
+                @(_page.TotalCount == 1 ? "import" : "imports")
+            </span>
+        }
+    </span>
+
+    <div class="d-flex align-items-center gap-2">
+        <label class="text-secondary small mb-0" for="f-size">Per page</label>
+        <select id="f-size" style="min-width: 75px;" class="form-select form-select-sm w-auto" value="@_pageSize"
+                @onchange="OnPageSizeChanged">
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+        </select>
+    </div>
+</div>
+
+@if (!_loading && _page.TotalCount == 0 && _error is null)
+{
+    <div class="card empty-state">
+        <div class="card-body text-center py-5">
+            <p class="mb-1 fw-semibold">Nothing to show</p>
+            <p class="text-secondary mb-0">
+                No imports match these filters. Widen the date range or clear the filters to
+                see every import.
+            </p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-3">When</th>
+                        <th>File</th>
+                        <th>User</th>
+                        <th class="text-end">Imported</th>
+                        <th class="text-end">Updated</th>
+                        <th class="text-end">Rejected</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in _page.Items)
+                    {
+                        <tr>
+                            <td class="ps-3">
+                                <span>@Local(item.ImportedAt)</span>
+                                <span class="text-secondary small d-block" title="UTC">@Utc(item.ImportedAt)</span>
+                            </td>
+                            <td><span class="fw-semibold">@item.FileName</span></td>
+                            <td>
+                                @if (IsSystem(item.UserName))
+                                {
+                                    <span class="badge rounded-pill text-bg-light">System</span>
+                                }
+                                else
+                                {
+                                    <span>@item.UserName</span>
+                                }
+                            </td>
+                            <td class="text-end">@item.ImportedRows</td>
+                            <td class="text-end">@item.UpdatedRows</td>
+                            <td class="text-end">
+                                @if (item.RejectedRows > 0)
+                                {
+                                    <span class="text-danger fw-semibold">@item.RejectedRows</span>
+                                }
+                                else
+                                {
+                                    <span class="text-secondary">0</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill text-bg-@StatusColor(item.Status)">
+                                    @item.Status
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @if (_page.TotalPages > 1)
+    {
+        <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="Import history pages">
+            <button class="btn btn-outline-secondary btn-sm"
+                    @onclick="() => GoToPage(_page.Page - 1)"
+                    disabled="@(_loading || !_page.HasPrevious)">
+                Previous
+            </button>
+
+            <span class="text-secondary small">Page @_page.Page of @_page.TotalPages</span>
+
+            <button class="btn btn-outline-secondary btn-sm"
+                    @onclick="() => GoToPage(_page.Page + 1)"
+                    disabled="@(_loading || !_page.HasNext)">
+                Next
+            </button>
+        </nav>
+    }
+}
+
+@code {
+    private static readonly string[] Statuses = { "Success", "Partial", "Failed" };
+
+    private bool _loading = true;
+    private string? _error;
+
+    private PagedResult<ImportHistoryItem> _page = new();
+
+    private string _from = string.Empty;
+    private string _to = string.Empty;
+    private string _status = string.Empty;
+    private int _pageSize = ImportHistoryQuery.DefaultPageSize;
+    private int _currentPage = 1;
+
+    private bool HasNonDefaultFilters =>
+        !string.IsNullOrEmpty(_from)
+        || !string.IsNullOrEmpty(_to)
+        || !string.IsNullOrEmpty(_status);
+
+    private int FirstOnPage => (_page.Page - 1) * _page.PageSize + 1;
+
+    private int LastOnPage => Math.Min(_page.Page * _page.PageSize, _page.TotalCount);
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+
+        try
+        {
+            _page = await Api.GetHistoryAsync(new ImportHistoryQuery
+            {
+                From = ParseDate(_from),
+                // The picker is a day; treat it as "up to and including that day" by sending
+                // the next day at 00:00 UTC and letting the API's half-open range include the
+                // whole selected day.
+                To = ParseDate(_to) is { } to ? to.AddDays(1) : null,
+                Status = string.IsNullOrEmpty(_status) ? null : _status,
+                Page = _currentPage,
+                PageSize = _pageSize
+            });
+
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Could not load import history: {ex.Message}";
+            _page = new PagedResult<ImportHistoryItem>();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ReloadFromFirstPage()
+    {
+        _currentPage = 1;
+        await Load();
+    }
+
+    private async Task ApplyFilter(Action<string> set, ChangeEventArgs e)
+    {
+        set(e.Value?.ToString() ?? string.Empty);
+        await ReloadFromFirstPage();
+    }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        _pageSize = int.TryParse(e.Value?.ToString(), out var size)
+            ? size
+            : ImportHistoryQuery.DefaultPageSize;
+
+        await ReloadFromFirstPage();
+    }
+
+    private async Task GoToPage(int page)
+    {
+        if (page < 1 || page > _page.TotalPages) return;
+
+        _currentPage = page;
+        await Load();
+    }
+
+    private async Task ClearFilters()
+    {
+        _from = _to = _status = string.Empty;
+        await ReloadFromFirstPage();
+    }
+
+    private static DateTime? ParseDate(string value) =>
+        DateTime.TryParse(value, System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+            out var parsed) ? parsed : null;
+
+    private static string Local(DateTime utc) =>
+        utc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+
+    private static string Utc(DateTime utc) =>
+        utc.ToString("yyyy-MM-dd HH:mm 'UTC'");
+
+    private static bool IsSystem(string? user) =>
+        string.Equals(user, "system", StringComparison.OrdinalIgnoreCase);
+
+    private static string StatusColor(string status) => status switch
+    {
+        "Success" => "success",
+        "Partial" => "warning",
+        "Failed" => "danger",
+        _ => "secondary"
+    };
+}

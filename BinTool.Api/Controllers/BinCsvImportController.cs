@@ -1,4 +1,5 @@
 using BinTool.Core.Authorization;
+using BinTool.Core.Models.BinRanges;
 using BinTool.Core.Models.Import;
 using BinTool.Core.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -20,10 +21,13 @@ namespace BinTool.Api.Controllers;
 public class BinCsvImportController : ControllerBase
 {
     private readonly IBinCsvImportService _service;
+    private readonly IImportHistoryQueryService _history;
 
-    public BinCsvImportController(IBinCsvImportService service)
+    public BinCsvImportController(
+        IBinCsvImportService service, IImportHistoryQueryService history)
     {
         _service = service;
+        _history = history;
     }
 
     /// <summary>
@@ -96,6 +100,38 @@ public class BinCsvImportController : ControllerBase
     {
         var conflicts = await _service.GetPendingConflictsAsync(cancellationToken);
         return Ok(conflicts);
+    }
+
+    /// <summary>
+    /// Lists past imports, filtered and paged.
+    /// </summary>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     GET /api/BinCsvImport/history?status=Partial&amp;from=2026-08-01T00:00:00Z&amp;page=1&amp;pageSize=25
+    ///
+    /// Every filter is optional and they combine with AND. Dates are UTC: <c>from</c> is
+    /// inclusive, <c>to</c> is exclusive. <c>status</c> is one of <c>Success</c>,
+    /// <c>Partial</c> or <c>Failed</c>, matched case-insensitively.
+    ///
+    /// Results are ordered by <c>importedAt</c> descending, then by id descending so two
+    /// imports recorded in the same tick stay in a stable order across pages.
+    ///
+    /// <c>updatedRows</c> counts existing ranges the import ultimately changed, and grows
+    /// after the fact as the conflicts that import staged are resolved with an update -
+    /// so a fresh import shows zero updates until its conflicts are worked through.
+    /// <c>pageSize</c> is capped at 200; <c>totalCount</c> counts every match.
+    /// </remarks>
+    /// <param name="query">Filters and paging.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <response code="200">One page of matching imports. Empty when nothing matched.</response>
+    [HttpGet("history")]
+    [ProducesResponseType(typeof(PagedResult<ImportHistoryItem>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetHistory(
+        [FromQuery] ImportHistoryQuery query, CancellationToken cancellationToken)
+    {
+        var result = await _history.SearchAsync(query, cancellationToken);
+        return Ok(result);
     }
 
     /// <summary>

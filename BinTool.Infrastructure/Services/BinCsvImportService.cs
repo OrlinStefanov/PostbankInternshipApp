@@ -325,6 +325,12 @@ public class BinCsvImportService : IBinCsvImportService
 
         var now = DateTime.UtcNow;
 
+        // Applied conflicts are the only place an existing BIN range is updated - import
+        // itself only inserts and stages. Count the updates each originating import
+        // ultimately produced, keyed by that import's history row, so ImportHistory.UpdatedRows
+        // reflects reality once the conflicts it raised are resolved.
+        var updatesByHistory = new Dictionary<int, int>();
+
         // Only needed to name the ids in the audit snapshots.
         var lookups = conflicts.Count > 0
             ? await Lookups.LoadAsync(_db, cancellationToken)
@@ -354,6 +360,8 @@ public class BinCsvImportService : IBinCsvImportService
 
                 conflict.Status = ConflictStatus.Applied;
                 result.UpdatedCount++;
+                updatesByHistory[conflict.ImportHistoryId] =
+                    updatesByHistory.GetValueOrDefault(conflict.ImportHistoryId) + 1;
             }
             else
             {
@@ -365,6 +373,19 @@ public class BinCsvImportService : IBinCsvImportService
 
             conflict.ResolvedAt = now;
             conflict.ResolvedBy = _currentUser.Name;
+        }
+
+        if (updatesByHistory.Count > 0)
+        {
+            var historyIds = updatesByHistory.Keys.ToList();
+            var histories = await _db.ImportHistories
+                .Where(h => historyIds.Contains(h.ImportHistoryId))
+                .ToListAsync(cancellationToken);
+
+            foreach (var history in histories)
+            {
+                history.UpdatedRows += updatesByHistory[history.ImportHistoryId];
+            }
         }
 
         await _db.SaveChangesAsync(cancellationToken);

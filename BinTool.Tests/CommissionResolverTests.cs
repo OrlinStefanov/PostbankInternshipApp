@@ -1,0 +1,229 @@
+using BinTool.Core.Entities;
+using BinTool.Infrastructure.Services;
+using FluentAssertions;
+
+namespace BinTool.Tests;
+
+/// <summary>
+/// Rule resolution and fee calculation (Epic 5, stories 5.2 and 5.4). Rules are seeded
+/// straight into the shared SQLite database so a test controls the criteria, validity and
+/// rates precisely, then <see cref="CommissionResolver"/> is run against them.
+/// <para>
+/// A null criteria field is a wildcard: the most specific matching rule (fewest wildcards)
+/// wins, only rules valid on the transaction date are considered, and when nothing matches
+/// the configured default is used and the result is flagged as a fallback.
+/// </para>
+/// </summary>
+public class CommissionResolverTests : SqliteTestBase
+{
+    private const int DomesticRegionId = 1;
+
+    // A date every "valid" seeded rule below covers.
+    private static readonly DateTime OnDate = new(2025, 6, 1);
+
+    private CommissionResolver Resolver() => new(Db);
+
+    /// <summary>
+    /// Seeds a rule with one criteria row. A null scheme/product/funding/region is a
+    /// wildcard. Valid from a year before <see cref="OnDate"/> and open-ended unless a
+    /// <paramref name="validTo"/> is given.
+    /// </summary>
+    private CommissionRule SeedRule(
+        string name,
+        decimal percentage = 0m,
+        decimal fixedAmount = 0m,
+        decimal minimumFee = 0m,
+        int? scheme = null,
+        int? product = null,
+        int? funding = null,
+        int? region = null,
+        DateTime? validFrom = null,
+        DateTime? validTo = null,
+        bool isActive = true,
+        int priority = 0)
+    {
+        var rule = new CommissionRule
+        {
+            RuleName = name,
+            PercentageRate = percentage,
+            FixedAmount = fixedAmount,
+            MinimumFee = minimumFee,
+            Priority = priority,
+            ValidFrom = validFrom ?? OnDate.AddYears(-1),
+            ValidTo = validTo,
+            IsActive = isActive,
+            RuleCriteria = new List<RuleCriteria>
+            {
+                new()
+                {
+                    CardSchemeId = scheme,
+                    ProductTypeId = product,
+                    FundingTypeId = funding,
+                    RegionId = region
+                }
+            }
+        };
+
+        Db.CommissionRules.Add(rule);
+        Db.SaveChanges();
+        return rule;
+    }
+
+    private void SetDefault(CommissionRule rule)
+    {
+        Db.DefaultRules.Add(new DefaultRule
+        {
+            CommissionRuleId = rule.CommissionRuleId,
+            IsSystemDefault = true
+        });
+        Db.SaveChanges();
+    }
+
+    private Task<Core.Models.Commission.CommissionCalculation?> Resolve(decimal amount = 100m) =>
+        Resolver().ResolveAsync(
+            VisaId, ConsumerId, CreditId, DomesticRegionId, amount, OnDate);
+
+    // ---- Story 5.2: resolution by specificity ---------------------------------
+
+    [Fact]
+    public async Task An_exactly_matching_rule_is_selected()
+    {
+        var rule = SeedRule("Visa/Consumer/Credit/Domestic",
+            scheme: VisaId, product: ConsumerId, funding: CreditId, region: DomesticRegionId);
+
+        var result = await Resolve();
+
+        result.Should().NotBeNull();
+        result!.AppliedRuleId.Should().Be(rule.CommissionRuleId);
+        result.IsFallback.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task A_wildcard_rule_matches_when_no_specific_rule_exists()
+    {
+        var rule = SeedRule("Any card"); // all four fields null
+
+        var result = await Resolve();
+
+        result.Should().NotBeNull();
+        result!.AppliedRuleId.Should().Be(rule.CommissionRuleId);
+        result.IsFallback.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task An_exact_rule_beats_a_wildcard_rule()
+    {
+        SeedRule("Any card");
+        var exact = SeedRule("Visa exact",
+            scheme: VisaId, product: ConsumerId, funding: CreditId, region: DomesticRegionId);
+
+        var result = await Resolve();
+
+        result!.AppliedRuleId.Should().Be(exact.CommissionRuleId);
+    }
+
+    [Fact]
+    public async Task An_expired_rule_is_ignored_in_favour_of_a_valid_one()
+    {
+        // The more specific rule has expired, so the still-valid wildcard must win even
+        // though it is less specific.
+        SeedRule("Visa exact (expired)",
+            scheme: VisaId, product: ConsumerId, funding: CreditId, region: DomesticRegionId,
+            validFrom: OnDate.AddYears(-2), validTo: OnDate.AddMonths(-1));
+        var open = SeedRule("Any card (valid)");
+
+        var result = await Resolve();
+
+        result!.AppliedRuleId.Should().Be(open.CommissionRuleId);
+    }
+
+    [Fact]
+    public async Task An_open_ended_rule_valid_from_the_past_matches()
+    {
+        var rule = SeedRule("Open ended", validFrom: OnDate.AddYears(-5), validTo: null);
+
+        var result = await Resolve();
+
+        result!.AppliedRuleId.Should().Be(rule.CommissionRuleId);
+    }
+
+    [Fact]
+    public async Task No_matching_rule_and_no_default_returns_null()
+    {
+        // A rule that cannot match the Visa card being priced, and no default configured.
+        SeedRule("Mastercard only", scheme: MastercardId);
+
+        var result = await Resolve();
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task No_matching_rule_falls_back_to_the_default_and_is_flagged()
+    {
+        var fallback = SeedRule("House default", scheme: MastercardId,
+            percentage: 1.0m, fixedAmount: 0.10m);
+        SetDefault(fallback);
+
+        var result = await Resolve();
+
+        result.Should().NotBeNull();
+        result!.IsFallback.Should().BeTrue();
+        result.AppliedRuleId.Should().Be(fallback.CommissionRuleId);
+        result.Reason.Should().ContainEquivalentOf("default").And.Contain("House default");
+    }
+
+    [Fact]
+    public async Task Equally_specific_rules_resolve_deterministically()
+    {
+        // Two rules that match equally well, with the same priority and validity, so the
+        // only thing left to separate them is the final id tiebreak. Whatever the storage
+        // order, the outcome is fixed - which is what makes resolution independent of the
+        // order rules were entered.
+        var first = SeedRule("Any card A");
+        var second = SeedRule("Any card B");
+
+        var result = await Resolve();
+
+        result!.AppliedRuleId.Should().Be(Math.Min(first.CommissionRuleId, second.CommissionRuleId));
+    }
+
+    // ---- Story 5.4: fee calculation -------------------------------------------
+
+    [Fact]
+    public async Task Fee_is_percentage_plus_fixed_amount()
+    {
+        // 100.00 @ 0.85% = 0.85, + 0.12 fixed = 0.97, above the 0.20 minimum.
+        SeedRule("Standard", percentage: 0.85m, fixedAmount: 0.12m, minimumFee: 0.20m);
+
+        var result = await Resolve(amount: 100m);
+
+        result!.Fee.Should().Be(0.97m);
+        result.MinimumApplied.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task The_minimum_fee_floors_a_small_calculated_fee()
+    {
+        // 1.00 @ 0.85% = 0.0085, + 0.12 = 0.1285, below the 0.20 minimum, so the fee is
+        // raised to the minimum.
+        SeedRule("Standard", percentage: 0.85m, fixedAmount: 0.12m, minimumFee: 0.20m);
+
+        var result = await Resolve(amount: 1m);
+
+        result!.Fee.Should().Be(0.20m);
+        result.MinimumApplied.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task The_fee_uses_bankers_rounding_at_a_midpoint()
+    {
+        // A raw fee of exactly 0.125 rounds to the even hundredth (0.12), not up to 0.13 -
+        // proving MidpointRounding.ToEven is applied consistently.
+        SeedRule("Half-cent", percentage: 0m, fixedAmount: 0.125m, minimumFee: 0m);
+
+        var result = await Resolve(amount: 100m);
+
+        result!.Fee.Should().Be(0.12m);
+    }
+}

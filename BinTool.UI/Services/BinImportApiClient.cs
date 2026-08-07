@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using BinTool.Core.Models.BinRanges;
 using BinTool.Core.Models.Import;
 
 namespace BinTool.UI.Services;
@@ -78,5 +80,49 @@ public class BinImportApiClient
         response.EnsureSuccessStatusCode();
 
         return (await response.Content.ReadFromJsonAsync<ConflictResolutionResult>(cancellationToken))!;
+    }
+
+    /// <summary>
+    /// Fetches one page of past imports from <c>GET /api/BinCsvImport/history</c>.
+    /// </summary>
+    public async Task<PagedResult<ImportHistoryItem>> GetHistoryAsync(
+        ImportHistoryQuery query, CancellationToken cancellationToken = default)
+    {
+        await AuthorizeAsync();
+
+        var result = await _http.GetFromJsonAsync<PagedResult<ImportHistoryItem>>(
+            $"api/BinCsvImport/history?{BuildQueryString(query)}", cancellationToken);
+
+        return result ?? new PagedResult<ImportHistoryItem>();
+    }
+
+    /// <summary>
+    /// Only the filters that are set are sent, so an empty filter is never mistaken for a
+    /// filter on an empty string.
+    /// </summary>
+    private static string BuildQueryString(ImportHistoryQuery query)
+    {
+        var parts = new List<string>
+        {
+            $"page={query.Page.ToString(CultureInfo.InvariantCulture)}",
+            $"pageSize={query.PageSize.ToString(CultureInfo.InvariantCulture)}"
+        };
+
+        if (query.From is { } from)
+        {
+            parts.Add($"from={Uri.EscapeDataString(from.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture))}");
+        }
+
+        if (query.To is { } to)
+        {
+            parts.Add($"to={Uri.EscapeDataString(to.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture))}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            parts.Add($"status={Uri.EscapeDataString(query.Status.Trim())}");
+        }
+
+        return string.Join('&', parts);
     }
 }
