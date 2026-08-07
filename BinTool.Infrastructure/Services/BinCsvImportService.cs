@@ -226,8 +226,10 @@ public class BinCsvImportService : IBinCsvImportService
                 };
 
                 _db.BinRanges.Add(added);
+
                 inserted.Add((added, v));
                 result.InsertedCount++;
+
                 continue;
             }
 

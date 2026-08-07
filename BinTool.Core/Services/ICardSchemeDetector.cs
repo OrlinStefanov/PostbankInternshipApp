@@ -12,6 +12,8 @@ public enum DetectedScheme
     Mastercard,
     AmericanExpress,
     DinersClub,
+    JCB,
+    Discover
 }
 
 /// <summary>

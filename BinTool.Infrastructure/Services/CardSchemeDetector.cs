@@ -1,4 +1,5 @@
 using BinTool.Core.Services;
+using System.ComponentModel.Design;
 
 namespace BinTool.Infrastructure.Services;
 
@@ -22,6 +23,8 @@ public class CardSchemeDetector : ICardSchemeDetector
         [DetectedScheme.Mastercard] = new[] { "Mastercard", "Master Card", "MasterCard", "Maestro" },
         [DetectedScheme.AmericanExpress] = new[] { "American Express", "Amex" },
         [DetectedScheme.DinersClub] = new[] { "Diners Club", "Diners", "Diners Club International" },
+        [DetectedScheme.JCB] = new[] { "JCB" },
+        [DetectedScheme.Discover] = new[] { "Disocver" } 
     };
 
     public DetectedScheme Detect(string prefix)
@@ -53,6 +56,18 @@ public class CardSchemeDetector : ICardSchemeDetector
         // Diners Club: 300-305, 3095, 36, 38, 39.
         if (three is >= 300 and <= 305 || four == 3095 || two is 36 or 38 or 39)
             return DetectedScheme.DinersClub;
+
+        //JCB
+        if (four is >= 3528 and <= 3589)
+        {
+            return DetectedScheme.JCB;
+        }
+
+        //Discover
+        if (two is 65 or 6011 || three is >= 644 and <= 649)
+        {
+            return DetectedScheme.Discover;
+        }
 
         return DetectedScheme.Unknown;
     }
