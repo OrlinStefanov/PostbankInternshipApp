@@ -36,6 +36,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     /// </summary>
     public DbSet<Region> Regions { get; set; }
 
+    /// <summary>
+    /// Currencies and their euro conversion rates
+    /// </summary>
+    public DbSet<Currency> Currencies { get; set; }
+
     #endregion
 
     #region DbSets - Core Domain
@@ -105,6 +110,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         ConfigureProductType(modelBuilder);
         ConfigureFundingType(modelBuilder);
         ConfigureRegion(modelBuilder);
+        ConfigureCurrency(modelBuilder);
         ConfigureCountry(modelBuilder);
         ConfigureBinRange(modelBuilder);
         ConfigureCommissionRule(modelBuilder);
@@ -239,6 +245,30 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         });
     }
 
+    private static void ConfigureCurrency(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Currency>(entity =>
+        {
+            entity.HasKey(e => e.CurrencyId);
+
+            entity.Property(e => e.Code)
+                .IsRequired()
+                .HasMaxLength(3);
+
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.RateToEur)
+                .HasPrecision(18, 10);
+
+            entity.HasIndex(e => e.Code)
+                .IsUnique();
+
+            entity.ToTable("Currencies");
+        });
+    }
+
     private static void ConfigureCountry(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Country>(entity =>
@@ -367,6 +397,19 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             entity.HasIndex(e => e.Priority)
                 .HasDatabaseName("IX_CommissionRule_Priority");
 
+            // Existing rows predate the currency column; default them to euro (id 1) so the
+            // migration backfills a valid foreign key rather than a zero.
+            entity.Property(e => e.CurrencyId)
+                .HasDefaultValue(1);
+
+            // A rule is always denominated in exactly one currency. Restrict, not cascade:
+            // a currency in use cannot be removed out from under a rule (the service refuses
+            // the delete before it gets here).
+            entity.HasOne(e => e.Currency)
+                .WithMany(c => c.CommissionRules)
+                .HasForeignKey(e => e.CurrencyId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired();
 
             entity.ToTable("CommissionRules");
         });
@@ -654,6 +697,22 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             new Region { RegionId = 1, Name = "Domestic", Description = "Domestic transactions (same country)" },
             new Region { RegionId = 2, Name = "Intra-EEA", Description = "Transactions within European Economic Area (subject to interchange caps)" },
             new Region { RegionId = 3, Name = "Inter-Regional", Description = "Transactions outside EEA (not subject to interchange caps)" }
+        );
+
+        // Seed Currencies. Euro is the base (rate 1) and the default for new rules; the lev
+        // keeps its fixed peg (1 EUR = 1.95583 BGN, so 1 BGN = 1/1.95583 EUR) so legacy
+        // lev-priced rules can still be shown in euro.
+        modelBuilder.Entity<Currency>().HasData(
+            new Currency
+            {
+                CurrencyId = 1, Code = "EUR", Name = "Euro", RateToEur = 1m, IsActive = true,
+                CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp
+            },
+            new Currency
+            {
+                CurrencyId = 2, Code = "BGN", Name = "Bulgarian lev", RateToEur = 0.5112918788m,
+                IsActive = true, CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp
+            }
         );
 
         // Seed Countries (sample list)

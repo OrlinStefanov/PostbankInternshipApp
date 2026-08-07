@@ -15,6 +15,9 @@ namespace BinTool.Infrastructure.Services;
 /// </summary>
 public class CommissionResolver : ICommissionResolver
 {
+    /// <summary>The base currency every euro rate is expressed against.</summary>
+    private const string BaseCurrencyCode = "EUR";
+
     private readonly AppDbContext _db;
 
     public CommissionResolver(AppDbContext db)
@@ -29,15 +32,21 @@ public class CommissionResolver : ICommissionResolver
         int regionId,
         decimal amount,
         DateTime onDate,
+        int? inputCurrencyId = null,
         CancellationToken cancellationToken = default)
     {
         var day = onDate.Date;
+
+        // The currency the amount was quoted in, so the fee can be worked out in the rule's
+        // currency even when the two differ. Falls back to the euro base currency.
+        var inputCurrency = await ResolveInputCurrencyAsync(inputCurrencyId, cancellationToken);
 
         // Every live rule that matches the card's attributes (a null criteria field is a
         // wildcard) and is valid on the day. The set is small, so the tiebreak is settled
         // in memory where it reads clearly.
         var matches = await _db.CommissionRules.AsNoTracking()
             .Include(r => r.RuleCriteria)
+            .Include(r => r.Currency)
             .Where(r => !r.IsDeleted && r.IsActive)
             .Where(r => r.ValidFrom <= day && (r.ValidTo == null || r.ValidTo >= day))
             .Where(r => r.RuleCriteria.Any(c =>
@@ -56,7 +65,7 @@ public class CommissionResolver : ICommissionResolver
 
         if (winner is not null)
         {
-            return Calculate(winner, amount, isFallback: false);
+            return Calculate(winner, amount, inputCurrency, isFallback: false);
         }
 
         // No rule matched. Fall back to the configured default, if one is set.
@@ -68,38 +77,88 @@ public class CommissionResolver : ICommissionResolver
 
         var fallback = await _db.CommissionRules.AsNoTracking()
             .Include(r => r.RuleCriteria)
+            .Include(r => r.Currency)
             .FirstOrDefaultAsync(r => r.CommissionRuleId == ruleId, cancellationToken);
 
         // A default that points at a soft-deleted rule is treated as no default at all.
         if (fallback is null || fallback.IsDeleted) return null;
 
-        return Calculate(fallback, amount, isFallback: true);
+        return Calculate(fallback, amount, inputCurrency, isFallback: true);
     }
 
     /// <summary>
-    /// percentage part (rounded to 4dp) + fixed amount, then raised to the minimum fee, with
-    /// the final fee rounded to 2dp. Banker's rounding throughout, applied consistently.
+    /// Loads the currency the amount was quoted in. A null id, or an id that no longer
+    /// resolves to a live currency, is treated as the euro base currency so a price is still
+    /// produced rather than silently dropped.
     /// </summary>
-    private static CommissionCalculation Calculate(CommissionRule rule, decimal amount, bool isFallback)
+    private async Task<Currency> ResolveInputCurrencyAsync(
+        int? inputCurrencyId, CancellationToken cancellationToken)
     {
+        if (inputCurrencyId is { } id)
+        {
+            var chosen = await _db.Currencies.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.CurrencyId == id && !c.IsDeleted, cancellationToken);
+            if (chosen is not null) return chosen;
+        }
+
+        var euro = await _db.Currencies.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Code == BaseCurrencyCode && !c.IsDeleted, cancellationToken);
+
+        // No euro row configured at all: fall back to a synthetic 1:1 base so pricing never
+        // fails outright over reference data. Should not happen once the seed has run.
+        return euro ?? new Currency { Code = BaseCurrencyCode, Name = "Euro", RateToEur = 1m };
+    }
+
+    /// <summary>
+    /// Converts the amount into the rule's currency, then: percentage part (rounded to 4dp) +
+    /// fixed amount, raised to the minimum fee, final fee rounded to 2dp. Banker's rounding
+    /// throughout. Every native figure is also converted to euro at the rule's rate.
+    /// </summary>
+    private static CommissionCalculation Calculate(
+        CommissionRule rule, decimal inputAmount, Currency inputCurrency, bool isFallback)
+    {
+        var ruleCurrency = rule.Currency
+            ?? new Currency { Code = BaseCurrencyCode, Name = "Euro", RateToEur = 1m };
+
+        // Convert the entered amount into the rule's currency, pivoting through euro:
+        // eur = amount * inputRate; then amount_in_rule = eur / ruleRate.
+        var amount = ruleCurrency.CurrencyId == inputCurrency.CurrencyId
+            ? inputAmount
+            : inputAmount * inputCurrency.RateToEur / ruleCurrency.RateToEur;
+
         var percentagePart = Math.Round(
             amount * rule.PercentageRate / 100m, 4, MidpointRounding.ToEven);
         var rawFee = percentagePart + rule.FixedAmount;
         var floored = Math.Max(rawFee, rule.MinimumFee);
         var fee = Math.Round(floored, 2, MidpointRounding.ToEven);
 
+        var amount2 = Math.Round(amount, 2, MidpointRounding.ToEven);
+        var rawFee2 = Math.Round(rawFee, 2, MidpointRounding.ToEven);
+
+        decimal ToEur(decimal value) =>
+            Math.Round(value * ruleCurrency.RateToEur, 2, MidpointRounding.ToEven);
+
         return new CommissionCalculation
         {
             AppliedRuleId = rule.CommissionRuleId,
             AppliedRuleName = rule.RuleName,
             IsFallback = isFallback,
-            Amount = amount,
+            InputAmount = inputAmount,
+            InputCurrencyCode = inputCurrency.Code,
+            Amount = amount2,
+            CurrencyCode = ruleCurrency.Code,
+            EurRate = ruleCurrency.RateToEur,
             PercentageRate = rule.PercentageRate,
             FixedAmount = rule.FixedAmount,
             MinimumFee = rule.MinimumFee,
-            RawFee = Math.Round(rawFee, 2, MidpointRounding.ToEven),
+            RawFee = rawFee2,
             Fee = fee,
             MinimumApplied = floored > rawFee,
+            AmountEur = ToEur(amount2),
+            FixedAmountEur = ToEur(rule.FixedAmount),
+            MinimumFeeEur = ToEur(rule.MinimumFee),
+            RawFeeEur = ToEur(rawFee2),
+            FeeEur = ToEur(fee),
             Reason = Reason(rule, isFallback)
         };
     }

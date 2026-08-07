@@ -62,6 +62,9 @@ builder.Services.AddHttpClient<CountryApiClient>(client => client.BaseAddress = 
 builder.Services.AddHttpClient<CommissionRuleApiClient>(client => client.BaseAddress = new Uri(apiBaseUrl))
     .ConfigurePrimaryHttpMessageHandler(ApiHandler);
 
+builder.Services.AddHttpClient<CurrencyApiClient>(client => client.BaseAddress = new Uri(apiBaseUrl))
+    .ConfigurePrimaryHttpMessageHandler(ApiHandler);
+
 builder.Services.AddHttpClient<BinLookupApiClient>(client => client.BaseAddress = new Uri(apiBaseUrl))
     .ConfigurePrimaryHttpMessageHandler(ApiHandler);
 

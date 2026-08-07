@@ -28,6 +28,8 @@ public class CommissionResolverTests : SqliteTestBase
     /// wildcard. Valid from a year before <see cref="OnDate"/> and open-ended unless a
     /// <paramref name="validTo"/> is given.
     /// </summary>
+    private const int EurCurrencyId = 1;
+
     private CommissionRule SeedRule(
         string name,
         decimal percentage = 0m,
@@ -40,11 +42,13 @@ public class CommissionResolverTests : SqliteTestBase
         DateTime? validFrom = null,
         DateTime? validTo = null,
         bool isActive = true,
-        int priority = 0)
+        int priority = 0,
+        int currencyId = EurCurrencyId)
     {
         var rule = new CommissionRule
         {
             RuleName = name,
+            CurrencyId = currencyId,
             PercentageRate = percentage,
             FixedAmount = fixedAmount,
             MinimumFee = minimumFee,
@@ -79,9 +83,19 @@ public class CommissionResolverTests : SqliteTestBase
         Db.SaveChanges();
     }
 
-    private Task<Core.Models.Commission.CommissionCalculation?> Resolve(decimal amount = 100m) =>
+    private Task<Core.Models.Commission.CommissionCalculation?> Resolve(
+        decimal amount = 100m, int? inputCurrencyId = null) =>
         Resolver().ResolveAsync(
-            VisaId, ConsumerId, CreditId, DomesticRegionId, amount, OnDate);
+            VisaId, ConsumerId, CreditId, DomesticRegionId, amount, OnDate, inputCurrencyId);
+
+    /// <summary>Adds a currency with a clean euro rate and returns its id.</summary>
+    private int SeedCurrency(string code, decimal rateToEur)
+    {
+        var currency = new Currency { Code = code, Name = code, RateToEur = rateToEur };
+        Db.Currencies.Add(currency);
+        Db.SaveChanges();
+        return currency.CurrencyId;
+    }
 
     // ---- Story 5.2: resolution by specificity ---------------------------------
 
@@ -225,5 +239,54 @@ public class CommissionResolverTests : SqliteTestBase
         var result = await Resolve(amount: 100m);
 
         result!.Fee.Should().Be(0.12m);
+    }
+
+    // ---- Currency: euro equivalents and cross-currency input -------------------
+
+    [Fact]
+    public async Task A_euro_rule_reports_euro_at_a_unit_rate_with_matching_equivalents()
+    {
+        SeedRule("Standard", percentage: 0.85m, fixedAmount: 0.12m, minimumFee: 0.20m);
+
+        var result = await Resolve(amount: 100m);
+
+        result!.CurrencyCode.Should().Be("EUR");
+        result.InputCurrencyCode.Should().Be("EUR");
+        result.EurRate.Should().Be(1m);
+        result.Fee.Should().Be(0.97m);
+        result.FeeEur.Should().Be(result.Fee, "a euro rule needs no conversion");
+    }
+
+    [Fact]
+    public async Task A_rule_priced_in_another_currency_reports_the_euro_equivalent()
+    {
+        // A currency worth half a euro per unit, priced in its own currency (no input
+        // conversion): a 2.00 fixed fee is 1.00 EUR.
+        var half = SeedCurrency("HAF", 0.5m);
+        SeedRule("Fixed only", fixedAmount: 2.00m, currencyId: half);
+
+        var result = await Resolve(amount: 100m, inputCurrencyId: half);
+
+        result!.CurrencyCode.Should().Be("HAF");
+        result.EurRate.Should().Be(0.5m);
+        result.Fee.Should().Be(2.00m);
+        result.FeeEur.Should().Be(1.00m, "2.00 HAF at 0.5 EUR/unit is 1.00 EUR");
+    }
+
+    [Fact]
+    public async Task An_amount_in_another_currency_is_converted_into_the_rules_currency()
+    {
+        // Rule is in euro; the amount is entered in a currency worth 0.5 EUR per unit, so
+        // 100 units convert to 50 EUR, and 1% of that is 0.50 EUR.
+        var half = SeedCurrency("HAF", 0.5m);
+        SeedRule("One percent", percentage: 1.0m);
+
+        var result = await Resolve(amount: 100m, inputCurrencyId: half);
+
+        result!.InputCurrencyCode.Should().Be("HAF");
+        result.InputAmount.Should().Be(100m);
+        result.CurrencyCode.Should().Be("EUR");
+        result.Amount.Should().Be(50m, "100 HAF at 0.5 EUR/unit is 50 EUR");
+        result.Fee.Should().Be(0.50m);
     }
 }

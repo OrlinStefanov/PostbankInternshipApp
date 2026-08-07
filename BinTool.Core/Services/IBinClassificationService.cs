@@ -15,10 +15,16 @@ public interface IBinClassificationService
     /// An optional transaction amount. When supplied and the BIN matches, the result also
     /// carries the resolved commission rule and the calculated fee.
     /// </param>
+    /// <param name="amountCurrency">
+    /// The ISO-4217 code <paramref name="amount"/> is given in. When the applied rule is
+    /// priced in a different currency the amount is converted first. Defaults to euro when
+    /// null or unrecognised.
+    /// </param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <exception cref="ArgumentException">
     /// The input is empty, contains a non-digit, or is shorter than 6 / longer than 19 digits.
     /// </exception>
     Task<BinClassificationResult> ClassifyAsync(
-        string bin, decimal? amount = null, CancellationToken cancellationToken = default);
+        string bin, decimal? amount = null, string? amountCurrency = null,
+        CancellationToken cancellationToken = default);
 }

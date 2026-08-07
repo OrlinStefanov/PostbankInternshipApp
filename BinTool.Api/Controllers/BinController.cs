@@ -64,7 +64,8 @@ public class BinController : ControllerBase
     public async Task<IActionResult> Classify(
         [FromBody] BinClassificationRequest request, CancellationToken cancellationToken)
     {
-        var result = await _service.ClassifyAsync(request.Bin, request.Amount, cancellationToken);
+        var result = await _service.ClassifyAsync(
+            request.Bin, request.Amount, request.AmountCurrency, cancellationToken);
 
         return Ok(result);
     }

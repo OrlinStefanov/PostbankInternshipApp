@@ -27,6 +27,12 @@ public class CommissionRuleInput
     /// <summary>Region this rule applies to, or null for any region.</summary>
     public int? RegionId { get; set; }
 
+    /// <summary>
+    /// The currency the fixed amount and minimum fee are denominated in. Defaults to euro
+    /// (the seeded base currency, id 1).
+    /// </summary>
+    public int CurrencyId { get; set; } = 1;
+
     /// <summary>Percentage rate as a percent value: 0.85 means 0.85%.</summary>
     [Range(0, 100, ErrorMessage = "The percentage rate must be between 0 and 100.")]
     public decimal PercentageRate { get; set; }

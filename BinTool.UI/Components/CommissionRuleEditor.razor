@@ -1,4 +1,5 @@
 @using BinTool.Core.Models.Commission
+@using BinTool.Core.Models.Currency
 @using BinTool.Core.Models.ReferenceData
 @inject CommissionRuleApiClient Api
 
@@ -87,6 +88,19 @@
                     <hr class="my-3" />
 
                     <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="e-currency">Currency</label>
+                            <InputSelect id="e-currency" class="form-select" @bind-Value="_input.CurrencyId">
+                                @foreach (var c in Currencies)
+                                {
+                                    <option value="@c.Id">@c.Code — @c.Name</option>
+                                }
+                            </InputSelect>
+                            <div class="form-text">The fixed amount and minimum fee are in this currency.</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-0">
                         <div class="col-12 col-md-4">
                             <label class="form-label" for="e-rate">Percentage rate</label>
                             <div class="input-group">
@@ -180,6 +194,10 @@
     [Parameter, EditorRequired]
     public IReadOnlyList<LookupListItem> Regions { get; set; } = Array.Empty<LookupListItem>();
 
+    /// <summary>Live currencies to price the rule in.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<CurrencyListItem> Currencies { get; set; } = Array.Empty<CurrencyListItem>();
+
     /// <summary>The rule being edited, or null to add a new one.</summary>
     [Parameter]
     public CommissionRuleListItem? Rule { get; set; }
@@ -197,10 +215,24 @@
 
     private string Title => Rule is null ? "Add commission rule" : $"Edit commission rule — {Rule.RuleName}";
 
+    /// <summary>Euro when it is offered, otherwise the first currency in the list, otherwise id 1.</summary>
+    private int DefaultCurrencyId()
+    {
+        var euro = Currencies.FirstOrDefault(c => c.Code == "EUR");
+        if (euro is not null) return euro.Id;
+
+        return Currencies.Count > 0 ? Currencies[0].Id : 1;
+    }
+
     protected override void OnParametersSet()
     {
         _input = Rule is null
-            ? new CommissionRuleInput { ValidFrom = DateTime.UtcNow.Date, IsActive = true }
+            ? new CommissionRuleInput
+            {
+                ValidFrom = DateTime.UtcNow.Date,
+                IsActive = true,
+                CurrencyId = DefaultCurrencyId()
+            }
             : new CommissionRuleInput
             {
                 RuleName = Rule.RuleName,
@@ -208,6 +240,7 @@
                 ProductTypeId = Rule.ProductTypeId,
                 FundingTypeId = Rule.FundingTypeId,
                 RegionId = Rule.RegionId,
+                CurrencyId = Rule.CurrencyId,
                 PercentageRate = Rule.PercentageRate,
                 FixedAmount = Rule.FixedAmount,
                 MinimumFee = Rule.MinimumFee,

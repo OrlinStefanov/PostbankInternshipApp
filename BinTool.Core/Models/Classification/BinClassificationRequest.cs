@@ -26,4 +26,13 @@ public class BinClassificationRequest
     /// <example>100</example>
     [Range(0, 1_000_000_000_000, ErrorMessage = "The amount must be between 0 and 1,000,000,000,000.")]
     public decimal? Amount { get; set; }
+
+    /// <summary>
+    /// The ISO-4217 code the <see cref="Amount"/> is given in, e.g. "EUR". When the applied
+    /// rule is priced in a different currency the amount is converted before the fee is
+    /// worked out. Defaults to euro when omitted or unrecognised.
+    /// </summary>
+    /// <example>EUR</example>
+    [RegularExpression("^[A-Za-z]{3}$", ErrorMessage = "The currency code must be three letters.")]
+    public string? AmountCurrency { get; set; }
 }

@@ -38,7 +38,7 @@ public class BinControllerTests
         };
 
         _service
-            .Setup(s => s.ClassifyAsync("400001", It.IsAny<decimal?>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.ClassifyAsync("400001", It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
         var result = await CreateController()
@@ -52,7 +52,7 @@ public class BinControllerTests
     public async Task Classify_returns_200_when_nothing_matched()
     {
         _service
-            .Setup(s => s.ClassifyAsync(It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.ClassifyAsync(It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new BinClassificationResult { Bin = "999999", Matched = false });
 
         var result = await CreateController()

@@ -11,6 +11,7 @@ public sealed record CommissionRuleSnapshot(
     string ProductType,
     string FundingType,
     string Region,
+    string Currency,
     decimal PercentageRate,
     decimal FixedAmount,
     decimal MinimumFee,

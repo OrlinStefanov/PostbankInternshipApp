@@ -16,8 +16,12 @@ public interface ICommissionResolver
     /// <param name="productTypeId">The card's product type id.</param>
     /// <param name="fundingTypeId">The card's funding type id.</param>
     /// <param name="regionId">The issuing country's region id.</param>
-    /// <param name="amount">The transaction amount.</param>
+    /// <param name="amount">The transaction amount, in the currency named by <paramref name="inputCurrencyId"/>.</param>
     /// <param name="onDate">The date the transaction is priced on.</param>
+    /// <param name="inputCurrencyId">
+    /// The currency the amount is supplied in. When the applied rule is priced in a different
+    /// currency the amount is converted first. Null means the euro base currency.
+    /// </param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>
     /// The calculation, or null when no rule matched and no default is configured - there is
@@ -30,5 +34,6 @@ public interface ICommissionResolver
         int regionId,
         decimal amount,
         DateTime onDate,
+        int? inputCurrencyId = null,
         CancellationToken cancellationToken = default);
 }

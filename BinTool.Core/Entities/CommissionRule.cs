@@ -14,6 +14,12 @@ public class CommissionRule
     public string RuleName { get; set; } = string.Empty;
 
     /// <summary>
+    /// Currency the fixed amount and minimum fee are denominated in. Defaults to euro
+    /// (the seeded base currency, id 1).
+    /// </summary>
+    public int CurrencyId { get; set; } = 1;
+
+    /// <summary>
     /// Percentage rate (e.g., 0.85 for 0.85%)
     /// </summary>
     public decimal PercentageRate { get; set; }
@@ -71,6 +77,11 @@ public class CommissionRule
     #endregion
 
     #region Navigation Properties
+
+    /// <summary>
+    /// The currency the rule's amounts are in.
+    /// </summary>
+    public Currency? Currency { get; set; }
 
     /// <summary>
     /// Criteria for this rule

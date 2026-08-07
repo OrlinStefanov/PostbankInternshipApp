@@ -1,0 +1,354 @@
+@page "/currencies"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Permissions.ReferenceDataManage)]
+@using System.Globalization
+@using BinTool.Core.Models.Currency
+@using BinTool.Core.Models.ReferenceData
+@inject CurrencyApiClient Api
+
+<PageTitle>Currencies</PageTitle>
+
+<div class="page-head d-flex flex-wrap justify-content-between align-items-start gap-3">
+    <div>
+        <h1 class="h3 mb-1">Currencies</h1>
+        <p class="text-secondary mb-0">
+            The currencies commission is priced in, and the rate used to show every fee in euro.
+            The rate is the euro value of one unit, so euro itself is <span class="mono">1</span>.
+        </p>
+    </div>
+    <div>
+        <button class="btn btn-primary" @onclick="StartAdd" disabled="@_busy">Add currency</button>
+    </div>
+</div>
+
+<div class="filters card mt-4">
+    <div class="card-body py-2 d-flex flex-wrap align-items-center gap-3">
+        <div class="form-check mb-0">
+            <input id="f-deleted" class="form-check-input" type="checkbox"
+                   checked="@_includeDeleted" @onchange="OnIncludeDeletedChanged" />
+            <label class="form-check-label" for="f-deleted">Include deleted</label>
+        </div>
+        <span class="text-secondary small ms-auto">
+            @if (_loading)
+            {
+                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                <span>Loading…</span>
+            }
+            else
+            {
+                <span>@_currencies.Count @(_currencies.Count == 1 ? "currency" : "currencies")</span>
+            }
+        </span>
+    </div>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger mt-3" role="alert">@_error</div>
+}
+
+@if (_notice is not null)
+{
+    <div class="alert alert-success alert-dismissible mt-3" role="alert">
+        @_notice
+        <button type="button" class="btn-close" aria-label="Dismiss" @onclick="() => _notice = null"></button>
+    </div>
+}
+
+@if (!_loading)
+{
+    <div class="card mt-3">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-3">Code</th>
+                        <th>Name</th>
+                        <th class="text-end">Rate to EUR</th>
+                        <th>Active</th>
+                        <th>Status</th>
+                        <th class="pe-3 text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in _currencies)
+                    {
+                        <tr class="@(item.Status == LookupStatus.Deleted ? "row-muted" : null)">
+                            <td class="ps-3 mono fw-semibold">@item.Code</td>
+                            <td>@item.Name</td>
+                            <td class="text-end mono">@Num(item.RateToEur)</td>
+                            <td>@(item.IsActive ? "Yes" : "No")</td>
+                            <td>
+                                <span class="badge rounded-pill text-bg-@(item.Status == LookupStatus.Deleted ? "secondary" : "success")">
+                                    @item.Status
+                                </span>
+                            </td>
+                            <td class="pe-3 text-end text-nowrap">
+                                @if (item.Status == LookupStatus.Deleted)
+                                {
+                                    <button class="btn btn-outline-success btn-sm"
+                                            @onclick="() => Restore(item)" disabled="@_busy">Restore</button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-outline-primary btn-sm me-1"
+                                            @onclick="() => StartEdit(item)" disabled="@_busy">Edit</button>
+                                    <button class="btn btn-outline-danger btn-sm"
+                                            @onclick="() => _pendingDelete = item" disabled="@_busy">Delete</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (_editorOpen)
+{
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-label="@EditorTitle">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <EditForm Model="_input" OnValidSubmit="Save" FormName="currency-editor">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@EditorTitle</h5>
+                        <button type="button" class="btn-close" aria-label="Close"
+                                @onclick="CloseEditor" disabled="@_busy"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if (_editorError is not null)
+                        {
+                            <div class="alert alert-danger" role="alert">@_editorError</div>
+                        }
+                        <div class="row g-3">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label" for="c-code">Code</label>
+                                <InputText id="c-code" class="form-control mono" maxlength="3"
+                                           placeholder="EUR" @bind-Value="_input.Code" />
+                                <ValidationMessage For="() => _input.Code" class="form-text text-danger" />
+                            </div>
+                            <div class="col-12 col-md-8">
+                                <label class="form-label" for="c-name">Name</label>
+                                <InputText id="c-name" class="form-control"
+                                           placeholder="Euro" @bind-Value="_input.Name" />
+                                <ValidationMessage For="() => _input.Name" class="form-text text-danger" />
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label" for="c-rate">Rate to EUR</label>
+                                <InputNumber id="c-rate" class="form-control" step="0.0000000001"
+                                             @bind-Value="_input.RateToEur" />
+                                <div class="form-text">Euro value of one unit. Euro is 1.</div>
+                                <ValidationMessage For="() => _input.RateToEur" class="form-text text-danger" />
+                            </div>
+                            <div class="col-12 d-flex align-items-end">
+                                <div class="form-check">
+                                    <InputCheckbox id="c-active" class="form-check-input" @bind-Value="_input.IsActive" />
+                                    <label class="form-check-label" for="c-active">
+                                        Active — offered for new rules and lookups.
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary"
+                                @onclick="CloseEditor" disabled="@_busy">Cancel</button>
+                        <button type="submit" class="btn btn-primary" disabled="@_busy">
+                            @if (_busy)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            }
+                            @(_editing is null ? "Add currency" : "Save changes")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
+
+@if (_pendingDelete is not null)
+{
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-label="Confirm delete">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete currency '@_pendingDelete.Code'?</h5>
+                    <button type="button" class="btn-close" aria-label="Close"
+                            @onclick="() => _pendingDelete = null" disabled="@_busy"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">The currency drops out of the pickers. Nothing is erased.</p>
+                    <p class="text-secondary small mb-0">
+                        A currency still used by a live commission rule cannot be deleted — reprice
+                        those rules first. Toggle <strong>Include deleted</strong> to restore it.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary"
+                            @onclick="() => _pendingDelete = null" disabled="@_busy">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete" disabled="@_busy">
+                        @if (_busy)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        }
+                        Delete currency
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _busy;
+    private string? _error;
+    private string? _notice;
+    private bool _includeDeleted;
+
+    private List<CurrencyListItem> _currencies = new();
+
+    private bool _editorOpen;
+    private CurrencyListItem? _editing;
+    private CurrencyInput _input = new();
+    private string? _editorError;
+
+    private CurrencyListItem? _pendingDelete;
+
+    private string EditorTitle => _editing is null ? "Add currency" : $"Edit currency — {_editing.Code}";
+
+    protected override Task OnInitializedAsync() => Load();
+
+    private async Task Load()
+    {
+        _loading = true;
+        try
+        {
+            _currencies = await Api.SearchAsync(_includeDeleted);
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Could not load currencies: {ex.Message}";
+            _currencies = new();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnIncludeDeletedChanged(ChangeEventArgs e)
+    {
+        _includeDeleted = e.Value is true;
+        await Load();
+    }
+
+    private void StartAdd()
+    {
+        _editing = null;
+        _input = new CurrencyInput { IsActive = true, RateToEur = 1m };
+        _editorError = null;
+        _notice = null;
+        _editorOpen = true;
+    }
+
+    private void StartEdit(CurrencyListItem item)
+    {
+        _editing = item;
+        _input = new CurrencyInput
+        {
+            Code = item.Code,
+            Name = item.Name,
+            RateToEur = item.RateToEur,
+            IsActive = item.IsActive
+        };
+        _editorError = null;
+        _notice = null;
+        _editorOpen = true;
+    }
+
+    private void CloseEditor()
+    {
+        if (_busy) return;
+        _editorOpen = false;
+        _editing = null;
+    }
+
+    private async Task Save()
+    {
+        _busy = true;
+        _editorError = null;
+        try
+        {
+            var result = _editing is null
+                ? await Api.CreateAsync(_input)
+                : await Api.UpdateAsync(_editing.Id, _input);
+
+            if (!result.Succeeded)
+            {
+                _editorError = result.Error;
+                return;
+            }
+
+            _editorOpen = false;
+            _editing = null;
+            _notice = $"Saved currency '{result.Item!.Code}'.";
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _editorError = $"Could not save the currency: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ConfirmDelete()
+    {
+        var item = _pendingDelete;
+        if (item is null) return;
+
+        await Run(() => Api.DeleteAsync(item.Id), $"Deleted currency '{item.Code}'.");
+        _pendingDelete = null;
+    }
+
+    private Task Restore(CurrencyListItem item) =>
+        Run(() => Api.RestoreAsync(item.Id), $"Restored currency '{item.Code}'.");
+
+    private async Task Run(Func<Task<CurrencyMutationResult>> action, string success)
+    {
+        _busy = true;
+        _notice = null;
+        try
+        {
+            var result = await action();
+            if (!result.Succeeded)
+            {
+                _error = result.Error;
+                return;
+            }
+
+            _notice = success;
+            _error = null;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _error = $"The change could not be applied: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string Num(decimal value) => value.ToString("0.##########", CultureInfo.InvariantCulture);
+}

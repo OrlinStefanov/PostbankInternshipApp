@@ -162,6 +162,7 @@ public static class ServiceExtensions
         services.AddScoped<IBinRangeAdminService, BinRangeAdminService>();
         services.AddScoped<IAuditQueryService, AuditQueryService>();
         services.AddScoped<ILookupAdminService, LookupAdminService>();
+        services.AddScoped<ICurrencyService, CurrencyService>();
         services.AddScoped<ICountryAdminService, CountryAdminService>();
         services.AddScoped<ICommissionRuleAdminService, CommissionRuleAdminService>();
         services.AddScoped<ICommissionResolver, CommissionResolver>();

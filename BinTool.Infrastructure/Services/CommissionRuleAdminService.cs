@@ -322,6 +322,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
     private void Apply(CommissionRule rule, CommissionRuleInput input, DateTime now)
     {
         rule.RuleName = input.RuleName.Trim();
+        rule.CurrencyId = input.CurrencyId;
         rule.PercentageRate = input.PercentageRate;
         rule.FixedAmount = input.FixedAmount;
         rule.MinimumFee = input.MinimumFee;
@@ -336,6 +337,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
     /// <summary>Loads a rule with its criteria and the reference names those ids resolve to.</summary>
     private static IQueryable<CommissionRule> WithReferences(IQueryable<CommissionRule> query) =>
         query
+            .Include(r => r.Currency)
             .Include(r => r.RuleCriteria).ThenInclude(c => c.CardScheme)
             .Include(r => r.RuleCriteria).ThenInclude(c => c.ProductType)
             .Include(r => r.RuleCriteria).ThenInclude(c => c.FundingType)
@@ -358,6 +360,8 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
             FundingTypeName = criteria?.FundingType?.Name,
             RegionId = criteria?.RegionId,
             RegionName = criteria?.Region?.Name,
+            CurrencyId = rule.CurrencyId,
+            CurrencyCode = rule.Currency?.Code ?? string.Empty,
             PercentageRate = rule.PercentageRate,
             FixedAmount = rule.FixedAmount,
             MinimumFee = rule.MinimumFee,
@@ -418,6 +422,12 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         string? schemeName = null, productName = null, fundingName = null, regionName = null;
         var missing = new List<string>();
 
+        // The currency is required (not a wildcard), so it is always resolved and validated.
+        var currencyCode = await _db.Currencies.AsNoTracking()
+            .Where(x => !x.IsDeleted && x.CurrencyId == input.CurrencyId)
+            .Select(x => x.Code).FirstOrDefaultAsync(cancellationToken);
+        if (currencyCode is null) missing.Add($"Currency {input.CurrencyId} does not exist.");
+
         if (input.CardSchemeId is { } schemeId)
         {
             schemeName = await _db.CardSchemes.AsNoTracking()
@@ -456,7 +466,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
                 CommissionRuleMutationStatus.Invalid, string.Join(" ", missing)));
         }
 
-        return (new ResolvedKey(schemeName, productName, fundingName, regionName), null);
+        return (new ResolvedKey(schemeName, productName, fundingName, regionName, currencyCode!), null);
     }
 
     /// <summary>
@@ -505,6 +515,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
             criteria?.ProductType?.Name ?? CommissionRuleSnapshot.AnyValue,
             criteria?.FundingType?.Name ?? CommissionRuleSnapshot.AnyValue,
             criteria?.Region?.Name ?? CommissionRuleSnapshot.AnyValue,
+            rule.Currency?.Code ?? string.Empty,
             rule.PercentageRate,
             rule.FixedAmount,
             rule.MinimumFee,
@@ -522,6 +533,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
             resolved.ProductType ?? CommissionRuleSnapshot.AnyValue,
             resolved.FundingType ?? CommissionRuleSnapshot.AnyValue,
             resolved.Region ?? CommissionRuleSnapshot.AnyValue,
+            resolved.Currency,
             input.PercentageRate,
             input.FixedAmount,
             input.MinimumFee,
@@ -584,5 +596,5 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
     }
 
     private readonly record struct ResolvedKey(
-        string? CardScheme, string? ProductType, string? FundingType, string? Region);
+        string? CardScheme, string? ProductType, string? FundingType, string? Region, string Currency);
 }

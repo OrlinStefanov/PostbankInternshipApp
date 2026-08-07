@@ -37,4 +37,7 @@ public static class AuditEntityTypes
 
     /// <summary>Which commission rule is the configured fallback default.</summary>
     public const string DefaultRule = "DefaultRule";
+
+    /// <summary>Currency reference row (code, name, euro rate).</summary>
+    public const string Currency = "Currency";
 }

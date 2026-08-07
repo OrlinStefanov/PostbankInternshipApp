@@ -33,7 +33,8 @@ public class BinClassificationService : IBinClassificationService
     }
 
     public async Task<BinClassificationResult> ClassifyAsync(
-        string bin, decimal? amount = null, CancellationToken cancellationToken = default)
+        string bin, decimal? amount = null, string? amountCurrency = null,
+        CancellationToken cancellationToken = default)
     {
         var lookupKey = Normalize(bin);
 
@@ -92,12 +93,32 @@ public class BinClassificationService : IBinClassificationService
         // present - the resolver decides whether any rule (or the default) applies.
         if (amount is { } transactionAmount)
         {
+            var inputCurrencyId = await ResolveCurrencyIdAsync(amountCurrency, cancellationToken);
+
             result.Commission = await _commissionResolver.ResolveAsync(
                 match.CardSchemeId, match.ProductTypeId, match.FundingTypeId, match.RegionId,
-                transactionAmount, today, cancellationToken);
+                transactionAmount, today, inputCurrencyId, cancellationToken);
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Maps a supplied ISO-4217 code to a live currency id, so the resolver can convert the
+    /// amount into the rule's currency. An unknown or blank code resolves to null, which the
+    /// resolver reads as the euro base currency.
+    /// </summary>
+    private async Task<int?> ResolveCurrencyIdAsync(
+        string? code, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return null;
+
+        var upper = code.Trim().ToUpperInvariant();
+
+        return await _db.Currencies.AsNoTracking()
+            .Where(c => !c.IsDeleted && c.Code == upper)
+            .Select(c => (int?)c.CurrencyId)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     /// <summary>

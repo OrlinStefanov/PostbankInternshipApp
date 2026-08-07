@@ -3,9 +3,11 @@
 @attribute [Authorize(Policy = Permissions.CommissionRulesRead)]
 @using System.Globalization
 @using BinTool.Core.Models.Commission
+@using BinTool.Core.Models.Currency
 @using BinTool.Core.Models.ReferenceData
 @inject CommissionRuleApiClient Api
 @inject ReferenceDataApiClient LookupApi
+@inject CurrencyApiClient CurrencyApi
 
 <PageTitle>Commission rules</PageTitle>
 
@@ -130,6 +132,7 @@ else if (!_loading)
                         <th>Product</th>
                         <th>Funding</th>
                         <th>Region</th>
+                        <th>Ccy</th>
                         <th class="text-end">Rate</th>
                         <th class="text-end">Fixed</th>
                         <th class="text-end">Min</th>
@@ -154,6 +157,7 @@ else if (!_loading)
                             <td>@Wild(item.ProductTypeName)</td>
                             <td>@Wild(item.FundingTypeName)</td>
                             <td>@Wild(item.RegionName)</td>
+                            <td class="mono">@item.CurrencyCode</td>
                             <td class="text-end mono">@Num(item.PercentageRate)%</td>
                             <td class="text-end mono">@Num(item.FixedAmount)</td>
                             <td class="text-end mono">@Num(item.MinimumFee)</td>
@@ -214,7 +218,8 @@ else if (!_loading)
 @if (_editorOpen)
 {
     <CommissionRuleEditor Schemes="_schemes" Products="_products" FundingTypes="_fundingTypes"
-                          Regions="_regions" Rule="_editing" OnSaved="OnSaved" OnCancel="CloseEditor" />
+                          Regions="_regions" Currencies="_currencies" Rule="_editing"
+                          OnSaved="OnSaved" OnCancel="CloseEditor" />
 }
 
 @if (_pendingDelete is not null)
@@ -273,6 +278,7 @@ else if (!_loading)
     private List<LookupListItem> _products = new();
     private List<LookupListItem> _fundingTypes = new();
     private List<LookupListItem> _regions = new();
+    private List<CurrencyListItem> _currencies = new();
 
     private bool _canWrite;
     private bool _editorOpen;
@@ -302,6 +308,8 @@ else if (!_loading)
             _products = await LookupApi.SearchAsync(LookupKind.ProductType, includeDeleted: false);
             _fundingTypes = await LookupApi.SearchAsync(LookupKind.FundingType, includeDeleted: false);
             _regions = await LookupApi.SearchAsync(LookupKind.Region, includeDeleted: false);
+            _currencies = (await CurrencyApi.SearchAsync(includeDeleted: false))
+                .Where(c => c.IsActive).ToList();
         }
         catch (Exception ex)
         {
@@ -457,7 +465,7 @@ else if (!_loading)
     private static string Num(decimal value) => value.ToString("0.####", CultureInfo.InvariantCulture);
 
     private static string Rate(CommissionRuleListItem rule) =>
-        $"{Num(rule.PercentageRate)}% + {Num(rule.FixedAmount)}, min {Num(rule.MinimumFee)}";
+        $"{Num(rule.PercentageRate)}% + {Num(rule.FixedAmount)} {rule.CurrencyCode}, min {Num(rule.MinimumFee)} {rule.CurrencyCode}";
 
     private static string StatusColor(CommissionRuleStatus status) => status switch
     {

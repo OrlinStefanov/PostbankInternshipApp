@@ -4,7 +4,9 @@
 @using System.Globalization
 @using BinTool.Core.Models.Classification
 @using BinTool.Core.Models.Commission
+@using BinTool.Core.Models.Currency
 @inject BinLookupApiClient Api
+@inject CurrencyApiClient CurrencyApi
 
 <PageTitle>BIN lookup</PageTitle>
 
@@ -35,9 +37,18 @@
 
                 <div class="col-12 col-md-6 col-lg-4">
                     <label class="form-label" for="l-amount">Amount <span class="text-secondary">(optional)</span></label>
-                    <InputNumber id="l-amount" class="form-control" step="0.01"
-                                 placeholder="e.g. 100" @bind-Value="_input.Amount" />
-                    <div class="form-text">Leave empty to classify without pricing.</div>
+                    <div class="input-group">
+                        <InputNumber id="l-amount" class="form-control" step="0.01"
+                                     placeholder="e.g. 100" @bind-Value="_input.Amount" />
+                        <InputSelect class="form-select flex-grow-0 w-auto" aria-label="Amount currency"
+                                     @bind-Value="_input.AmountCurrency">
+                            @foreach (var c in _currencies)
+                            {
+                                <option value="@c.Code">@c.Code</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-text">Leave empty to classify without pricing. Amounts also show in euro.</div>
                     <ValidationMessage For="() => _input.Amount" class="form-text text-danger" />
                 </div>
 
@@ -142,27 +153,39 @@
                     {
                         <div class="mb-3">
                             <div class="text-secondary small">Fee</div>
-                            <div class="h4 mb-0 mono">@Num(c.Fee)</div>
+                            <div class="h4 mb-0 mono">@Money(c.Fee, c.CurrencyCode)</div>
+                            @if (!IsEuro(c.CurrencyCode))
+                            {
+                                <div class="mono text-secondary">≈ @Money(c.FeeEur, "EUR")</div>
+                            }
                             <div class="text-secondary small">
                                 applied by <span class="fw-semibold">@c.AppliedRuleName</span>
                             </div>
                         </div>
 
+                        @if (!string.Equals(c.InputCurrencyCode, c.CurrencyCode, StringComparison.OrdinalIgnoreCase))
+                        {
+                            <div class="alert alert-info py-2 small" role="alert">
+                                The @Money(c.InputAmount, c.InputCurrencyCode) entered was converted to
+                                @Money(c.Amount, c.CurrencyCode) to apply this rule's pricing.
+                            </div>
+                        }
+
                         <dl class="row mb-0 detail-list">
                             <dt class="col-6">Amount</dt>
-                            <dd class="col-6 text-end mono">@Num(c.Amount)</dd>
+                            <dd class="col-6 text-end mono">@MoneyDual(c.Amount, c.CurrencyCode, c.AmountEur)</dd>
 
                             <dt class="col-6">Percentage rate</dt>
                             <dd class="col-6 text-end mono">@Num(c.PercentageRate)%</dd>
 
                             <dt class="col-6">Fixed amount</dt>
-                            <dd class="col-6 text-end mono">@Num(c.FixedAmount)</dd>
+                            <dd class="col-6 text-end mono">@MoneyDual(c.FixedAmount, c.CurrencyCode, c.FixedAmountEur)</dd>
 
                             <dt class="col-6">Raw fee</dt>
-                            <dd class="col-6 text-end mono">@Num(c.RawFee)</dd>
+                            <dd class="col-6 text-end mono">@MoneyDual(c.RawFee, c.CurrencyCode, c.RawFeeEur)</dd>
 
                             <dt class="col-6">Minimum fee</dt>
-                            <dd class="col-6 text-end mono">@Num(c.MinimumFee)</dd>
+                            <dd class="col-6 text-end mono">@MoneyDual(c.MinimumFee, c.CurrencyCode, c.MinimumFeeEur)</dd>
 
                             <dt class="col-6">Minimum applied</dt>
                             <dd class="col-6 text-end">@(c.MinimumApplied ? "Yes" : "No")</dd>
@@ -195,11 +218,33 @@
 @code {
     private const string OpenEnded = "—";
 
-    private BinClassificationRequest _input = new();
+    private BinClassificationRequest _input = new() { AmountCurrency = "EUR" };
     private BinClassificationResult? _result;
+    private List<CurrencyListItem> _currencies = new();
     private bool _amountAsked;
     private bool _busy;
     private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _currencies = (await CurrencyApi.SearchAsync(includeDeleted: false))
+                .Where(c => c.IsActive).ToList();
+        }
+        catch
+        {
+            // The currency list only drives the amount selector; a failure to load it should
+            // not stop a plain classification. Euro is assumed when the list is empty.
+            _currencies = new();
+        }
+
+        // Prefer euro as the pre-selected currency; otherwise the first one offered.
+        if (_currencies.All(c => !string.Equals(c.Code, _input.AmountCurrency, StringComparison.OrdinalIgnoreCase)))
+        {
+            _input.AmountCurrency = _currencies.FirstOrDefault()?.Code ?? "EUR";
+        }
+    }
 
     private async Task Classify()
     {
@@ -232,6 +277,19 @@
     /// locale, so the panel matches what was typed and what the API returned.
     /// </summary>
     private static string Num(decimal value) => value.ToString("0.####", CultureInfo.InvariantCulture);
+
+    /// <summary>A money amount with its currency code, e.g. "0.97 BGN".</summary>
+    private static string Money(decimal value, string code) =>
+        $"{value.ToString("0.00", CultureInfo.InvariantCulture)} {code}";
+
+    /// <summary>
+    /// A money amount in its own currency, plus the euro equivalent when it is not already
+    /// euro, e.g. "0.97 BGN ≈ 0.50 EUR".
+    /// </summary>
+    private static string MoneyDual(decimal value, string code, decimal eur) =>
+        IsEuro(code) ? Money(value, code) : $"{Money(value, code)} ≈ {Money(eur, "EUR")}";
+
+    private static bool IsEuro(string code) => string.Equals(code, "EUR", StringComparison.OrdinalIgnoreCase);
 
     private static string Date(DateTime? value) =>
         value is null ? OpenEnded : value.Value.ToString("yyyy-MM-dd");

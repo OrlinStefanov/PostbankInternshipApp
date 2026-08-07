@@ -30,6 +30,11 @@ public class CommissionRuleListItem
     /// <summary>Resolved region name, or null when the rule wildcards the region.</summary>
     public string? RegionName { get; set; }
 
+    public int CurrencyId { get; set; }
+
+    /// <summary>The currency's ISO-4217 code the amounts are denominated in, e.g. "EUR".</summary>
+    public string CurrencyCode { get; set; } = string.Empty;
+
     public decimal PercentageRate { get; set; }
 
     public decimal FixedAmount { get; set; }
