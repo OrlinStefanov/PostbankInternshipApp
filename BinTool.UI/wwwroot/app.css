@@ -15,77 +15,154 @@
    2. Sets the actual look. Flat surfaces, hairline rules, one accent colour
       reserved for the primary action, and tone pairs (a deep readable
       foreground on a soft tinted background) for anything that carries meaning.
-      No gradients and no shadows beyond the one hairpin lift on a card - the
-      screens are dense tables, and depth effects only get in the way of them.
+      No gradients and no shadows - the screens are dense tables, and depth
+      effects only get in the way of them.
+
+   The palette, type scale and component metrics come from the Figma design
+   file. Everything is expressed through Bootstrap's own class names so the
+   page markup keeps working: `.btn-primary` is still `.btn-primary`, it just
+   looks like the design now.
    ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Fonts
+
+   Vendored rather than pulled from Google's CDN. The app is an internal tool
+   that has to render identically with no network, and a webfont that fails to
+   load silently reflows every table on the screen. Both faces are variable, so
+   one file per subset covers the whole weight range the design uses.
+   -------------------------------------------------------------------------- */
+
+@font-face {
+    font-family: "DM Sans";
+    font-style: normal;
+    font-weight: 100 1000;
+    font-display: swap;
+    src: url("fonts/dm-sans-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+                   U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F,
+                   U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF,
+                   U+FFFD;
+}
+
+@font-face {
+    font-family: "DM Sans";
+    font-style: normal;
+    font-weight: 100 1000;
+    font-display: swap;
+    src: url("fonts/dm-sans-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
+                   U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
+                   U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+                   U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 100 800;
+    font-display: swap;
+    src: url("fonts/jetbrains-mono-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+                   U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F,
+                   U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF,
+                   U+FFFD;
+}
+
+@font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 100 800;
+    font-display: swap;
+    src: url("fonts/jetbrains-mono-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
+                   U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
+                   U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+                   U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
 
 :root {
     /* --- Neutrals ---------------------------------------------------------
        Cool greys. The page sits a shade below white so that white cards read
-       as surfaces rather than as more page. */
-    --app-paper: #f4f6f8;
+       as surfaces rather than as more page. Two line weights: `line` draws the
+       outside of a thing, `line-soft` divides the inside of one. */
+    --app-paper: #f1f3f7;
     --app-surface: #ffffff;
-    --app-sunken: #eef1f4;
-    --app-line: #dde3e9;
-    --app-line-strong: #c3ccd5;
+    --app-sunken: #f9fafb;
+    --app-line: #e5e7eb;
+    --app-line-soft: #f3f4f6;
+    --app-line-strong: #d1d5db;
 
-    --app-ink: #0f1720;
-    --app-body: #29323c;
+    --app-ink: #111827;
+    --app-body: #374151;
+    --app-muted: #6b7280;
+    --app-faint: #9ca3af;
 
-    /* Muted has to clear 4.5:1 on the sunken fill as well as on white, because the
-       table headers sit on --app-sunken. The obvious lighter grey managed only
-       4.32:1 there; this reads just as secondary next to the 13:1 body colour. */
-    --app-muted: #5d6875;
+    /* The tint a table row takes on hover - a blue so faint it reads as a
+       highlight rather than as a selection. */
+    --app-row-hover: #f8faff;
 
     /* --- Accent -----------------------------------------------------------
-       One deep steel blue, spent only on the primary action and the active nav
-       item. Deliberately not Bootstrap's #0d6efd: it needs to sit clearly apart
-       from the success green and the warning amber so that a blue control
-       always means "this is the main thing to press" and never a status. */
-    --app-accent: #17568c;
-    --app-accent-hover: #10406a;
-    --app-accent-soft: #e8f0f7;
-    --app-accent-line: #b9d2e6;
+       One blue, spent on the primary action, the active nav item and the
+       focus ring. Deliberately never used for a status, so a blue control
+       always means "this is the main thing to press". */
+    --app-accent: #2563eb;
+    --app-accent-hover: #1d4ed8;
+    --app-ring: #93c5fd;
 
     /* --- Shell ------------------------------------------------------------
-       The sidebar is its own dark surface, not a tint of the page. */
-    --app-shell: #151b23;
-    --app-shell-line: rgba(255, 255, 255, .09);
-    --app-shell-text: #9caabb;
-    --app-shell-bright: #6cb0e8;
+       The sidebar is its own dark surface, not a tint of the page. Its greys
+       are warmer than the page's so the two never look like a failed match. */
+    --app-shell: #1a2035;
+    --app-shell-line: #242d47;
+    --app-shell-text: #8a94b0;
+    --app-shell-dim: #4a5578;
+    --app-shell-bright: #93c5fd;
+    --app-shell-brand: #e8ecf5;
 
     /* --- Tone pairs -------------------------------------------------------
        Foreground / background / border for anything that means something.
        Every foreground clears 4.5:1 on its own background, which is what the
        old solid-fill badges failed to do. */
-    --tone-neutral-fg: #4a5561;
-    --tone-neutral-bg: #edf0f3;
-    --tone-neutral-line: #d6dde4;
+    --tone-neutral-fg: #374151;
+    --tone-neutral-bg: #f3f4f6;
+    --tone-neutral-line: #e5e7eb;
 
-    --tone-success-fg: #1a6b3f;
-    --tone-success-bg: #e7f3ec;
-    --tone-success-line: #bcdcc9;
+    /* A second, quieter grey. The design gives a withdrawn row a paler chip
+       than an ordinary one so "deleted" recedes instead of just sitting there
+       as another neutral. */
+    --tone-muted-fg: #6b7280;
+    --tone-muted-bg: #f9fafb;
+    --tone-muted-line: #e5e7eb;
 
-    --tone-warning-fg: #855107;
-    --tone-warning-bg: #fcf0dc;
-    --tone-warning-line: #ecd3a2;
+    --tone-success-fg: #15803d;
+    --tone-success-bg: #f0fdf4;
+    --tone-success-line: #bbf7d0;
 
-    --tone-danger-fg: #a02525;
-    --tone-danger-bg: #fbebeb;
-    --tone-danger-line: #f0c5c5;
+    --tone-warning-fg: #b45309;
+    --tone-warning-bg: #fffbeb;
+    --tone-warning-line: #fde68a;
 
-    --tone-info-fg: #1a5b82;
-    --tone-info-bg: #e6f1f8;
-    --tone-info-line: #b8d5e8;
+    /* The solid amber a warning *button* fills with. Darker than the text
+       tone, because it carries white type. */
+    --tone-warning-solid: #d97706;
 
-    --app-radius: .375rem;
-    --app-radius-lg: .5rem;
+    --tone-danger-fg: #dc2626;
+    --tone-danger-bg: #fef2f2;
+    --tone-danger-line: #fecaca;
 
-    /* Segoe UI Variable is the good Windows 11 text face; the rest of the
-       stack is for anyone running this elsewhere. No web fonts - the app
-       should render identically with no network. */
-    --app-font: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text",
-                "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --tone-info-fg: #1d4ed8;
+    --tone-info-bg: #eff6ff;
+    --tone-info-line: #bfdbfe;
+
+    --app-radius: 4px;
+    --app-radius-lg: 6px;
+    --app-radius-pill: 100px;
+
+    --app-font: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+                Roboto, "Helvetica Neue", Arial, sans-serif;
+    --app-font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono",
+                     "SF Mono", Menlo, Consolas, monospace;
 
     /* --- Bootstrap 5.3 tokens the component stylesheets reference ---------- */
     --bs-body-bg: var(--app-surface);
@@ -95,9 +172,8 @@
     --bs-tertiary-bg: var(--app-sunken);
     --bs-success-text-emphasis: var(--tone-success-fg);
     --bs-danger-text-emphasis: var(--tone-danger-fg);
-    --bs-danger-rgb: 160, 37, 37;
-    --bs-font-monospace: ui-monospace, "Cascadia Mono", "Segoe UI Mono",
-                         "SF Mono", Menlo, Consolas, monospace;
+    --bs-danger-rgb: 220, 38, 38;
+    --bs-font-monospace: var(--app-font-mono);
 }
 
 /* --------------------------------------------------------------------------
@@ -115,15 +191,15 @@ html, body {
 body {
     background-color: var(--app-paper);
     color: var(--app-body);
-    font-size: .9375rem;
-    line-height: 1.55;
+    font-size: 14px;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, h4, h5, h6 {
     color: var(--app-ink);
     font-weight: 600;
-    letter-spacing: -.011em;
+    letter-spacing: -.02em;
 }
 
 h1:focus {
@@ -139,7 +215,8 @@ a:hover {
     color: var(--app-accent-hover);
 }
 
-code {
+code, .mono {
+    font-family: var(--app-font-mono);
     color: var(--app-ink);
 }
 
@@ -160,11 +237,32 @@ hr {
     font-variant-numeric: tabular-nums;
 }
 
+/* A thin scrollbar so a scrolling table does not lose a chunk of its last
+   column to chrome. */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--app-line-strong);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--app-faint);
+}
+
 /* --------------------------------------------------------------------------
    Focus
 
-   One consistent ring. The stock template drew a white halo first, which
-   disappears against anything that is not a white background.
+   One consistent ring, drawn as an outline rather than a box-shadow so it
+   clears whatever the control is sitting on - including a table row that is
+   already tinted by hover.
    -------------------------------------------------------------------------- */
 
 .btn:focus-visible,
@@ -172,25 +270,28 @@ hr {
 .form-control:focus,
 .form-select:focus,
 .form-check-input:focus,
-.btn-close:focus {
-    outline: none;
-    border-color: var(--app-accent);
-    box-shadow: 0 0 0 3px rgba(23, 86, 140, .22);
+.btn-close:focus,
+a:focus-visible {
+    outline: 2px solid var(--app-ring);
+    outline-offset: 2px;
+    box-shadow: none;
+    border-color: var(--app-line-strong);
 }
 
 /* Bootstrap 5.1 fires :focus on mouse-down for buttons too; keep the ring for
    keyboards only and leave a pressed button clean. */
 .btn:focus:not(:focus-visible) {
     box-shadow: none;
+    outline: none;
 }
 
 /* --------------------------------------------------------------------------
    Buttons
 
    Every control that performs an action is coloured by what the action *is*,
-   not by where it sits: accent for the main move, red for destructive, green
-   for recovery, grey for a read-only look. A row of same-coloured buttons
-   forces the label to do all the work.
+   not by where it sits: accent for the main move, red for destructive, amber
+   for "this needs a decision", grey for a read-only look. A row of
+   same-coloured buttons forces the label to do all the work.
    -------------------------------------------------------------------------- */
 
 .btn {
@@ -198,18 +299,27 @@ hr {
     --btn-bg: transparent;
     --btn-line: transparent;
     --btn-fg-hover: var(--btn-fg);
-    --btn-bg-hover: var(--app-sunken);
+    --btn-bg-hover: var(--tone-neutral-bg);
     --btn-line-hover: var(--btn-line);
 
+    /* Flex rather than Bootstrap's inline-block, so a button with an icon can
+       space it off the label. `justify-content` has to be restated: the moment
+       the box becomes a flex container, `text-align: center` stops applying to
+       its children, which left every full-width button ragged-left. */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     color: var(--btn-fg);
     background-color: var(--btn-bg);
     border: 1px solid var(--btn-line);
     border-radius: var(--app-radius);
-    padding: .4rem .85rem;
-    font-size: .875rem;
+    padding: 7px 14px;
+    font-size: 13px;
     font-weight: 500;
     line-height: 1.4;
-    transition: background-color .12s ease, border-color .12s ease, color .12s ease;
+    white-space: nowrap;
+    transition: background-color .1s ease, border-color .1s ease, color .1s ease;
 }
 
 .btn:hover {
@@ -219,9 +329,8 @@ hr {
 }
 
 .btn-sm {
-    padding: .25rem .6rem;
-    font-size: .8125rem;
-    border-radius: .3rem;
+    padding: 5px 10px;
+    font-size: 12px;
 }
 
 /* Bootstrap 5.1 hardcodes a disabled colour per variant (`.btn-outline-danger:disabled`
@@ -233,7 +342,8 @@ hr {
     color: var(--btn-fg);
     background-color: var(--btn-bg);
     border-color: var(--btn-line);
-    opacity: .5;
+    opacity: .6;
+    cursor: not-allowed;
 }
 
 /* Solid - the single primary action on a screen or in a dialog. */
@@ -251,8 +361,29 @@ hr {
     --btn-bg: var(--tone-danger-fg);
     --btn-line: var(--tone-danger-fg);
     --btn-fg-hover: #fff;
-    --btn-bg-hover: #861d1d;
-    --btn-line-hover: #861d1d;
+    --btn-bg-hover: #b91c1c;
+    --btn-line-hover: #b91c1c;
+}
+
+/* Amber solid. Reserved for the button that resolves a warning - "Save anyway",
+   "Review" - so it reads as continuous with the banner that raised it. */
+.btn-warning {
+    --btn-fg: #fff;
+    --btn-bg: var(--tone-warning-solid);
+    --btn-line: var(--tone-warning-solid);
+    --btn-fg-hover: #fff;
+    --btn-bg-hover: #b45309;
+    --btn-line-hover: #b45309;
+}
+
+.btn-secondary,
+.btn-outline-secondary {
+    --btn-fg: var(--app-body);
+    --btn-bg: var(--app-surface);
+    --btn-line: var(--app-line-strong);
+    --btn-bg-hover: var(--tone-neutral-bg);
+    --btn-line-hover: var(--app-line-strong);
+    --btn-fg-hover: var(--app-ink);
 }
 
 /* Outline - hairline border, tinted wash on hover. Bootstrap's stock outline
@@ -260,22 +391,16 @@ hr {
    happen to be pointing at shout louder than the data. */
 .btn-outline-primary {
     --btn-fg: var(--app-accent);
-    --btn-line: var(--app-accent-line);
-    --btn-bg-hover: var(--app-accent-soft);
+    --btn-bg: var(--app-surface);
+    --btn-line: var(--tone-info-line);
+    --btn-bg-hover: var(--tone-info-bg);
     --btn-line-hover: var(--app-accent);
     --btn-fg-hover: var(--app-accent-hover);
 }
 
-.btn-outline-secondary {
-    --btn-fg: var(--tone-neutral-fg);
-    --btn-line: var(--app-line-strong);
-    --btn-bg-hover: var(--app-sunken);
-    --btn-line-hover: var(--tone-neutral-fg);
-    --btn-fg-hover: var(--app-ink);
-}
-
 .btn-outline-danger {
     --btn-fg: var(--tone-danger-fg);
+    --btn-bg: var(--app-surface);
     --btn-line: var(--tone-danger-line);
     --btn-bg-hover: var(--tone-danger-bg);
     --btn-line-hover: var(--tone-danger-fg);
@@ -284,12 +409,14 @@ hr {
 
 .btn-outline-success {
     --btn-fg: var(--tone-success-fg);
+    --btn-bg: var(--app-surface);
     --btn-line: var(--tone-success-line);
     --btn-bg-hover: var(--tone-success-bg);
     --btn-line-hover: var(--tone-success-fg);
     --btn-fg-hover: var(--tone-success-fg);
 }
 
+/* Ghost - a control that should not draw the eye until it is wanted. */
 .btn-link {
     --btn-fg: var(--app-accent);
     --btn-bg-hover: transparent;
@@ -314,28 +441,36 @@ hr {
 
 .badge {
     display: inline-block;
-    padding: .25em .6em;
-    font-size: .75rem;
+    padding: 2px 8px;
+    font-size: 11px;
     font-weight: 600;
-    line-height: 1.4;
-    letter-spacing: .01em;
+    line-height: 1.5;
     white-space: nowrap;
     vertical-align: baseline;
     border: 1px solid var(--tone-neutral-line);
-    border-radius: var(--app-radius);
+    border-radius: var(--app-radius-pill);
     color: var(--tone-neutral-fg);
     background-color: var(--tone-neutral-bg);
 }
 
+/* Bootstrap's pill modifier is a no-op here - every badge is already a pill -
+   but pages set it, so it must not undo the padding. */
 .badge.rounded-pill {
-    padding: .25em .7em;
+    border-radius: var(--app-radius-pill);
+}
+
+/* A badge reporting a lifecycle state rather than a value. Uppercase and
+   tracked out so it reads as a label, not as content. */
+.badge-status {
+    text-transform: uppercase;
+    letter-spacing: .04em;
 }
 
 .text-bg-light,
 .text-bg-secondary {
-    color: var(--tone-neutral-fg);
-    background-color: var(--tone-neutral-bg);
-    border-color: var(--tone-neutral-line);
+    color: var(--tone-muted-fg);
+    background-color: var(--tone-muted-bg);
+    border-color: var(--tone-muted-line);
 }
 
 .text-bg-success {
@@ -364,42 +499,136 @@ hr {
 }
 
 /* --------------------------------------------------------------------------
-   Cards and tables
+   Cards
    -------------------------------------------------------------------------- */
 
 .card {
     background-color: var(--app-surface);
     border: 1px solid var(--app-line);
     border-radius: var(--app-radius-lg);
-    box-shadow: 0 1px 2px rgba(15, 23, 32, .04);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 16px;
+    background-color: transparent;
+    border-bottom: 1px solid var(--app-line-soft);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--app-ink);
 }
 
 .card-body {
-    padding: 1.15rem 1.25rem;
+    padding: 16px;
 }
+
+.card-footer {
+    padding: 12px 16px;
+    background-color: transparent;
+    border-top: 1px solid var(--app-line-soft);
+}
+
+/* Title, count and actions all sit on the card header, so it needs two groups
+   rather than one run of children. */
+.card-header-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* How many rows the filters matched. Quieter than a `.badge` - it reports a
+   quantity, not a state, so it gets no border and no colour. */
+.count-pill {
+    padding: 2px 8px;
+    border-radius: var(--app-radius-pill, 100px);
+    background-color: var(--tone-neutral-bg);
+    color: var(--app-muted);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* The strip of filters between a card's header and its table. A hair off-white
+   so it separates from both without needing a second rule. */
+.filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background-color: #fafafa;
+    border-bottom: 1px solid var(--app-line-soft);
+}
+
+.filter-bar .form-control,
+.filter-bar .form-select {
+    width: auto;
+    min-width: 110px;
+}
+
+/* Standing copy that explains the screen. The heading itself is drawn once, by
+   the shell's top bar, so a page contributes only the sentence under it. */
+.page-lead {
+    max-width: 75ch;
+    margin: 0 0 16px;
+    font-size: 14px;
+    color: var(--app-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Tables
+
+   The workhorse of the app. Headers are small, tracked-out and uppercase so a
+   column label never competes with the value under it, and they stick to the
+   top of their scroll container so a long list keeps its headings.
+   -------------------------------------------------------------------------- */
 
 .table {
     --bs-table-bg: transparent;
     border-color: var(--app-line);
+    border-collapse: collapse;
     margin-bottom: 0;
+    width: 100%;
     color: var(--app-body);
 }
 
 .table > :not(caption) > * > * {
-    padding: .6rem .75rem;
-    border-bottom-color: var(--app-line);
+    padding: 9px 12px;
+    font-size: 13px;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--app-line-soft);
+}
+
+.table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 8px 12px;
+    background-color: var(--app-sunken);
+    color: var(--app-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--app-line);
 }
 
 /* 5.1 draws the header divider in `currentColor`, i.e. near-black. */
 .table > :not(:last-child) > :last-child > * {
     border-bottom-color: var(--app-line);
-}
-
-.table thead th {
-    background-color: var(--app-sunken);
-    color: var(--app-muted);
-    font-weight: 600;
-    border-bottom: 1px solid var(--app-line);
 }
 
 .table tbody tr:last-child > * {
@@ -409,12 +638,16 @@ hr {
 /* 5.1 tints rows through an inset shadow, so a hover has to go through the
    same channel rather than `background-color`. */
 .table tbody tr:hover > * {
-    --bs-table-accent-bg: var(--app-sunken);
+    --bs-table-accent-bg: var(--app-row-hover);
 }
 
-.card > .table-responsive:first-child .table thead th:first-child,
-.card > .table-responsive:first-child .table thead th {
-    border-top: 0;
+.table th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.table th.sortable:hover {
+    color: var(--app-body);
 }
 
 /* Keep the header corners inside the card's rounding. */
@@ -423,29 +656,130 @@ hr {
     overflow: auto;
 }
 
+.card > .table-responsive:first-child .table thead th {
+    border-top: 0;
+}
+
+/* The strip under a table: what you are looking at on the left, what to do
+   about it on the right. */
+.table-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+}
+
+.foot-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.foot-controls label {
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.pager {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 8px;
+    padding-left: 12px;
+    border-left: 1px solid var(--app-line);
+    white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   Empty states
+
+   Always the full width of the panel that would have held the rows, centred,
+   one sentence, and at most one thing to press. An empty table that just shows
+   its headers over a blank strip reads as a failure to load.
+   -------------------------------------------------------------------------- */
+
+.empty-state {
+    padding: 64px 24px;
+    text-align: center;
+    color: var(--app-faint);
+}
+
+.empty-mark {
+    font-size: 32px;
+    line-height: 1;
+    margin-bottom: 12px;
+}
+
+.empty-title {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--app-body);
+}
+
+.empty-text {
+    margin: 0 0 16px;
+    font-size: 13px;
+    color: var(--app-muted);
+}
+
+.empty-actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
 /* --------------------------------------------------------------------------
    Forms
    -------------------------------------------------------------------------- */
 
 .form-control,
 .form-select {
+    width: 100%;
     border: 1px solid var(--app-line-strong);
     border-radius: var(--app-radius);
-    padding: .4rem .7rem;
-    font-size: .875rem;
-    color: var(--app-body);
+    padding: 7px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--app-ink);
     background-color: var(--app-surface);
 }
 
+.form-control.mono,
+.form-control[inputmode="numeric"] {
+    font-family: var(--app-font-mono);
+}
+
 .form-control::placeholder {
-    color: #97a1ad;
+    color: var(--app-faint);
+    opacity: 1;
+}
+
+/* Bootstrap 5.1's select chevron is a near-black caret that reads as heavier
+   than the border it sits inside. This is the design's own glyph. */
+.form-select {
+    appearance: none;
+    padding-right: 28px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px 8px;
 }
 
 .form-label {
-    font-size: .8125rem;
+    display: block;
+    font-size: 13px;
     font-weight: 500;
     color: var(--app-body);
-    margin-bottom: .3rem;
+    margin-bottom: 5px;
+}
+
+.form-text {
+    font-size: 12px;
+    color: var(--app-muted);
+    margin-top: 4px;
 }
 
 .form-check-input {
@@ -465,17 +799,20 @@ hr {
     border-color: var(--app-line-strong);
 }
 
+/* Blazor's own validation classes. `.valid.modified` marks every field the user
+   has touched, so it stays quiet - only the invalid state gets a colour. */
 .valid.modified:not([type=checkbox]) {
-    outline: 1px solid var(--tone-success-fg);
+    outline: none;
 }
 
 .invalid {
-    outline: 1px solid var(--tone-danger-fg);
+    border-color: var(--tone-danger-fg) !important;
 }
 
 .validation-message {
     color: var(--tone-danger-fg);
-    font-size: .8125rem;
+    font-size: 12px;
+    margin-top: 4px;
 }
 
 /* --------------------------------------------------------------------------
@@ -485,8 +822,8 @@ hr {
 .alert {
     border: 1px solid transparent;
     border-radius: var(--app-radius);
-    padding: .7rem 1rem;
-    font-size: .875rem;
+    padding: 10px 14px;
+    font-size: 13px;
 }
 
 .alert-success {
@@ -501,8 +838,11 @@ hr {
     border-color: var(--tone-danger-line);
 }
 
+/* The amber alert carries the darker brown text the design uses for warning
+   prose - `--tone-warning-fg` is tuned for an 11px chip, and at paragraph size
+   on a wide fill it reads thin. */
 .alert-warning {
-    color: var(--tone-warning-fg);
+    color: #92400e;
     background-color: var(--tone-warning-bg);
     border-color: var(--tone-warning-line);
 }
@@ -516,25 +856,118 @@ hr {
 .modal-content {
     border: 1px solid var(--app-line);
     border-radius: var(--app-radius-lg);
-    box-shadow: 0 12px 32px rgba(15, 23, 32, .18);
+    box-shadow: 0 12px 32px rgba(17, 24, 39, .18);
 }
 
 .modal-header,
 .modal-footer {
-    border-color: var(--app-line);
-    padding: .9rem 1.25rem;
+    border-color: var(--app-line-soft);
+    padding: 12px 16px;
 }
 
 .modal-body {
-    padding: 1.25rem;
+    padding: 16px;
 }
 
 .modal-title {
-    font-size: 1.0625rem;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--app-ink);
 }
 
 .modal-backdrop {
-    background-color: #0f1720;
+    background-color: var(--app-ink);
+}
+
+/* --------------------------------------------------------------------------
+   Icons
+
+   Drawn with `mask-image` rather than `background-image`, so each glyph is
+   painted in `currentColor` and follows whatever the element it sits in is
+   already doing - a nav link dimming on idle, a card's accent, a disabled
+   control fading. A baked-in fill cannot do that.
+
+   The set lives here rather than in a component stylesheet because both the
+   sidebar and the Home cards draw from it at different sizes; the size is the
+   caller's business, the glyph is not.
+   -------------------------------------------------------------------------- */
+
+.ico {
+    display: inline-block;
+    flex: none;
+    background-color: currentColor;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+.ico-home {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'%3E%3Cpath d='M2.75 6.6 8 2.5l5.25 4.1V13a.75.75 0 0 1-.75.75h-9a.75.75 0 0 1-.75-.75V6.6Z'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'%3E%3Cpath d='M2.75 6.6 8 2.5l5.25 4.1V13a.75.75 0 0 1-.75.75h-9a.75.75 0 0 1-.75-.75V6.6Z'/%3E%3C/svg%3E");
+}
+
+.ico-lookup {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='4.25'/%3E%3Cpath d='m10.25 10.25 3 3'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='4.25'/%3E%3Cpath d='m10.25 10.25 3 3'/%3E%3C/svg%3E");
+}
+
+.ico-ranges {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Crect x='2.25' y='3.25' width='11.5' height='9.5' rx='1.25'/%3E%3Cpath d='M2.25 6.5h11.5M6.5 6.5v6.25'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Crect x='2.25' y='3.25' width='11.5' height='9.5' rx='1.25'/%3E%3Cpath d='M2.25 6.5h11.5M6.5 6.5v6.25'/%3E%3C/svg%3E");
+}
+
+/* The one item that reports a problem rather than a place, so it gets the same
+   triangle the warning banners use. */
+.ico-warning {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2.75 14 13.25H2L8 2.75Z'/%3E%3Cpath d='M8 6.75v2.5'/%3E%3Cpath d='M8 11.35h.01'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2.75 14 13.25H2L8 2.75Z'/%3E%3Cpath d='M8 6.75v2.5'/%3E%3Cpath d='M8 11.35h.01'/%3E%3C/svg%3E");
+}
+
+.ico-import {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2.25v6.5'/%3E%3Cpath d='M5.5 6.25 8 8.75l2.5-2.5'/%3E%3Cpath d='M2.75 10.75V12a1.25 1.25 0 0 0 1.25 1.25h8A1.25 1.25 0 0 0 13.25 12v-1.25'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2.25v6.5'/%3E%3Cpath d='M5.5 6.25 8 8.75l2.5-2.5'/%3E%3Cpath d='M2.75 10.75V12a1.25 1.25 0 0 0 1.25 1.25h8A1.25 1.25 0 0 0 13.25 12v-1.25'/%3E%3C/svg%3E");
+}
+
+/* A clock, not the document glyph the audit log uses, so the two "list of past
+   things" screens are told apart at a glance. */
+.ico-history {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='8' r='5.25'/%3E%3Cpath d='M8 5.25V8l1.75 1.25'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='8' r='5.25'/%3E%3Cpath d='M8 5.25V8l1.75 1.25'/%3E%3C/svg%3E");
+}
+
+.ico-reference {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 3.5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-9Z'/%3E%3Cpath d='M5.25 5.5h5.5M5.25 8h5.5M5.25 10.5h3.5'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 3.5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-9Z'/%3E%3Cpath d='M5.25 5.5h5.5M5.25 8h5.5M5.25 10.5h3.5'/%3E%3C/svg%3E");
+}
+
+/* A note with a coin on it. The euro glyph itself is unreadable at 16px as a
+   stroked outline. */
+.ico-currency {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Crect x='2' y='4' width='12' height='8' rx='1.25'/%3E%3Ccircle cx='8' cy='8' r='1.75'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Crect x='2' y='4' width='12' height='8' rx='1.25'/%3E%3Ccircle cx='8' cy='8' r='1.75'/%3E%3C/svg%3E");
+}
+
+.ico-audit {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 2.25h6l2.75 2.75V13.25a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V2.75a.5.5 0 0 1 .5-.5Z'/%3E%3Cpath d='M9.75 2.5v2.75h2.75'/%3E%3Cpath d='M5.75 7.75h4.5M5.75 10h4.5M5.75 12h2.5'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 2.25h6l2.75 2.75V13.25a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V2.75a.5.5 0 0 1 .5-.5Z'/%3E%3Cpath d='M9.75 2.5v2.75h2.75'/%3E%3Cpath d='M5.75 7.75h4.5M5.75 10h4.5M5.75 12h2.5'/%3E%3C/svg%3E");
+}
+
+.ico-commission {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M4.5 11.5 11.5 4.5'/%3E%3Ccircle cx='5.25' cy='5.25' r='1.4'/%3E%3Ccircle cx='10.75' cy='10.75' r='1.4'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M4.5 11.5 11.5 4.5'/%3E%3Ccircle cx='5.25' cy='5.25' r='1.4'/%3E%3Ccircle cx='10.75' cy='10.75' r='1.4'/%3E%3C/svg%3E");
+}
+
+.ico-access {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Cpath d='M5 7.25V4.9a3 3 0 0 1 6 0v2.35'/%3E%3Crect x='2.75' y='7.25' width='10.5' height='6.5' rx='1.5'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Cpath d='M5 7.25V4.9a3 3 0 0 1 6 0v2.35'/%3E%3Crect x='2.75' y='7.25' width='10.5' height='6.5' rx='1.5'/%3E%3C/svg%3E");
+}
+
+.ico-chevron-left {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.75 4.25 6 8l3.75 3.75'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.75 4.25 6 8l3.75 3.75'/%3E%3C/svg%3E");
 }
 
 /* --------------------------------------------------------------------------
@@ -545,12 +978,12 @@ hr {
    -------------------------------------------------------------------------- */
 
 .blazor-error-boundary {
-    padding: .9rem 1.1rem;
+    padding: 10px 14px;
     color: var(--tone-danger-fg);
     background-color: var(--tone-danger-bg);
     border: 1px solid var(--tone-danger-line);
     border-radius: var(--app-radius);
-    font-size: .875rem;
+    font-size: 13px;
 }
 
     .blazor-error-boundary::after {

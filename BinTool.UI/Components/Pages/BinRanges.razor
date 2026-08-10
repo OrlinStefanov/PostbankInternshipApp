@@ -5,180 +5,140 @@
 
 <PageTitle>BIN Ranges</PageTitle>
 
-<div class="page-head d-flex flex-wrap justify-content-between align-items-start gap-3">
-    <div>
-        <h1 class="h3 mb-1">BIN Ranges</h1>
-        <p class="text-secondary mb-0">
-            Everything currently stored. Filter to find a prefix, and check its status
-            before assuming classification will match it.
-        </p>
-    </div>
-    <div class="d-flex gap-2">
-        <AuthorizeView Policy="@Permissions.BinRangesImport" Context="import">
-            <Authorized>
-                <a class="btn btn-outline-primary" href="import">Import CSV</a>
-            </Authorized>
-        </AuthorizeView>
-        <AuthorizeView Policy="@Permissions.BinRangesWrite" Context="write">
-            <Authorized>
-                <button class="btn btn-primary" @onclick="StartAdd">Add BIN range</button>
-            </Authorized>
-        </AuthorizeView>
-    </div>
-</div>
-
-<div class="filters card mt-4">
-    <div class="card-body">
-        <div class="row g-3 align-items-end">
-            <div class="col-12 col-md-6 col-lg-3">
-                <label class="form-label" for="f-prefix">Prefix starts with</label>
-                <input id="f-prefix" class="form-control" inputmode="numeric" placeholder="e.g. 4000"
-                       value="@_prefix" @oninput="OnPrefixInput" @onkeydown="OnPrefixKeyDown" />
-            </div>
-
-            <div class="col-6 col-md-3 col-lg-2">
-                <label class="form-label" for="f-scheme">Scheme</label>
-                <select id="f-scheme" class="form-select" value="@_cardScheme"
-                        @onchange="e => ApplyFilter(v => _cardScheme = v, e)">
-                    <option value="">Any</option>
-                    @foreach (var name in _options.CardSchemes)
-                    {
-                        <option value="@name">@name</option>
-                    }
-                </select>
-            </div>
-
-            <div class="col-6 col-md-3 col-lg-2">
-                <label class="form-label" for="f-product">Product</label>
-                <select id="f-product" class="form-select" value="@_productType"
-                        @onchange="e => ApplyFilter(v => _productType = v, e)">
-                    <option value="">Any</option>
-                    @foreach (var name in _options.ProductTypes)
-                    {
-                        <option value="@name">@name</option>
-                    }
-                </select>
-            </div>
-
-            <div class="col-6 col-md-3 col-lg-2">
-                <label class="form-label" for="f-funding">Funding</label>
-                <select id="f-funding" class="form-select" value="@_fundingType"
-                        @onchange="e => ApplyFilter(v => _fundingType = v, e)">
-                    <option value="">Any</option>
-                    @foreach (var name in _options.FundingTypes)
-                    {
-                        <option value="@name">@name</option>
-                    }
-                </select>
-            </div>
-
-            <div class="col-6 col-md-3 col-lg-2">
-                <label class="form-label" for="f-country">Country</label>
-                <select id="f-country" class="form-select" value="@_countryCode"
-                        @onchange="e => ApplyFilter(v => _countryCode = v, e)">
-                    <option value="">Any</option>
-                    @foreach (var country in _options.Countries)
-                    {
-                        <option value="@country.IsoCode">@country.IsoCode — @country.Name</option>
-                    }
-                </select>
-            </div>
-
-            <div class="col-6 col-md-3 col-lg-2">
-                <label class="form-label" for="f-added-by">Added by</label>
-                <select id="f-added-by" class="form-select" value="@_createdBy"
-                        @onchange="e => ApplyFilter(v => _createdBy = v, e)">
-                    <option value="">Anyone</option>
-                    @foreach (var name in _options.Creators)
-                    {
-                        <option value="@name">@(IsSystem(name) ? "System" : name)</option>
-                    }
-                </select>
-            </div>
-
-            <div class="col-6 col-md-3 col-lg-1">
-                <label class="form-label" for="f-status">Status</label>
-                <select id="f-status" class="form-select" value="@_status" @onchange="OnStatusChanged">
-                    <option value="">Live</option>
-                    <option value="@nameof(BinRangeStatus.Active)">Active</option>
-                    <option value="@nameof(BinRangeStatus.Scheduled)">Scheduled</option>
-                    <option value="@nameof(BinRangeStatus.Expired)">Expired</option>
-                    <option value="@nameof(BinRangeStatus.Deleted)">Deleted</option>
-                </select>
-            </div>
-        </div>
-
-        @if (HasFilters)
-        {
-            <button class="btn btn-link btn-sm px-0 mt-2" @onclick="ClearFilters">Clear filters</button>
-        }
-    </div>
-</div>
+<p class="page-lead">
+    Everything currently stored. Filter to find a prefix, and check its status
+    before assuming classification will match it.
+</p>
 
 @if (_error is not null)
 {
-    <div class="alert alert-danger mt-4" role="alert">@_error</div>
+    <div class="alert alert-danger mb-3" role="alert">@_error</div>
 }
 
 @if (_notice is not null)
 {
-    <div class="alert alert-success alert-dismissible mt-4" role="alert">
+    <div class="alert alert-success alert-dismissible mb-3" role="alert">
         @_notice
         <button type="button" class="btn-close" aria-label="Dismiss"
                 @onclick="() => _notice = null"></button>
     </div>
 }
 
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-4 mb-2">
-    <span class="text-secondary small">
-        @if (_loading)
-        {
-            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-            <span>Loading…</span>
-        }
-        else if (_page.TotalCount == 0)
-        {
-            <span>No ranges match</span>
-        }
-        else
-        {
-            <span>
-                @FirstOnPage–@LastOnPage of <strong class="text-body">@_page.TotalCount</strong>
-                @(_page.TotalCount == 1 ? "range" : "ranges")
-            </span>
-        }
-    </span>
-
-    <div class="d-flex align-items-center gap-2">
-        <label class="text-secondary small mb-0" for="f-size">Per page</label>
-        <select id="f-size" style="min-width: 75px;" class="form-select form-select-sm w-auto" value="@_pageSize"
-                @onchange="OnPageSizeChanged">
-            <option value="25">25</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-        </select>
-    </div>
-</div>
-
-@if (!_loading && _page.TotalCount == 0 && _error is null)
-{
-    <div class="card empty-state">
-        <div class="card-body text-center py-5">
-            <p class="mb-1 fw-semibold">Nothing to show</p>
-            <p class="text-secondary mb-3">
-                @(HasFilters
-                    ? "No BIN range matches these filters."
-                    : "No BIN ranges have been imported yet.")
-            </p>
-            @if (HasFilters)
+<div class="card">
+    <div class="card-header">
+        <div class="card-header-main">
+            <span>BIN Ranges</span>
+            @if (_loading)
             {
-                <button class="btn btn-outline-secondary btn-sm" @onclick="ClearFilters">Clear filters</button>
+                <span class="spinner-border spinner-border-sm text-secondary"
+                      role="status" aria-hidden="true"></span>
             }
             else
             {
+                <span class="count-pill">@_page.TotalCount</span>
+            }
+        </div>
+        <div class="card-actions">
+            <AuthorizeView Policy="@Permissions.BinRangesImport" Context="import">
+                <Authorized>
+                    <a class="btn btn-outline-primary btn-sm" href="import">Import CSV</a>
+                </Authorized>
+            </AuthorizeView>
+            <AuthorizeView Policy="@Permissions.BinRangesWrite" Context="write">
+                <Authorized>
+                    <button class="btn btn-primary btn-sm" @onclick="StartAdd">Add range</button>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+    </div>
+
+    @* Each filter carries its name in the placeholder or in its "any" option rather
+       than in a label - that is what keeps the strip to a single row. `aria-label`
+       says the same thing to a screen reader, which a placeholder alone would not. *@
+    <div class="filter-bar">
+        <input class="form-control mono" style="width: 150px" inputmode="numeric"
+               aria-label="Prefix starts with" placeholder="Prefix starts with…"
+               value="@_prefix" @oninput="OnPrefixInput" @onkeydown="OnPrefixKeyDown" />
+
+        <select class="form-select" aria-label="Card scheme" value="@_cardScheme"
+                @onchange="e => ApplyFilter(v => _cardScheme = v, e)">
+            <option value="">All schemes</option>
+            @foreach (var name in _options.CardSchemes)
+            {
+                <option value="@name">@name</option>
+            }
+        </select>
+
+        <select class="form-select" aria-label="Product type" value="@_productType"
+                @onchange="e => ApplyFilter(v => _productType = v, e)">
+            <option value="">All products</option>
+            @foreach (var name in _options.ProductTypes)
+            {
+                <option value="@name">@name</option>
+            }
+        </select>
+
+        <select class="form-select" aria-label="Funding type" value="@_fundingType"
+                @onchange="e => ApplyFilter(v => _fundingType = v, e)">
+            <option value="">All funding</option>
+            @foreach (var name in _options.FundingTypes)
+            {
+                <option value="@name">@name</option>
+            }
+        </select>
+
+        <select class="form-select" aria-label="Issuing country" value="@_countryCode"
+                @onchange="e => ApplyFilter(v => _countryCode = v, e)">
+            <option value="">All countries</option>
+            @foreach (var country in _options.Countries)
+            {
+                <option value="@country.IsoCode">@country.IsoCode — @country.Name</option>
+            }
+        </select>
+
+        <select class="form-select" aria-label="Added by" value="@_createdBy"
+                @onchange="e => ApplyFilter(v => _createdBy = v, e)">
+            <option value="">Anyone</option>
+            @foreach (var name in _options.Creators)
+            {
+                <option value="@name">@(IsSystem(name) ? "System" : name)</option>
+            }
+        </select>
+
+        <select class="form-select" aria-label="Status" value="@_status" @onchange="OnStatusChanged">
+            <option value="">Live</option>
+            <option value="@nameof(BinRangeStatus.Active)">Active</option>
+            <option value="@nameof(BinRangeStatus.Scheduled)">Scheduled</option>
+            <option value="@nameof(BinRangeStatus.Expired)">Expired</option>
+            <option value="@nameof(BinRangeStatus.Deleted)">Deleted</option>
+        </select>
+
+        @if (HasFilters)
+        {
+            <button class="btn btn-link btn-sm" @onclick="ClearFilters">Clear filters</button>
+        }
+    </div>
+
+@if (!_loading && _page.TotalCount == 0 && _error is null)
+{
+    <div class="empty-state">
+        <div class="empty-mark" aria-hidden="true">◇</div>
+        <p class="empty-title">Nothing to show</p>
+        <p class="empty-text">
+            @(HasFilters
+                ? "No BIN range matches these filters."
+                : "No BIN ranges have been imported yet.")
+        </p>
+        @if (HasFilters)
+        {
+            <button class="btn btn-outline-secondary btn-sm" @onclick="ClearFilters">Clear filters</button>
+        }
+        else
+        {
+            <div class="empty-actions">
                 <AuthorizeView Policy="@Permissions.BinRangesImport" Context="import">
                     <Authorized>
-                        <a class="btn btn-outline-primary btn-sm me-1" href="import">Import a CSV</a>
+                        <a class="btn btn-outline-primary btn-sm" href="import">Import a CSV</a>
                     </Authorized>
                 </AuthorizeView>
                 <AuthorizeView Policy="@Permissions.BinRangesWrite" Context="write">
@@ -186,13 +146,12 @@
                         <button class="btn btn-primary btn-sm" @onclick="StartAdd">Add one by hand</button>
                     </Authorized>
                 </AuthorizeView>
-            }
-        </div>
+            </div>
+        }
     </div>
 }
 else
 {
-    <div class="card">
         <div class="table-responsive">
             <table class="table table-sm align-middle mb-0 range-table">
                 <thead>
@@ -250,7 +209,7 @@ else
                                 <span class="text-secondary small d-block">@Date(item.CreatedAt)</span>
                             </td>
                             <td>
-                                <span class="badge rounded-pill text-bg-@StatusColor(item.Status)">
+                                <span class="badge badge-status text-bg-@StatusColor(item.Status)">
                                     @item.Status
                                 </span>
                             </td>
@@ -289,27 +248,51 @@ else
                 </tbody>
             </table>
         </div>
-    </div>
 
-    @if (_page.TotalPages > 1)
-    {
-        <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="BIN range pages">
-            <button class="btn btn-outline-secondary btn-sm"
-                    @onclick="() => GoToPage(_page.Page - 1)"
-                    disabled="@(_loading || !_page.HasPrevious)">
-                Previous
-            </button>
+        <div class="card-footer table-foot">
+            <span class="text-secondary">
+                @if (_page.TotalCount == 0)
+                {
+                    <span>No ranges match</span>
+                }
+                else
+                {
+                    <span>
+                        @FirstOnPage–@LastOnPage of <strong class="text-body">@_page.TotalCount</strong>
+                        @(_page.TotalCount == 1 ? "range" : "ranges")
+                    </span>
+                }
+            </span>
 
-            <span class="text-secondary small">Page @_page.Page of @_page.TotalPages</span>
+            <div class="foot-controls">
+                <label class="text-secondary" for="f-size">Per page</label>
+                <select id="f-size" class="form-select form-select-sm" style="width: 75px"
+                        value="@_pageSize" @onchange="OnPageSizeChanged">
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
 
-            <button class="btn btn-outline-secondary btn-sm"
-                    @onclick="() => GoToPage(_page.Page + 1)"
-                    disabled="@(_loading || !_page.HasNext)">
-                Next
-            </button>
-        </nav>
-    }
+                @if (_page.TotalPages > 1)
+                {
+                    <nav class="pager" aria-label="BIN range pages">
+                        <button class="btn btn-outline-secondary btn-sm"
+                                @onclick="() => GoToPage(_page.Page - 1)"
+                                disabled="@(_loading || !_page.HasPrevious)">
+                            Previous
+                        </button>
+                        <span class="text-secondary">Page @_page.Page of @_page.TotalPages</span>
+                        <button class="btn btn-outline-secondary btn-sm"
+                                @onclick="() => GoToPage(_page.Page + 1)"
+                                disabled="@(_loading || !_page.HasNext)">
+                            Next
+                        </button>
+                    </nav>
+                }
+            </div>
+        </div>
 }
+</div>
 
 @if (_editorOpen)
 {

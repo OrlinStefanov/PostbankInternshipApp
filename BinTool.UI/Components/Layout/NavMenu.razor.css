@@ -3,25 +3,35 @@
    Icons are drawn with `mask-image` rather than `background-image`, so the
    glyph is painted in `currentColor` and follows the link's own idle / hover /
    active colour. The previous set was baked to white and stayed white however
-   dim the label went. */
+   dim the label went.
+
+   The design marks the active item with a bar on the leading edge and a tinted
+   wash rather than a rounded pill, so items run the full width of the rail and
+   the bar has an edge to sit against. */
 
 .nav-head {
     display: flex;
     align-items: center;
-    height: 3.5rem;
-    padding: 0 1rem;
-    border-bottom: 1px solid var(--app-shell-line, rgba(255, 255, 255, .09));
+    gap: 10px;
+    height: 56px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--app-shell-line, #242d47);
+    flex-shrink: 0;
 }
 
 .brand {
     display: flex;
     align-items: center;
-    gap: .6rem;
+    gap: 10px;
     min-width: 0;
-    color: #fff;
+    color: var(--app-shell-brand, #e8ecf5);
     text-decoration: none;
     font-weight: 600;
-    letter-spacing: -.01em;
+    letter-spacing: -.02em;
+}
+
+.brand:hover {
+    color: #fff;
 }
 
 .brand-mark {
@@ -29,17 +39,18 @@
     align-items: center;
     justify-content: center;
     flex: none;
-    width: 1.75rem;
-    height: 1.75rem;
-    border-radius: .4rem;
-    background-color: var(--app-accent, #17568c);
+    width: 26px;
+    height: 26px;
+    border-radius: 4px;
+    background-color: var(--app-accent, #2563eb);
     color: #fff;
-    font-size: .875rem;
+    font-size: 13px;
     font-weight: 700;
+    letter-spacing: -.02em;
 }
 
 .brand-text {
-    font-size: 1rem;
+    font-size: 15px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -48,103 +59,99 @@
 .nav-list {
     display: flex;
     flex-direction: column;
-    gap: .125rem;
-    padding: .75rem;
+    padding: 8px 0;
+}
+
+/* A group whose every link was filtered out by the user's role would otherwise
+   leave its heading behind with nothing under it. */
+.nav-group:not(:has(.nav-item)) {
+    display: none;
+}
+
+.nav-group-label {
+    padding: 12px 16px 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--app-shell-dim, #4a5578);
+    white-space: nowrap;
 }
 
 .nav-item ::deep .nav-link {
-    position: relative;
     display: flex;
     align-items: center;
-    gap: .7rem;
-    height: 2.5rem;
-    padding: 0 .7rem;
+    gap: 9px;
+    width: 100%;
+    padding: 8px 12px 8px 14px;
     border: none;
-    border-radius: var(--app-radius, .375rem);
+    border-left: 3px solid transparent;
+    border-radius: 0;
     background: none;
-    color: var(--app-shell-text, #9caabb);
-    font-size: .875rem;
-    font-weight: 500;
+    color: var(--app-shell-text, #8a94b0);
+    font-size: 13.5px;
+    font-weight: 400;
+    text-align: left;
     text-decoration: none;
     white-space: nowrap;
-    transition: background-color .12s ease, color .12s ease;
+    transition: background-color .1s ease, color .1s ease;
 }
 
 .nav-item ::deep .nav-link:hover {
-    background-color: rgba(255, 255, 255, .07);
+    background-color: rgba(255, 255, 255, .04);
     color: #fff;
 }
 
 .nav-item ::deep a.active {
-    background-color: rgba(255, 255, 255, .11);
-    color: #fff;
+    background-color: rgba(37, 99, 235, .18);
+    border-left-color: var(--app-accent, #2563eb);
+    color: var(--app-shell-bright, #93c5fd);
+    font-weight: 600;
 }
 
-/* A bar on the leading edge, so the active item is still marked in the rail
-   where the label that would otherwise identify it is hidden. */
-.nav-item ::deep a.active::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 50%;
-    width: 3px;
-    height: 1.25rem;
-    transform: translateY(-50%);
-    border-radius: 0 2px 2px 0;
-    background-color: var(--app-shell-bright, #6cb0e8);
+.nav-item ::deep .nav-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
+/* Sizing only - the glyph itself comes from the shared `.ico-*` set in app.css.
+   The box is wider than the mark so the labels line up on a common left edge
+   whatever shape each icon happens to be. */
 .nav-item ::deep .nav-icon {
-    flex: none;
-    width: 1.25rem;
-    height: 1.25rem;
-    background-color: currentColor;
-    -webkit-mask-repeat: no-repeat;
-    mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-    mask-position: center;
-    -webkit-mask-size: 1.15rem 1.15rem;
-    mask-size: 1.15rem 1.15rem;
+    width: 18px;
+    height: 18px;
+    -webkit-mask-size: 16px 16px;
+    mask-size: 16px 16px;
 }
 
-.nav-item ::deep .icon-home {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'%3E%3Cpath d='M2.75 6.6 8 2.5l5.25 4.1V13a.75.75 0 0 1-.75.75h-9a.75.75 0 0 1-.75-.75V6.6Z'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'%3E%3Cpath d='M2.75 6.6 8 2.5l5.25 4.1V13a.75.75 0 0 1-.75.75h-9a.75.75 0 0 1-.75-.75V6.6Z'/%3E%3C/svg%3E");
+/* --- Collapse ------------------------------------------------------------- */
+
+.nav-collapse-btn {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 14px;
+    margin-top: auto;
+    border-top: 1px solid var(--app-shell-line, #242d47);
+    padding-top: 18px;
+    color: var(--app-shell-dim, #4a5578);
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+    flex-shrink: 0;
 }
 
-.nav-item ::deep .icon-lookup {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='4.25'/%3E%3Cpath d='m10.25 10.25 3 3'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='4.25'/%3E%3Cpath d='m10.25 10.25 3 3'/%3E%3C/svg%3E");
+.nav-collapse-btn:hover {
+    color: var(--app-shell-text, #8a94b0);
 }
 
-.nav-item ::deep .icon-ranges {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Crect x='2.25' y='3.25' width='11.5' height='9.5' rx='1.25'/%3E%3Cpath d='M2.25 6.5h11.5M6.5 6.5v6.25'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Crect x='2.25' y='3.25' width='11.5' height='9.5' rx='1.25'/%3E%3Cpath d='M2.25 6.5h11.5M6.5 6.5v6.25'/%3E%3C/svg%3E");
-}
-
-.nav-item ::deep .icon-import {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2.25v6.5'/%3E%3Cpath d='M5.5 6.25 8 8.75l2.5-2.5'/%3E%3Cpath d='M2.75 10.75V12a1.25 1.25 0 0 0 1.25 1.25h8A1.25 1.25 0 0 0 13.25 12v-1.25'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2.25v6.5'/%3E%3Cpath d='M5.5 6.25 8 8.75l2.5-2.5'/%3E%3Cpath d='M2.75 10.75V12a1.25 1.25 0 0 0 1.25 1.25h8A1.25 1.25 0 0 0 13.25 12v-1.25'/%3E%3C/svg%3E");
-}
-
-.nav-item ::deep .icon-reference {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 3.5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-9Z'/%3E%3Cpath d='M5.25 5.5h5.5M5.25 8h5.5M5.25 10.5h3.5'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 3.5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-9Z'/%3E%3Cpath d='M5.25 5.5h5.5M5.25 8h5.5M5.25 10.5h3.5'/%3E%3C/svg%3E");
-}
-
-.nav-item ::deep .icon-audit {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 2.25h6l2.75 2.75V13.25a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V2.75a.5.5 0 0 1 .5-.5Z'/%3E%3Cpath d='M9.75 2.5v2.75h2.75'/%3E%3Cpath d='M5.75 7.75h4.5M5.75 10h4.5M5.75 12h2.5'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 2.25h6l2.75 2.75V13.25a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V2.75a.5.5 0 0 1 .5-.5Z'/%3E%3Cpath d='M9.75 2.5v2.75h2.75'/%3E%3Cpath d='M5.75 7.75h4.5M5.75 10h4.5M5.75 12h2.5'/%3E%3C/svg%3E");
-}
-
-.nav-item ::deep .icon-commission {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M4.5 11.5 11.5 4.5'/%3E%3Ccircle cx='5.25' cy='5.25' r='1.4'/%3E%3Ccircle cx='10.75' cy='10.75' r='1.4'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M4.5 11.5 11.5 4.5'/%3E%3Ccircle cx='5.25' cy='5.25' r='1.4'/%3E%3Ccircle cx='10.75' cy='10.75' r='1.4'/%3E%3C/svg%3E");
-}
-
-.nav-item ::deep .icon-access {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Cpath d='M5 7.25V4.9a3 3 0 0 1 6 0v2.35'/%3E%3Crect x='2.75' y='7.25' width='10.5' height='6.5' rx='1.5'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Cpath d='M5 7.25V4.9a3 3 0 0 1 6 0v2.35'/%3E%3Crect x='2.75' y='7.25' width='10.5' height='6.5' rx='1.5'/%3E%3C/svg%3E");
+.nav-collapse-icon {
+    width: 18px;
+    height: 18px;
+    -webkit-mask-size: 16px 16px;
+    mask-size: 16px 16px;
+    transition: transform .18s ease;
 }
 
 /* --- Phone: the whole nav hides behind the toggle ------------------------- */
@@ -154,13 +161,13 @@
     -webkit-appearance: none;
     cursor: pointer;
     position: absolute;
-    top: .6rem;
-    right: 1rem;
-    width: 2.5rem;
-    height: 2.25rem;
-    border: 1px solid var(--app-shell-line, rgba(255, 255, 255, .09));
-    border-radius: var(--app-radius, .375rem);
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30' fill='none' stroke='rgba%28255,255,255,0.75%29' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M5 8h20M5 15h20M5 22h20'/%3E%3C/svg%3E") no-repeat center/1.4rem;
+    top: 11px;
+    right: 16px;
+    width: 40px;
+    height: 34px;
+    border: 1px solid var(--app-shell-line, #242d47);
+    border-radius: var(--app-radius, 4px);
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30' fill='none' stroke='rgba%28255,255,255,0.75%29' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M5 8h20M5 15h20M5 22h20'/%3E%3C/svg%3E") no-repeat center/22px;
 }
 
 .navbar-toggler:checked {
@@ -175,6 +182,12 @@
     display: block;
 }
 
+/* The collapse control is meaningless on a phone, where the sidebar is already
+   a drop-down rather than a rail. */
+.nav-collapse-btn {
+    display: none;
+}
+
 /* --- Pinned sidebar ------------------------------------------------------- */
 
 @media (min-width: 641px) {
@@ -184,37 +197,11 @@
 
     .nav-scrollable {
         display: block;
-        height: calc(100vh - 3.5rem);
+        flex: 1;
         overflow-y: auto;
     }
-}
 
-/* --- Icon rail -----------------------------------------------------------
-   Wide enough to be pinned, too narrow to spend 16rem on navigation. Labels
-   go, icons centre, and the `title` tooltip carries the name. MainLayout
-   narrows the sidebar itself over the same range. */
-
-@media (min-width: 641px) and (max-width: 1099.98px) {
-    .nav-head {
-        justify-content: center;
-        padding: 0 .5rem;
-    }
-
-    .brand-text {
-        display: none;
-    }
-
-    .nav-list {
-        padding: .75rem .5rem;
-    }
-
-    .nav-item ::deep .nav-link {
-        justify-content: center;
-        gap: 0;
-        padding: 0;
-    }
-
-    .nav-item ::deep .nav-text {
-        display: none;
+    .nav-collapse-btn {
+        display: flex;
     }
 }

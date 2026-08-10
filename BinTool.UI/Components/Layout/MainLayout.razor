@@ -1,22 +1,33 @@
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Nav
 
 <div class="page">
+    @* Drives the sidebar width from CSS alone. It lives here rather than in
+       NavMenu because it has to be a sibling of `.sidebar` to size it; the
+       label that toggles it is at the foot of the nav, wired up by `for`. *@
+    <input type="checkbox" id="nav-collapse" class="nav-collapse" aria-label="Collapse navigation" />
+
     <div class="sidebar">
         <NavMenu />
     </div>
 
     <main>
         <div class="top-row">
+            <h1 class="page-name">@PageName()</h1>
+
             <AuthorizeView>
                 <Authorized>
-                    <span class="user-chip">
-                        <span class="user-avatar" aria-hidden="true">@Initials(context.User)</span>
-                        <span class="user-lines">
-                            <span class="user-name">@DisplayName(context.User)</span>
-                            <span class="user-roles">@Roles(context.User)</span>
+                    <div class="top-row-end">
+                        <span class="user-chip">
+                            <span class="user-avatar" aria-hidden="true">@Initials(context.User)</span>
+                            <span class="user-lines">
+                                <span class="user-name">@DisplayName(context.User)</span>
+                                <span class="user-roles">@Roles(context.User)</span>
+                            </span>
                         </span>
-                    </span>
-                    <a class="btn btn-outline-secondary btn-sm" href="logout">Sign out</a>
+                        <a class="btn btn-outline-secondary btn-sm" href="logout">Sign out</a>
+                    </div>
                 </Authorized>
                 <NotAuthorized>
                     <a class="btn btn-primary btn-sm" href="login">Sign in</a>
@@ -37,6 +48,55 @@
 </div>
 
 @code {
+    protected override void OnInitialized() =>
+        Nav.LocationChanged += OnLocationChanged;
+
+    public void Dispose() =>
+        Nav.LocationChanged -= OnLocationChanged;
+
+    /// <summary>
+    /// The top bar names the screen you are on. Under static rendering the layout
+    /// is rebuilt on every navigation anyway, but an interactive route would not
+    /// rebuild it, so the change is listened for rather than assumed.
+    /// </summary>
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) =>
+        InvokeAsync(StateHasChanged);
+
+    /// <summary>
+    /// Route-to-label map for the top bar. Deliberately a lookup rather than a
+    /// property on each page: the layout renders before the page does, so there is
+    /// nothing to read off it, and a cascading value would make every page pay for
+    /// a heading only the shell draws.
+    /// </summary>
+    private static readonly Dictionary<string, string> PageNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        [""] = "Home",
+        ["lookup"] = "BIN Lookup",
+        ["bin-ranges"] = "BIN Ranges",
+        ["vulnerabilities"] = "Vulnerabilities",
+        ["import"] = "Import CSV",
+        ["import-history"] = "Import History",
+        ["commission-rules"] = "Commission Rules",
+        ["reference-data"] = "Reference Data",
+        ["currencies"] = "Currencies",
+        ["audit"] = "Audit Log",
+        ["access-control"] = "Access Control",
+        ["logout"] = "Sign out",
+        ["access-denied"] = "Access denied"
+    };
+
+    private string PageName()
+    {
+        var path = Nav.ToBaseRelativePath(Nav.Uri);
+
+        // Query and fragment are not part of the route, and a page reached with a
+        // filter applied is still the same page.
+        var cut = path.IndexOfAny(new[] { '?', '#' });
+        if (cut >= 0) path = path[..cut];
+
+        return PageNames.TryGetValue(path.Trim('/'), out var name) ? name : "BinTool";
+    }
+
     private static string DisplayName(System.Security.Claims.ClaimsPrincipal user)
     {
         var fullName = user.FindFirst("full_name")?.Value;

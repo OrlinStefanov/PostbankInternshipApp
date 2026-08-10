@@ -4,138 +4,168 @@
 
 <PageTitle>BinTool</PageTitle>
 
-<div class="page-head">
-    <h1 class="h3 mb-1">BinTool</h1>
-    <p class="text-secondary mb-0">
-        Card BIN classification and commission configuration. Everything a lookup returns
-        comes from the imported ranges - no scheme is hard-coded.
-    </p>
-</div>
-
-<AuthorizeView>
-    <Authorized>
-        @* Vulnerabilities: stored rows whose scheme contradicts the detector. Only shown
-           when the scan actually finds something, so a healthy database has no callout at
-           all. The count is a decoration - a load failure hides it silently rather than
-           showing a stale badge. *@
-        <AuthorizeView Policy="@Permissions.BinRangesRead" Context="vuln">
-            <Authorized>
-                @if (_mismatchCount > 0)
-                {
-                    <div class="card border-warning bg-warning-subtle mt-4">
-                        <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
-                            <div>
-                                <h2 class="h5 mb-1">
-                                    <span class="badge text-bg-warning me-2">@_mismatchCount</span>
-                                    BIN vulnerabilities need review
-                                </h2>
-                                <p class="mb-0 text-body-secondary">
-                                    Stored @(_mismatchCount == 1 ? "range has" : "ranges have")
-                                    a card scheme that contradicts the prefix. Correct
-                                    @(_mismatchCount == 1 ? "it" : "them") before the next
-                                    classification returns the wrong network.
-                                </p>
+<div class="home">
+    <AuthorizeView>
+        <Authorized>
+            @* Vulnerabilities: stored rows whose scheme contradicts the detector. Only shown
+               when the scan actually finds something, so a healthy database has no callout at
+               all. It sits above the title because it is the one thing on this screen that
+               wants acting on rather than navigating to. The count is a decoration - a load
+               failure hides it silently rather than showing a stale badge. *@
+            <AuthorizeView Policy="@Permissions.BinRangesRead" Context="vuln">
+                <Authorized>
+                    @if (_mismatchCount > 0)
+                    {
+                        <div class="alarm">
+                            <div class="alarm-said">
+                                <span class="alarm-count">
+                                    @_mismatchCount @(_mismatchCount == 1 ? "vulnerability" : "vulnerabilities")
+                                </span>
+                                <span class="alarm-text">
+                                    @_mismatchCount stored BIN
+                                    @(_mismatchCount == 1 ? "range has a scheme" : "ranges have a scheme")
+                                    that contradicts the detected card prefix — these may cause
+                                    incorrect routing or fee calculations.
+                                </span>
                             </div>
-                            <a class="btn btn-warning" href="vulnerabilities">Review</a>
+                            <a class="btn btn-warning btn-sm" href="vulnerabilities">Review</a>
                         </div>
-                    </div>
-                }
-            </Authorized>
-        </AuthorizeView>
-
-        @* Only the cards a signed-in user can actually act on. Each route is guarded in
-           its own right, so this is presentation rather than the control. *@
-        <div class="entry-grid mt-4">
-            <AuthorizeView Policy="@Permissions.BinClassify" Context="lookup">
-                <Authorized>
-                    <a class="entry" href="lookup">
-                        <span class="entry-title">BIN lookup</span>
-                        <span class="entry-text">
-                            Classify a BIN against the stored ranges, and add an amount to
-                            price it with the commission rule that matches the card.
-                        </span>
-                    </a>
+                    }
                 </Authorized>
             </AuthorizeView>
 
-            <a class="entry" href="bin-ranges">
-                <span class="entry-title">BIN ranges</span>
-                <span class="entry-text">
-                    Browse and filter what is stored, check whether a prefix is active,
-                    scheduled, expired or withdrawn, and maintain ranges one at a time.
-                </span>
-            </a>
-
-            <AuthorizeView Policy="@Permissions.BinRangesImport" Context="import">
-                <Authorized>
-                    <a class="entry" href="import">
-                        <span class="entry-title">Import CSV</span>
-                        <span class="entry-text">
-                            Load a batch of ranges. Rows that clash with a stored record are
-                            staged as conflicts for review instead of overwriting anything.
-                        </span>
-                    </a>
-                </Authorized>
-            </AuthorizeView>
-
-            <AuthorizeView Policy="@Permissions.ReferenceDataManage" Context="reference">
-                <Authorized>
-                    <a class="entry" href="reference-data">
-                        <span class="entry-title">Reference data</span>
-                        <span class="entry-text">
-                            Add or retire card schemes, product types, funding types,
-                            regions and countries without a code change.
-                        </span>
-                    </a>
-                </Authorized>
-            </AuthorizeView>
-
-            <AuthorizeView Policy="@Permissions.CommissionRulesRead" Context="commission">
-                <Authorized>
-                    <a class="entry" href="commission-rules">
-                        <span class="entry-title">Commission rules</span>
-                        <span class="entry-text">
-                            Configure the pricing a lookup applies to an amount - a percentage
-                            plus a fixed fee with a minimum, keyed on scheme, product and region.
-                        </span>
-                    </a>
-                </Authorized>
-            </AuthorizeView>
-
-            <AuthorizeView Policy="@Permissions.AuditRead" Context="audit">
-                <Authorized>
-                    <a class="entry" href="audit">
-                        <span class="entry-title">Audit log</span>
-                        <span class="entry-text">
-                            Read the trail of who changed which BIN range, role or role
-                            assignment, with the before and after of each change.
-                        </span>
-                    </a>
-                </Authorized>
-            </AuthorizeView>
-
-            <AuthorizeView Policy="@Permissions.RolesManage" Context="access">
-                <Authorized>
-                    <a class="entry" href="access-control">
-                        <span class="entry-title">Access control</span>
-                        <span class="entry-text">
-                            Compose roles from the permission catalogue and assign them to
-                            people. Changes reach a user on their next sign-in.
-                        </span>
-                    </a>
-                </Authorized>
-            </AuthorizeView>
-        </div>
-    </Authorized>
-    <NotAuthorized>
-        <div class="card mt-4">
-            <div class="card-body">
-                <p class="mb-3">Sign in to browse BIN ranges and import data.</p>
-                <a class="btn btn-primary" href="login">Sign in</a>
+            <div class="home-head">
+                <h2>BinTool</h2>
+                <p>Card-BIN classification and pricing administration — Payments Operations</p>
             </div>
-        </div>
-    </NotAuthorized>
-</AuthorizeView>
+
+            @* Only the cards a signed-in user can actually act on. Each route is guarded in
+               its own right, so this is presentation rather than the control. *@
+            <div class="entry-grid">
+                <AuthorizeView Policy="@Permissions.BinClassify" Context="lookup">
+                    <Authorized>
+                        <a class="entry" href="lookup">
+                            <span class="ico ico-lookup entry-icon" aria-hidden="true"></span>
+                            <span class="entry-title">BIN Lookup</span>
+                            <span class="entry-text">
+                                Classify a card number and calculate commission
+                            </span>
+                        </a>
+                    </Authorized>
+                </AuthorizeView>
+
+                <a class="entry" href="bin-ranges">
+                    <span class="ico ico-ranges entry-icon" aria-hidden="true"></span>
+                    <span class="entry-title">BIN Ranges</span>
+                    <span class="entry-text">
+                        Browse and manage stored BIN prefix ranges
+                    </span>
+                </a>
+
+                <AuthorizeView Policy="@Permissions.BinRangesRead" Context="vulnEntry">
+                    <Authorized>
+                        <a class="entry" href="vulnerabilities">
+                            <span class="ico ico-warning entry-icon" aria-hidden="true"></span>
+                            <span class="entry-title">Vulnerabilities</span>
+                            <span class="entry-text">
+                                Stored ranges whose scheme contradicts their prefix
+                            </span>
+                        </a>
+                    </Authorized>
+                </AuthorizeView>
+
+                <AuthorizeView Policy="@Permissions.BinRangesImport" Context="import">
+                    <Authorized>
+                        <a class="entry" href="import">
+                            <span class="ico ico-import entry-icon" aria-hidden="true"></span>
+                            <span class="entry-title">Import CSV</span>
+                            <span class="entry-text">
+                                Upload a CSV file to batch-import BIN ranges
+                            </span>
+                        </a>
+
+                        <a class="entry" href="import-history">
+                            <span class="ico ico-history entry-icon" aria-hidden="true"></span>
+                            <span class="entry-title">Import History</span>
+                            <span class="entry-text">
+                                Review past imports and resolve conflicts
+                            </span>
+                        </a>
+                    </Authorized>
+                </AuthorizeView>
+
+                <AuthorizeView Policy="@Permissions.CommissionRulesRead" Context="commission">
+                    <Authorized>
+                        <a class="entry" href="commission-rules">
+                            <span class="ico ico-commission entry-icon" aria-hidden="true"></span>
+                            <span class="entry-title">Commission Rules</span>
+                            <span class="entry-text">
+                                Set fee rules by scheme, product and region
+                            </span>
+                        </a>
+                    </Authorized>
+                </AuthorizeView>
+
+                <AuthorizeView Policy="@Permissions.ReferenceDataManage" Context="reference">
+                    <Authorized>
+                        <a class="entry" href="reference-data">
+                            <span class="ico ico-reference entry-icon" aria-hidden="true"></span>
+                            <span class="entry-title">Reference Data</span>
+                            <span class="entry-text">
+                                Manage schemes, products, regions and countries
+                            </span>
+                        </a>
+
+                        <a class="entry" href="currencies">
+                            <span class="ico ico-currency entry-icon" aria-hidden="true"></span>
+                            <span class="entry-title">Currencies</span>
+                            <span class="entry-text">
+                                Manage supported currencies and exchange rates
+                            </span>
+                        </a>
+                    </Authorized>
+                </AuthorizeView>
+
+                <AuthorizeView Policy="@Permissions.AuditRead" Context="audit">
+                    <Authorized>
+                        <a class="entry" href="audit">
+                            <span class="ico ico-audit entry-icon" aria-hidden="true"></span>
+                            <span class="entry-title">Audit Log</span>
+                            <span class="entry-text">
+                                Full history of every change made in the system
+                            </span>
+                        </a>
+                    </Authorized>
+                </AuthorizeView>
+
+                <AuthorizeView Policy="@Permissions.RolesManage" Context="access">
+                    <Authorized>
+                        <a class="entry" href="access-control">
+                            <span class="ico ico-access entry-icon" aria-hidden="true"></span>
+                            <span class="entry-title">Access Control</span>
+                            <span class="entry-text">
+                                Users, roles, and permission assignments
+                            </span>
+                        </a>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="home-head">
+                <h2>BinTool</h2>
+                <p>Card-BIN classification and pricing administration — Payments Operations</p>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <p class="mb-3">Sign in to browse BIN ranges and import data.</p>
+                    <a class="btn btn-primary" href="login">Sign in</a>
+                </div>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
 
 @code {
     private int _mismatchCount;

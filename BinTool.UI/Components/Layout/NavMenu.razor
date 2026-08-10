@@ -2,6 +2,11 @@
     Every label is wrapped in its own element so the icon rail can drop the text
     without losing the icon. The `title` on each link is what carries the label
     once it is hidden, so a rail item still says what it is on hover.
+
+    Items are grouped under section headings. A heading belongs to its group
+    rather than to any one link, so a user whose role hides every link in a
+    group would be left with a floating heading - `.nav-group:not(:has(...))`
+    in the stylesheet drops the whole block in that case.
 *@
 
 <div class="nav-head">
@@ -15,113 +20,141 @@
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav-list">
-        <div class="nav-item">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All" title="Home">
-                <span class="nav-icon icon-home" aria-hidden="true"></span>
-                <span class="nav-text">Home</span>
-            </NavLink>
+        <div class="nav-group">
+            <div class="nav-item">
+                <NavLink class="nav-link" href="" Match="NavLinkMatch.All" title="Home">
+                    <span class="ico ico-home nav-icon" aria-hidden="true"></span>
+                    <span class="nav-text">Home</span>
+                </NavLink>
+            </div>
         </div>
 
-        @* A link is only shown to someone whose role can actually follow it. The route
-           itself is guarded too, so hiding it is presentation, not the control. *@
-        <AuthorizeView Policy="@Permissions.BinClassify">
-            <Authorized>
-                <div class="nav-item">
-                    <NavLink class="nav-link" href="lookup" title="BIN Lookup">
-                        <span class="nav-icon icon-lookup" aria-hidden="true"></span>
-                        <span class="nav-text">BIN Lookup</span>
-                    </NavLink>
-                </div>
-            </Authorized>
-        </AuthorizeView>
+        <div class="nav-group">
+            <div class="nav-group-label">BIN data</div>
 
-        <AuthorizeView>
-            <Authorized>
-                <div class="nav-item">
-                    <NavLink class="nav-link" href="bin-ranges" title="BIN Ranges">
-                        <span class="nav-icon icon-ranges" aria-hidden="true"></span>
-                        <span class="nav-text">BIN Ranges</span>
-                    </NavLink>
-                </div>
-            </Authorized>
-        </AuthorizeView>
+            @* A link is only shown to someone whose role can actually follow it. The route
+               itself is guarded too, so hiding it is presentation, not the control. *@
+            <AuthorizeView Policy="@Permissions.BinClassify">
+                <Authorized>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="lookup" title="BIN Lookup">
+                            <span class="ico ico-lookup nav-icon" aria-hidden="true"></span>
+                            <span class="nav-text">BIN Lookup</span>
+                        </NavLink>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
 
-        <AuthorizeView Policy="@Permissions.BinRangesRead">
-            <Authorized>
-                <div class="nav-item">
-                    <NavLink class="nav-link" href="vulnerabilities" title="BIN Vulnerabilities">
-                        <span class="nav-icon icon-ranges" aria-hidden="true"></span>
-                        <span class="nav-text">Vulnerabilities</span>
-                    </NavLink>
-                </div>
-            </Authorized>
-        </AuthorizeView>
+            <AuthorizeView>
+                <Authorized>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="bin-ranges" title="BIN Ranges">
+                            <span class="ico ico-ranges nav-icon" aria-hidden="true"></span>
+                            <span class="nav-text">BIN Ranges</span>
+                        </NavLink>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
+
+            <AuthorizeView Policy="@Permissions.BinRangesRead">
+                <Authorized>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="vulnerabilities" title="Vulnerabilities">
+                            <span class="ico ico-warning nav-icon" aria-hidden="true"></span>
+                            <span class="nav-text">Vulnerabilities</span>
+                        </NavLink>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
+        </div>
 
         <AuthorizeView Policy="@Permissions.BinRangesImport">
             <Authorized>
-                <div class="nav-item">
-                    <NavLink class="nav-link" href="import" title="BIN Import">
-                        <span class="nav-icon icon-import" aria-hidden="true"></span>
-                        <span class="nav-text">BIN Import</span>
-                    </NavLink>
-                </div>
-                <div class="nav-item">
-                    <NavLink class="nav-link" href="import-history" title="Import History">
-                        <span class="nav-icon icon-audit" aria-hidden="true"></span>
-                        <span class="nav-text">Import History</span>
-                    </NavLink>
+                <div class="nav-group">
+                    <div class="nav-group-label">Import</div>
+
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="import" title="Import CSV">
+                            <span class="ico ico-import nav-icon" aria-hidden="true"></span>
+                            <span class="nav-text">Import CSV</span>
+                        </NavLink>
+                    </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="import-history" title="Import History">
+                            <span class="ico ico-history nav-icon" aria-hidden="true"></span>
+                            <span class="nav-text">Import History</span>
+                        </NavLink>
+                    </div>
                 </div>
             </Authorized>
         </AuthorizeView>
 
-        <AuthorizeView Policy="@Permissions.ReferenceDataManage">
-            <Authorized>
-                <div class="nav-item">
-                    <NavLink class="nav-link" href="reference-data" title="Reference Data">
-                        <span class="nav-icon icon-reference" aria-hidden="true"></span>
-                        <span class="nav-text">Reference Data</span>
-                    </NavLink>
-                </div>
-                <div class="nav-item">
-                    <NavLink class="nav-link" href="currencies" title="Currencies">
-                        <span class="nav-icon icon-reference" aria-hidden="true"></span>
-                        <span class="nav-text">Currencies</span>
-                    </NavLink>
-                </div>
-            </Authorized>
-        </AuthorizeView>
+        <div class="nav-group">
+            <div class="nav-group-label">Configuration</div>
 
-        <AuthorizeView Policy="@Permissions.CommissionRulesRead">
-            <Authorized>
-                <div class="nav-item">
-                    <NavLink class="nav-link" href="commission-rules" title="Commission Rules">
-                        <span class="nav-icon icon-commission" aria-hidden="true"></span>
-                        <span class="nav-text">Commission Rules</span>
-                    </NavLink>
-                </div>
-            </Authorized>
-        </AuthorizeView>
+            <AuthorizeView Policy="@Permissions.CommissionRulesRead">
+                <Authorized>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="commission-rules" title="Commission Rules">
+                            <span class="ico ico-commission nav-icon" aria-hidden="true"></span>
+                            <span class="nav-text">Commission Rules</span>
+                        </NavLink>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
 
-        <AuthorizeView Policy="@Permissions.AuditRead">
-            <Authorized>
-                <div class="nav-item">
-                    <NavLink class="nav-link" href="audit" title="Audit Log">
-                        <span class="nav-icon icon-audit" aria-hidden="true"></span>
-                        <span class="nav-text">Audit Log</span>
-                    </NavLink>
-                </div>
-            </Authorized>
-        </AuthorizeView>
+            <AuthorizeView Policy="@Permissions.ReferenceDataManage">
+                <Authorized>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="reference-data" title="Reference Data">
+                            <span class="ico ico-reference nav-icon" aria-hidden="true"></span>
+                            <span class="nav-text">Reference Data</span>
+                        </NavLink>
+                    </div>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="currencies" title="Currencies">
+                            <span class="ico ico-currency nav-icon" aria-hidden="true"></span>
+                            <span class="nav-text">Currencies</span>
+                        </NavLink>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
+        </div>
 
-        <AuthorizeView Policy="@Permissions.RolesManage">
-            <Authorized>
-                <div class="nav-item">
-                    <NavLink class="nav-link" href="access-control" title="Access Control">
-                        <span class="nav-icon icon-access" aria-hidden="true"></span>
-                        <span class="nav-text">Access Control</span>
-                    </NavLink>
-                </div>
-            </Authorized>
-        </AuthorizeView>
+        <div class="nav-group">
+            <div class="nav-group-label">Administration</div>
+
+            <AuthorizeView Policy="@Permissions.AuditRead">
+                <Authorized>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="audit" title="Audit Log">
+                            <span class="ico ico-audit nav-icon" aria-hidden="true"></span>
+                            <span class="nav-text">Audit Log</span>
+                        </NavLink>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
+
+            <AuthorizeView Policy="@Permissions.RolesManage">
+                <Authorized>
+                    <div class="nav-item">
+                        <NavLink class="nav-link" href="access-control" title="Access Control">
+                            <span class="ico ico-access nav-icon" aria-hidden="true"></span>
+                            <span class="nav-text">Access Control</span>
+                        </NavLink>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
+        </div>
     </nav>
 </div>
+
+@*
+    A plain <label> rather than a button, so the sidebar collapses with no
+    interactivity: the checkbox it drives lives in MainLayout, where it can size
+    the sidebar element itself.
+*@
+<label class="nav-collapse-btn" for="nav-collapse">
+    <span class="ico ico-chevron-left nav-collapse-icon" aria-hidden="true"></span>
+    <span class="nav-text">Collapse</span>
+</label>

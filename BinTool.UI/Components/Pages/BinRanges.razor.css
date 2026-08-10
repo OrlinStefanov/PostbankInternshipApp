@@ -1,38 +1,6 @@
-.page-head {
-    padding-bottom: 1.25rem;
-    border-bottom: 1px solid var(--bs-border-color, #dde3e9);
-}
-
-.page-head p {
-    max-width: 60ch;
-    font-size: .925rem;
-}
-
-.filters {
-    background: var(--bs-tertiary-bg, #eef1f4);
-}
-
-.filters .form-label {
-    font-size: .8rem;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-    color: var(--bs-secondary-color, #5d6875);
-    margin-bottom: .25rem;
-}
-
-.empty-state {
-    border-style: dashed;
-    background: var(--bs-tertiary-bg, #eef1f4);
-}
-
-.range-table thead th {
-    font-size: .75rem;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-    color: var(--bs-secondary-color, #5d6875);
-    font-weight: 600;
-    white-space: nowrap;
-}
+/* Header, filters, table metrics, empty state and the footer strip all come
+   from the shared layer in app.css now - this file holds only what is specific
+   to a listing of BIN ranges. */
 
 .range-table td {
     white-space: nowrap;
@@ -43,23 +11,24 @@
     opacity: .55;
 }
 
+/* The prefix is the identifier the whole screen is read by, so it is the one
+   value set in the mono face at full weight. */
 .mono {
     font-family: var(--bs-font-monospace);
-    font-size: .875rem;
     font-weight: 600;
 }
 
 /* Read-only details modal: label/value rows with quiet dividers. */
 .detail-list dt {
     font-weight: 600;
-    color: var(--bs-secondary-color, #5d6875);
+    color: var(--app-muted, #6b7280);
 }
 
 .detail-list dt,
 .detail-list dd {
     padding: .35rem 0;
     margin-bottom: 0;
-    border-top: 1px solid var(--bs-border-color, #dde3e9);
+    border-top: 1px solid var(--app-line, #e5e7eb);
 }
 
 .detail-list dt:first-of-type,
