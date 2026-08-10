@@ -165,19 +165,116 @@ else
                         </tr>
                         @if (_expanded.Contains(item.AuditEntryId))
                         {
+                            var changes = AuditDiff.Compute(item.OldValues, item.NewValues);
+                            var moved = changes?.Where(c => c.Kind != AuditChangeKind.Unchanged).ToList();
+                            var showQuiet = _showUnchanged.Contains(item.AuditEntryId);
+                            var showRaw = changes is null || _showRaw.Contains(item.AuditEntryId);
+
                             <tr id="row-@item.AuditEntryId" class="audit-detail">
                                 <td class="ps-3"></td>
                                 <td colspan="5">
-                                    <div class="row g-3">
-                                        <div class="col-12 col-lg-6">
-                                            <div class="text-secondary small mb-1">Before</div>
-                                            <pre class="audit-json mb-0">@Pretty(item.OldValues)</pre>
+                                    @if (changes is null)
+                                    {
+                                        <p class="audit-note">
+                                            These snapshots could not be read as JSON, so they are
+                                            shown below exactly as they were stored.
+                                        </p>
+                                    }
+                                    else if (changes.Count == 0)
+                                    {
+                                        <p class="audit-note mb-0">
+                                            No field values were recorded for this entry.
+                                        </p>
+                                    }
+                                    else if (moved!.Count == 0 && !showQuiet)
+                                    {
+                                        <p class="audit-note mb-0">
+                                            No field changed value.
+                                            <button type="button" class="btn btn-link btn-sm p-0 align-baseline"
+                                                    @onclick="() => ToggleUnchanged(item.AuditEntryId)">
+                                                Show all @changes.Count fields
+                                            </button>
+                                        </p>
+                                    }
+                                    else
+                                    {
+                                        @* Before and after sit in adjacent cells so a value can be
+                                           read across in one line. The sign column repeats what the
+                                           red/green says, because colour on its own is not a cue
+                                           everyone receives. *@
+                                        <table class="diff-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="diff-sign"><span class="visually-hidden">Change</span></th>
+                                                    <th class="diff-field">Field</th>
+                                                    <th>Before</th>
+                                                    <th>After</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var change in showQuiet ? changes : moved!)
+                                                {
+                                                    <tr class="diff-@change.Kind.ToString().ToLowerInvariant()">
+                                                        <td class="diff-sign" aria-label="@change.Kind">@Sign(change.Kind)</td>
+                                                        <th scope="row" class="diff-field">@change.Field</th>
+                                                        <td class="diff-old">
+                                                            @if (change.Kind is AuditChangeKind.Added)
+                                                            {
+                                                                <span class="diff-absent">@EmptyMarker</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                @Display(change.OldValue)
+                                                            }
+                                                        </td>
+                                                        <td class="diff-new">
+                                                            @if (change.Kind is AuditChangeKind.Removed)
+                                                            {
+                                                                <span class="diff-absent">@EmptyMarker</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                @Display(change.NewValue)
+                                                            }
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    }
+
+                                    @if (changes is not null && changes.Count > 0)
+                                    {
+                                        <div class="diff-controls">
+                                            @if (changes.Count != moved!.Count)
+                                            {
+                                                <button type="button" class="btn btn-link btn-sm p-0"
+                                                        @onclick="() => ToggleUnchanged(item.AuditEntryId)">
+                                                    @(showQuiet
+                                                        ? "Hide unchanged fields"
+                                                        : $"Show {changes.Count - moved.Count} unchanged")
+                                                </button>
+                                            }
+                                            <button type="button" class="btn btn-link btn-sm p-0"
+                                                    @onclick="() => ToggleRaw(item.AuditEntryId)">
+                                                @(showRaw ? "Hide raw JSON" : "Show raw JSON")
+                                            </button>
                                         </div>
-                                        <div class="col-12 col-lg-6">
-                                            <div class="text-secondary small mb-1">After</div>
-                                            <pre class="audit-json mb-0">@Pretty(item.NewValues)</pre>
+                                    }
+
+                                    @if (showRaw)
+                                    {
+                                        <div class="row g-3 mt-0">
+                                            <div class="col-12 col-lg-6">
+                                                <div class="text-secondary small mb-1">Before</div>
+                                                <pre class="audit-json mb-0">@Pretty(item.OldValues)</pre>
+                                            </div>
+                                            <div class="col-12 col-lg-6">
+                                                <div class="text-secondary small mb-1">After</div>
+                                                <pre class="audit-json mb-0">@Pretty(item.NewValues)</pre>
+                                            </div>
                                         </div>
-                                    </div>
+                                    }
                                 </td>
                             </tr>
                         }
@@ -230,6 +327,13 @@ else
     // filter changes reset it - the rows on the next page are different.
     private readonly HashSet<int> _expanded = new();
 
+    // Per-row view options within an opened row. Unchanged fields start hidden because the
+    // reason to open a row is to see what moved; the raw snapshots start hidden because the
+    // field table says the same thing in less space, but they stay one click away since
+    // they are the only faithful record of what was actually stored.
+    private readonly HashSet<int> _showUnchanged = new();
+    private readonly HashSet<int> _showRaw = new();
+
     private static readonly string DefaultFrom =
         DateTime.UtcNow.Date.AddDays(-7).ToString("yyyy-MM-dd");
 
@@ -262,6 +366,8 @@ else
     {
         _loading = true;
         _expanded.Clear();
+        _showUnchanged.Clear();
+        _showRaw.Clear();
 
         try
         {
@@ -341,8 +447,45 @@ else
 
     private void Toggle(int id)
     {
-        if (!_expanded.Add(id)) _expanded.Remove(id);
+        if (!_expanded.Add(id))
+        {
+            _expanded.Remove(id);
+
+            // Closing a row forgets how it was being looked at, so reopening it later
+            // starts from the same place as opening any other row.
+            _showUnchanged.Remove(id);
+            _showRaw.Remove(id);
+        }
     }
+
+    private void ToggleUnchanged(int id)
+    {
+        if (!_showUnchanged.Add(id)) _showUnchanged.Remove(id);
+    }
+
+    private void ToggleRaw(int id)
+    {
+        if (!_showRaw.Add(id)) _showRaw.Remove(id);
+    }
+
+    /// <summary>
+    /// The git-diff signs, so the kind of a row survives being printed, read by a screen
+    /// reader, or seen by someone who does not separate red from green.
+    /// </summary>
+    private static string Sign(AuditChangeKind kind) => kind switch
+    {
+        AuditChangeKind.Added => "+",
+        AuditChangeKind.Removed => "−",
+        AuditChangeKind.Changed => "~",
+        _ => ""
+    };
+
+    /// <summary>
+    /// A stored empty string is worth telling apart from an absent value, so it is named
+    /// rather than rendered as the nothing it would otherwise look like.
+    /// </summary>
+    private static string Display(string? value) =>
+        value is null ? EmptyMarker : value.Length == 0 ? "(empty)" : value;
 
     private static DateTime? ParseDate(string value) =>
         DateTime.TryParse(value, System.Globalization.CultureInfo.InvariantCulture,

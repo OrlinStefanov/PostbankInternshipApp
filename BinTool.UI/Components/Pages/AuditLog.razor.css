@@ -2,6 +2,139 @@
     background-color: var(--app-sunken);
 }
 
+.audit-note {
+    margin-bottom: .75rem;
+    color: var(--app-muted);
+    font-size: .8125rem;
+}
+
+/* --- Field-by-field diff ------------------------------------------------- */
+
+.diff-table {
+    width: 100%;
+    margin-bottom: 0;
+    border: 1px solid var(--app-line);
+    border-radius: var(--app-radius);
+    border-collapse: separate;
+    border-spacing: 0;
+    background-color: var(--app-surface);
+    font-size: .8125rem;
+    line-height: 1.5;
+    overflow: hidden;
+}
+
+.diff-table thead th {
+    padding: .35rem .6rem;
+    text-align: left;
+    border-bottom: 1px solid var(--app-line);
+    background-color: var(--app-sunken);
+    color: var(--app-muted);
+    font-size: .6875rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.diff-table tbody tr + tr > * {
+    border-top: 1px solid var(--app-line-soft);
+}
+
+.diff-table td,
+.diff-table tbody th {
+    padding: .3rem .6rem;
+    vertical-align: top;
+    font-weight: 400;
+    text-align: left;
+}
+
+/* Before and after get equal room so the eye can run straight across; the sign and
+   field name take only what they need. */
+.diff-table thead th:nth-child(3),
+.diff-table thead th:nth-child(4) {
+    width: 34%;
+}
+
+.diff-sign {
+    width: 1.75rem;
+    padding-right: 0 !important;
+    color: var(--app-faint);
+    font-family: var(--app-font-mono);
+    font-weight: 700;
+    text-align: center !important;
+    user-select: none;
+}
+
+.diff-field {
+    width: 1%;
+    white-space: nowrap;
+    color: var(--app-ink);
+    font-family: var(--app-font-mono);
+    font-size: .78125rem;
+    font-weight: 600 !important;
+}
+
+/* Values can be long - a serialised nested object, say - so they wrap rather than
+   stretching the row off the side of the table. */
+.diff-old,
+.diff-new {
+    font-family: var(--app-font-mono);
+    overflow-wrap: anywhere;
+}
+
+.diff-absent {
+    color: var(--app-faint);
+}
+
+/* Red is what the value was, green is what it became. Only the side that carries
+   meaning is coloured: on a changed row that is both, on an added row only the new
+   value, and on an unchanged row neither. */
+.diff-changed .diff-old,
+.diff-removed .diff-old {
+    color: var(--tone-danger-fg);
+    background-color: var(--tone-danger-bg);
+}
+
+.diff-changed .diff-new,
+.diff-added .diff-new {
+    color: var(--tone-success-fg);
+    background-color: var(--tone-success-bg);
+}
+
+.diff-removed .diff-sign,
+.diff-removed .diff-field {
+    color: var(--tone-danger-fg);
+}
+
+.diff-added .diff-sign,
+.diff-added .diff-field {
+    color: var(--tone-success-fg);
+}
+
+.diff-changed .diff-sign {
+    color: var(--tone-info-fg);
+}
+
+/* A removed field is gone, not merely different - struck through so that reads without
+   relying on the colour. */
+.diff-removed .diff-old {
+    text-decoration: line-through;
+    text-decoration-color: color-mix(in srgb, var(--tone-danger-fg) 55%, transparent);
+}
+
+.diff-unchanged .diff-old,
+.diff-unchanged .diff-new {
+    color: var(--app-muted);
+}
+
+.diff-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: .5rem;
+}
+
+/* --- Raw snapshots ------------------------------------------------------- */
+
 .audit-json {
     max-height: 20rem;
     overflow: auto;
@@ -10,7 +143,7 @@
     border-radius: var(--app-radius);
     background-color: var(--app-surface);
     color: var(--app-body);
-    font-family: var(--bs-font-monospace);
+    font-family: var(--app-font-mono);
     font-size: .8125rem;
     line-height: 1.5;
     white-space: pre;
