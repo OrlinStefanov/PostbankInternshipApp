@@ -52,7 +52,13 @@
                     <ValidationMessage For="() => _input.Amount" class="form-text text-danger" />
                 </div>
 
-                <div class="col-12 col-lg-3 d-flex align-items-end">
+                <div class="col-12 col-lg-3">
+                    @* The button has no label of its own, so on a wide screen it would sit
+                       level with the other two labels rather than with the inputs under
+                       them. An empty label of the same metrics drops it into line, and
+                       being a real .form-label it cannot drift if that spacing changes.
+                       Below lg the fields stack and there is nothing to line up with. *@
+                    <span class="form-label d-none d-lg-block" aria-hidden="true">&nbsp;</span>
                     <button type="submit" class="btn btn-primary" disabled="@_busy">
                         @if (_busy)
                         {
@@ -69,6 +75,43 @@
 @if (_error is not null)
 {
     <div class="alert alert-danger mt-4" role="alert">@_error</div>
+}
+
+@if (_result is { Matched: true })
+{
+    @* The card the digits describe, drawn as a card. It carries nothing the panels below
+       do not also list as text - it is there to make a classification legible at a glance,
+       and to be turned over when the reader wants the rest of it. *@
+    <div class="card mt-4 lookup-card-panel">
+        <div class="card-body">
+            <BinCard Kind="Classified card"
+                     Scheme="@_result.CardScheme"
+                     StatusLabel="Matched"
+                     StatusTone="success"
+                     Prefix="@_result.Bin"
+                     Tagline="@Tagline"
+                     NumberNote="@($"Matched on prefix {_result.MatchedPrefix}")"
+                     ValidFrom="_result.ValidFrom"
+                     ValidTo="_result.ValidTo"
+                     CountryCode="@_result.CountryCode"
+                     CountryName="@_result.CountryName"
+                     Region="@_result.Region"
+                     ProductType="@_result.ProductType"
+                     FundingType="@_result.FundingType"
+                     Hint="Drag the card to turn it and read the strip">
+                <ExtraDetails>
+                    <div>
+                        <dt>BIN used</dt>
+                        <dd>@_result.Bin</dd>
+                    </div>
+                    <div>
+                        <dt>Matched prefix</dt>
+                        <dd>@_result.MatchedPrefix</dd>
+                    </div>
+                </ExtraDetails>
+            </BinCard>
+        </div>
+    </div>
 }
 
 @if (_result is not null)
@@ -90,15 +133,15 @@
                 <div class="card-body">
                     @if (_result.Matched)
                     {
-                        <dl class="row mb-0 detail-list">
-                            <dt class="col-5">BIN used</dt>
-                            <dd class="col-7"><code class="mono">@_result.Bin</code></dd>
+                        <dl class="detail-list">
+                            <dt>BIN used</dt>
+                            <dd><code class="mono">@_result.Bin</code></dd>
 
-                            <dt class="col-5">Matched prefix</dt>
-                            <dd class="col-7"><code class="mono">@_result.MatchedPrefix</code></dd>
+                            <dt>Matched prefix</dt>
+                            <dd><code class="mono">@_result.MatchedPrefix</code></dd>
 
-                            <dt class="col-5">Scheme</dt>
-                            <dd class="col-7">
+                            <dt>Scheme</dt>
+                            <dd>
                                 @_result.CardScheme
                                 @if (_result.DetectedScheme is not null)
                                 {
@@ -109,20 +152,20 @@
                                 }
                             </dd>
 
-                            <dt class="col-5">Product</dt>
-                            <dd class="col-7">@_result.ProductType</dd>
+                            <dt>Product</dt>
+                            <dd>@_result.ProductType</dd>
 
-                            <dt class="col-5">Funding</dt>
-                            <dd class="col-7">@_result.FundingType</dd>
+                            <dt>Funding</dt>
+                            <dd>@_result.FundingType</dd>
 
-                            <dt class="col-5">Country</dt>
-                            <dd class="col-7">@_result.CountryCode — @_result.CountryName</dd>
+                            <dt>Country</dt>
+                            <dd>@_result.CountryCode — @_result.CountryName</dd>
 
-                            <dt class="col-5">Region</dt>
-                            <dd class="col-7">@_result.Region</dd>
+                            <dt>Region</dt>
+                            <dd>@_result.Region</dd>
 
-                            <dt class="col-5">Valid</dt>
-                            <dd class="col-7">
+                            <dt>Valid</dt>
+                            <dd>
                                 @Date(_result.ValidFrom)
                                 to @(_result.ValidTo is null ? OpenEnded : Date(_result.ValidTo))
                             </dd>
@@ -180,27 +223,29 @@
                             </div>
                         }
 
-                        <dl class="row mb-0 detail-list">
-                            <dt class="col-6">Amount</dt>
-                            <dd class="col-6 text-end mono">@MoneyDual(c.Amount, c.CurrencyCode, c.AmountEur)</dd>
+                        <dl class="detail-list">
+                            <dt>Amount</dt>
+                            <dd class="mono">@MoneyDual(c.Amount, c.CurrencyCode, c.AmountEur)</dd>
 
-                            <dt class="col-6">Percentage rate</dt>
-                            <dd class="col-6 text-end mono">@Num(c.PercentageRate)%</dd>
+                            <dt>Percentage rate</dt>
+                            <dd class="mono">@Num(c.PercentageRate)%</dd>
 
-                            <dt class="col-6">Fixed amount</dt>
-                            <dd class="col-6 text-end mono">@MoneyDual(c.FixedAmount, c.CurrencyCode, c.FixedAmountEur)</dd>
+                            <dt>Fixed amount</dt>
+                            <dd class="mono">@MoneyDual(c.FixedAmount, c.CurrencyCode, c.FixedAmountEur)</dd>
 
-                            <dt class="col-6">Raw fee</dt>
-                            <dd class="col-6 text-end mono">@MoneyDual(c.RawFee, c.CurrencyCode, c.RawFeeEur)</dd>
+                            <dt>Raw fee</dt>
+                            <dd class="mono">@MoneyDual(c.RawFee, c.CurrencyCode, c.RawFeeEur)</dd>
 
-                            <dt class="col-6">Minimum fee</dt>
-                            <dd class="col-6 text-end mono">@MoneyDual(c.MinimumFee, c.CurrencyCode, c.MinimumFeeEur)</dd>
+                            <dt>Minimum fee</dt>
+                            <dd class="mono">@MoneyDual(c.MinimumFee, c.CurrencyCode, c.MinimumFeeEur)</dd>
 
-                            <dt class="col-6">Minimum applied</dt>
-                            <dd class="col-6 text-end">@(c.MinimumApplied ? "Yes" : "No")</dd>
+                            <dt>Minimum applied</dt>
+                            <dd>@(c.MinimumApplied ? "Yes" : "No")</dd>
 
-                            <dt class="col-12 mt-2">Why</dt>
-                            <dd class="col-12 text-secondary">@c.Reason</dd>
+                            @* The reason is a sentence, not a value - it takes the full width
+                               and reads left to right like prose. *@
+                            <dt class="detail-wide">Why</dt>
+                            <dd class="detail-wide">@c.Reason</dd>
                         </dl>
                     }
                     else if (_amountAsked)
@@ -278,6 +323,14 @@
             _busy = false;
         }
     }
+
+    /// <summary>
+    /// The line printed under the number on the card: funding first, because "debit or
+    /// credit" is the thing a payment flow branches on before anything else.
+    /// </summary>
+    private string Tagline =>
+        string.Join(" · ", new[] { _result?.FundingType, _result?.ProductType }
+            .Where(v => !string.IsNullOrWhiteSpace(v)));
 
     // ---- Formatting ------------------------------------------------------------
 

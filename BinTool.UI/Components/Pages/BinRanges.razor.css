@@ -1,6 +1,6 @@
 /* Header, filters, table metrics, empty state and the footer strip all come
    from the shared layer in app.css now - this file holds only what is specific
-   to a listing of BIN ranges. */
+   to a listing of BIN ranges. The details card lives in BinCard.razor.css. */
 
 .range-table td {
     white-space: nowrap;
@@ -16,22 +16,4 @@
 .mono {
     font-family: var(--bs-font-monospace);
     font-weight: 600;
-}
-
-/* Read-only details modal: label/value rows with quiet dividers. */
-.detail-list dt {
-    font-weight: 600;
-    color: var(--app-muted, #6b7280);
-}
-
-.detail-list dt,
-.detail-list dd {
-    padding: .35rem 0;
-    margin-bottom: 0;
-    border-top: 1px solid var(--app-line, #e5e7eb);
-}
-
-.detail-list dt:first-of-type,
-.detail-list dt:first-of-type + dd {
-    border-top: 0;
 }

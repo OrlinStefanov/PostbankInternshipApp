@@ -1,0 +1,19 @@
+/* The card panel is a display, not a surface holding controls, so it sits a shade
+   below the white panels around it - the card is meant to be the only thing on it. */
+.lookup-card-panel {
+    background-color: var(--app-sunken);
+}
+
+.lookup-card-panel .card-body {
+    padding: 24px 16px 16px;
+}
+
+/* The flip and reset controls are centred under the card rather than pushed to the
+   edges of a full-width panel, where they would read as belonging to the page. */
+.lookup-card-panel ::deep .bincard-controls {
+    justify-content: center;
+}
+
+.lookup-card-panel ::deep .bincard-hint {
+    margin-left: 0;
+}

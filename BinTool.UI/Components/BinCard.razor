@@ -1,0 +1,284 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@* A BIN range, or a classified card, drawn as the thing it describes.
+
+   Both faces are ordinary text in the DOM - the 3D is transform and nothing else - so a
+   screen reader walks the whole record in order and a printout keeps it. The card is a
+   picture of the data, never the only place it appears: every page that shows one also
+   lists the same values as text underneath. *@
+<div class="bincard-scene @(_flipped ? "is-flipped" : null)" @ref="_scene">
+    <div class="bincard bincard-@Skin(Scheme)">
+        <div class="bincard-face bincard-front">
+            <div class="bincard-top">
+                <span class="bincard-kind">@Kind</span>
+                @if (!string.IsNullOrWhiteSpace(StatusLabel))
+                {
+                    <span class="bincard-status bincard-status-@StatusTone">@StatusLabel</span>
+                }
+            </div>
+
+            <div class="bincard-chip" aria-hidden="true"></div>
+
+            <div class="bincard-number">@Pan(Prefix)</div>
+
+            @if (!string.IsNullOrWhiteSpace(Tagline))
+            {
+                <div class="bincard-tagline">@Tagline</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(NumberNote))
+            {
+                <div class="bincard-number-note">@NumberNote</div>
+            }
+
+            <div class="bincard-meta">
+                <div>
+                    <span class="bincard-label">Valid from</span>
+                    <span class="bincard-value">@MonthYear(ValidFrom)</span>
+                </div>
+                <div>
+                    <span class="bincard-label">Good thru</span>
+                    <span class="bincard-value">@(ValidTo is null ? "OPEN" : MonthYear(ValidTo))</span>
+                </div>
+                <div>
+                    <span class="bincard-label">Issuer</span>
+                    <span class="bincard-value">@Or(CountryCode)</span>
+                </div>
+                <div class="bincard-brand">@Or(Scheme)</div>
+            </div>
+        </div>
+
+        <div class="bincard-face bincard-back">
+            <div class="bincard-stripe" aria-hidden="true"></div>
+
+            <div class="bincard-signature">
+                <span class="bincard-signature-text">@Signature</span>
+            </div>
+
+            <dl class="bincard-details">
+                <div>
+                    <dt>Country</dt>
+                    <dd>@Country</dd>
+                </div>
+                <div>
+                    <dt>Region</dt>
+                    <dd>@Or(Region)</dd>
+                </div>
+
+                @ExtraDetails
+
+                @* Spans the row: an open-ended validity does not fit in half of one. *@
+                <div class="bincard-span">
+                    <dt>Valid</dt>
+                    <dd>@Validity</dd>
+                </div>
+            </dl>
+        </div>
+    </div>
+</div>
+
+@if (ShowControls)
+{
+    <div class="bincard-controls">
+        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="() => _flipped = !_flipped">
+            @(_flipped ? "Show front" : "Show back")
+        </button>
+        <button type="button" class="btn btn-link btn-sm" @onclick="Reset">Reset view</button>
+        <span class="bincard-hint">@Hint</span>
+    </div>
+}
+
+@code {
+    private const string Blank = "—";
+
+    /// <summary>What the card stands for, printed small above the chip.</summary>
+    [Parameter]
+    public string Kind { get; set; } = "BIN range";
+
+    /// <summary>Drives the livery as well as the brand mark; matched loosely on the name.</summary>
+    [Parameter]
+    public string? Scheme { get; set; }
+
+    [Parameter]
+    public string? StatusLabel { get; set; }
+
+    /// <summary>One of the tone names - success, info, warning, secondary.</summary>
+    [Parameter]
+    public string StatusTone { get; set; } = "secondary";
+
+    /// <summary>The digits that are actually known; the rest of the PAN is filled in.</summary>
+    [Parameter]
+    public string? Prefix { get; set; }
+
+    /// <summary>Small print under the number, e.g. what the remaining digits mean.</summary>
+    [Parameter]
+    public string? NumberNote { get; set; }
+
+    /// <summary>An accented line under the number, e.g. "Debit · Commercial".</summary>
+    [Parameter]
+    public string? Tagline { get; set; }
+
+    [Parameter]
+    public DateTime? ValidFrom { get; set; }
+
+    [Parameter]
+    public DateTime? ValidTo { get; set; }
+
+    [Parameter]
+    public string? CountryCode { get; set; }
+
+    [Parameter]
+    public string? CountryName { get; set; }
+
+    [Parameter]
+    public string? Region { get; set; }
+
+    [Parameter]
+    public string? ProductType { get; set; }
+
+    [Parameter]
+    public string? FundingType { get; set; }
+
+    /// <summary>
+    /// Extra <c>dt</c>/<c>dd</c> pairs for the back, each wrapped in its own div. Appended
+    /// after Country and Region and before the validity line.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ExtraDetails { get; set; }
+
+    /// <summary>
+    /// Whether to draw the flip / reset strip. Turned off where the surrounding panel
+    /// already carries its own controls.
+    /// </summary>
+    [Parameter]
+    public bool ShowControls { get; set; } = true;
+
+    [Parameter]
+    public string Hint { get; set; } = "Drag the card to turn it";
+
+    // Flipping is Blazor's - one click, one round trip - and free rotation is the JS
+    // module's, because pointer moves are far too frequent to send over the circuit. The
+    // two compose in the transform rather than overwriting each other.
+    private ElementReference _scene;
+    private IJSObjectReference? _js;
+    private bool _flipped;
+
+    private string Signature => Pair(ProductType, FundingType);
+
+    private string Country => string.IsNullOrWhiteSpace(CountryName)
+        ? Or(CountryCode)
+        : $"{Or(CountryCode)} — {CountryName}";
+
+    private string Validity =>
+        $"{Date(ValidFrom)} → {(ValidTo is null ? Blank : Date(ValidTo))}";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        try
+        {
+            _js = await JS.InvokeAsync<IJSObjectReference>("import", "./js/bincard.js");
+            await _js.InvokeVoidAsync("attach", _scene);
+        }
+        catch (JSException)
+        {
+            // Dragging is a nicety. Without it the flip button still turns the card and
+            // every value on both faces is still in the DOM.
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Squares the card up again: the flip is this component's state, the free rotation is
+    /// the module's, so both have to be told.
+    /// </summary>
+    private async Task Reset()
+    {
+        _flipped = false;
+
+        if (_js is null) return;
+
+        try
+        {
+            await _js.InvokeVoidAsync("reset", _scene);
+        }
+        catch (JSException)
+        {
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_js is null) return;
+
+        try
+        {
+            await _js.InvokeVoidAsync("detach", _scene);
+            await _js.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit went first - the browser dropped the module with it.
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    /// <summary>
+    /// Which livery the card wears. Matched loosely on the scheme's display name, since that
+    /// is reference data an administrator can rename; anything unrecognised gets the neutral
+    /// treatment rather than being forced into a brand it may not be.
+    /// </summary>
+    private static string Skin(string? scheme)
+    {
+        var name = scheme?.ToLowerInvariant() ?? string.Empty;
+
+        if (name.Contains("visa")) return "visa";
+        if (name.Contains("mastercard") || name.Contains("master card")) return "mastercard";
+        if (name.Contains("express") || name.Contains("amex")) return "amex";
+        if (name.Contains("diners")) return "diners";
+        if (name.Contains("discover")) return "discover";
+        if (name.Contains("jcb")) return "jcb";
+
+        return "generic";
+    }
+
+    /// <summary>
+    /// Lays the prefix out as a card number: the digits that are actually known, then filler
+    /// for the ones that vary from card to card, grouped in fours the way a card prints them.
+    /// </summary>
+    private static string Pan(string? prefix)
+    {
+        const int PanLength = 16;
+
+        var digits = new string((prefix ?? string.Empty).Where(char.IsDigit).Take(PanLength).ToArray());
+        var pan = digits.PadRight(PanLength, '•');
+
+        return string.Join(' ', Enumerable.Range(0, PanLength / 4).Select(i => pan.Substring(i * 4, 4)));
+    }
+
+    private static string MonthYear(DateTime? value) => value?.ToString("MM/yy") ?? Blank;
+
+    private static string Date(DateTime? value) => value?.ToString("yyyy-MM-dd") ?? Blank;
+
+    private static string Or(string? value) => string.IsNullOrWhiteSpace(value) ? Blank : value;
+
+    /// <summary>
+    /// Joins two values with a separator, dropping the separator when only one is set - the
+    /// editor's preview is looked at while half the form is still empty.
+    /// </summary>
+    private static string Pair(string? left, string? right)
+    {
+        var parts = new[] { left, right }.Where(p => !string.IsNullOrWhiteSpace(p)).ToArray();
+
+        return parts.Length == 0 ? Blank : string.Join(" · ", parts);
+    }
+}

@@ -13,3 +13,30 @@
 .modal-backdrop {
     opacity: .5;
 }
+
+/* The preview is not part of the form, so it is set on its own recessed panel rather
+   than sharing the white the inputs sit on. Nothing inside it can be typed into. */
+.editor-preview {
+    padding: 12px 16px 16px;
+    border: 1px solid var(--app-line);
+    border-radius: var(--app-radius-lg);
+    background-color: var(--app-sunken);
+}
+
+.editor-preview-head {
+    color: var(--app-muted);
+    font-size: .6875rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+/* The card is 340px wide and the column can be narrower than that on a laptop, so it
+   scales down as one piece rather than spilling out of the panel. */
+@media (max-width: 1399.98px) {
+    .editor-preview ::deep .bincard-scene {
+        transform: scale(.86);
+        transform-origin: top center;
+        margin-bottom: -1.75rem;
+    }
+}

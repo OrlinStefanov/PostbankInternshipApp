@@ -4,7 +4,7 @@
 @* Rendered only while open, so the surrounding page owns "is the dialog up?" and this
    component owns everything inside it. *@
 <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-label="@Title">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
             <EditForm Model="_input" OnValidSubmit="Save" FormName="bin-range-editor">
                 <DataAnnotationsValidator />
@@ -41,6 +41,8 @@
                         </div>
                     }
 
+                    <div class="row g-4">
+                    <div class="col-12 col-lg-7">
                     <div class="row g-3">
                         <div class="col-12 col-md-6">
                             <label class="form-label" for="e-prefix">Prefix</label>
@@ -151,6 +153,61 @@
                             scheme or country is missing, it has to be added there first.
                         </p>
                     }
+                    </div>
+
+                    @* The preview follows the form in the DOM so a narrow screen puts the
+                       fields first; on a wide one it sits beside them. Nothing here is an
+                       input - it is the form's own values played back, drawn as the card
+                       they describe and listed underneath as text, so a mistyped digit or
+                       a scheme left on its previous value is visible before saving. *@
+                    <div class="col-12 col-lg-5">
+                        <div class="editor-preview">
+                            <div class="editor-preview-head">Preview</div>
+
+                            <BinCard Kind="BIN range"
+                                     Scheme="@_input.CardScheme"
+                                     StatusLabel="@PreviewStatus"
+                                     StatusTone="@PreviewStatusTone"
+                                     Prefix="@_input.Prefix"
+                                     NumberNote="@PreviewNote"
+                                     ValidFrom="@(_input.ValidFrom == default ? null : _input.ValidFrom)"
+                                     ValidTo="_input.ValidTo"
+                                     CountryCode="@_input.CountryCode"
+                                     CountryName="@PreviewCountryName"
+                                     Region="@PreviewRegion"
+                                     ProductType="@_input.ProductType"
+                                     FundingType="@_input.FundingType"
+                                     Hint="Drag to turn" />
+
+                            <dl class="detail-list mt-3">
+                                <dt>Prefix</dt>
+                                <dd>@Shown(_input.Prefix)</dd>
+
+                                <dt>Scheme</dt>
+                                <dd>@Shown(_input.CardScheme)</dd>
+
+                                <dt>Product</dt>
+                                <dd>@Shown(_input.ProductType)</dd>
+
+                                <dt>Funding</dt>
+                                <dd>@Shown(_input.FundingType)</dd>
+
+                                <dt>Country</dt>
+                                <dd>
+                                    @(string.IsNullOrWhiteSpace(_input.CountryCode)
+                                        ? Unset
+                                        : $"{_input.CountryCode} — {PreviewCountryName}")
+                                </dd>
+
+                                <dt>Valid from</dt>
+                                <dd>@(_input.ValidFrom == default ? Unset : Date(_input.ValidFrom))</dd>
+
+                                <dt>Valid to</dt>
+                                <dd>@(_input.ValidTo is null ? "Open-ended" : Date(_input.ValidTo.Value))</dd>
+                            </dl>
+                        </div>
+                    </div>
+                    </div>
                 </div>
 
                 <div class="modal-footer">
@@ -222,6 +279,73 @@
     }
 
     private string Title => Range is null ? "Add BIN range" : $"Edit BIN range {Range.Prefix}";
+
+    // ---- Live preview ----------------------------------------------------------
+    //
+    // Every member here reads off _input, so the card and the list beside the form follow
+    // the fields without anything having to push them: the prefix input already re-renders
+    // on each keystroke for the scheme hint, and the selects and dates re-render on change.
+
+    private const string Unset = "—";
+
+    private string PreviewCountryName =>
+        Options.Countries
+            .FirstOrDefault(c => string.Equals(c.IsoCode, _input.CountryCode, StringComparison.OrdinalIgnoreCase))
+            ?.Name ?? string.Empty;
+
+    /// <summary>
+    /// The region is not part of the country list the editor loads, only of a range that was
+    /// fetched. So it can be shown while the country is still the one the range came with,
+    /// and is blanked as soon as the country changes rather than showing the old one's.
+    /// </summary>
+    private string? PreviewRegion =>
+        Range is not null && string.Equals(Range.CountryCode, _input.CountryCode, StringComparison.OrdinalIgnoreCase)
+            ? Range.Region
+            : null;
+
+    private string PreviewNote
+    {
+        get
+        {
+            var digits = (_input.Prefix ?? string.Empty).Count(char.IsDigit);
+
+            return digits == 0
+                ? "No prefix yet"
+                : $"{digits}-digit prefix — the rest is any card in the range";
+        }
+    }
+
+    /// <summary>
+    /// What the range's status would be if it were saved as the form currently stands. The
+    /// server works this out from the dates too, so this is a preview of a real outcome and
+    /// not a second opinion about one.
+    /// </summary>
+    private BinRangeStatus PreviewState
+    {
+        get
+        {
+            var today = DateTime.UtcNow.Date;
+
+            if (_input.ValidFrom != default && _input.ValidFrom > today) return BinRangeStatus.Scheduled;
+            if (_input.ValidTo is not null && _input.ValidTo < today) return BinRangeStatus.Expired;
+
+            return BinRangeStatus.Active;
+        }
+    }
+
+    private string PreviewStatus => PreviewState.ToString();
+
+    private string PreviewStatusTone => PreviewState switch
+    {
+        BinRangeStatus.Active => "success",
+        BinRangeStatus.Scheduled => "info",
+        BinRangeStatus.Expired => "warning",
+        _ => "secondary"
+    };
+
+    private static string Date(DateTime value) => value.ToString("yyyy-MM-dd");
+
+    private static string Shown(string? value) => string.IsNullOrWhiteSpace(value) ? Unset : value;
 
     protected override void OnParametersSet()
     {

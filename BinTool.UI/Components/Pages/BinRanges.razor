@@ -362,41 +362,91 @@ else
                         <div class="alert alert-danger py-2 px-3 small" role="alert">@_viewError</div>
                     }
 
-                    <dl class="row mb-0 detail-list">
-                        <dt class="col-5">Prefix</dt>
-                        <dd class="col-7"><code class="mono">@_viewing.Prefix</code> (@_viewing.PrefixLength digits)</dd>
+                    @* The range is what a card carrying this prefix would be, so it is shown
+                       as one - but a card is a picture, and a picture is easy to misread.
+                       Every value it draws is repeated as plain text underneath. *@
+                    <BinCard Kind="BIN range"
+                             Scheme="@_viewing.CardScheme"
+                             StatusLabel="@_viewing.Status.ToString()"
+                             StatusTone="@StatusColor(_viewing.Status)"
+                             Prefix="@_viewing.Prefix"
+                             NumberNote="@($"{_viewing.PrefixLength}-digit prefix — the rest is any card in the range")"
+                             ValidFrom="_viewing.ValidFrom"
+                             ValidTo="_viewing.ValidTo"
+                             CountryCode="@_viewing.CountryCode"
+                             CountryName="@_viewing.CountryName"
+                             Region="@_viewing.Region"
+                             ProductType="@_viewing.ProductType"
+                             FundingType="@_viewing.FundingType">
+                        <ExtraDetails>
+                            <div>
+                                <dt>Added by</dt>
+                                <dd>
+                                    @(IsSystem(_viewing.CreatedBy) ? "System" : _viewing.CreatedBy ?? OpenEnded)
+                                    <span class="bincard-when">on @Date(_viewing.CreatedAt)</span>
+                                </dd>
+                            </div>
+                            <div>
+                                <dt>Last changed by</dt>
+                                <dd>
+                                    @(IsSystem(_viewing.UpdatedBy) ? "System" : _viewing.UpdatedBy ?? OpenEnded)
+                                    <span class="bincard-when">on @Date(_viewing.UpdatedAt)</span>
+                                </dd>
+                            </div>
+                        </ExtraDetails>
+                    </BinCard>
 
-                        <dt class="col-5">Scheme</dt>
-                        <dd class="col-7">@_viewing.CardScheme</dd>
+                    <dl class="detail-list mt-3">
+                        <dt>Prefix</dt>
+                        <dd><code class="mono">@_viewing.Prefix</code> <span class="text-secondary">(@_viewing.PrefixLength digits)</span></dd>
 
-                        <dt class="col-5">Product</dt>
-                        <dd class="col-7">@_viewing.ProductType</dd>
-
-                        <dt class="col-5">Funding</dt>
-                        <dd class="col-7">@_viewing.FundingType</dd>
-
-                        <dt class="col-5">Country</dt>
-                        <dd class="col-7">@_viewing.CountryCode — @_viewing.CountryName</dd>
-
-                        <dt class="col-5">Region</dt>
-                        <dd class="col-7">@_viewing.Region</dd>
-
-                        <dt class="col-5">Valid from</dt>
-                        <dd class="col-7">@Date(_viewing.ValidFrom)</dd>
-
-                        <dt class="col-5">Valid to</dt>
-                        <dd class="col-7">@(_viewing.ValidTo is null ? OpenEnded : Date(_viewing.ValidTo.Value))</dd>
-
-                        <dt class="col-5">Added by</dt>
-                        <dd class="col-7">
-                            @(IsSystem(_viewing.CreatedBy) ? "System" : _viewing.CreatedBy ?? OpenEnded)
-                            <span class="text-secondary small">on @Date(_viewing.CreatedAt)</span>
+                        <dt>Scheme</dt>
+                        <dd>
+                            @_viewing.CardScheme
+                            @if (_viewing.DetectedScheme is not null)
+                            {
+                                <span class="badge rounded-pill text-bg-warning ms-1"
+                                      title="@($"The prefix looks like {_viewing.DetectedScheme}, not {_viewing.CardScheme}.")">
+                                    ! @_viewing.DetectedScheme
+                                </span>
+                            }
                         </dd>
 
-                        <dt class="col-5">Last changed by</dt>
-                        <dd class="col-7">
+                        <dt>Product</dt>
+                        <dd>@_viewing.ProductType</dd>
+
+                        <dt>Funding</dt>
+                        <dd>@_viewing.FundingType</dd>
+
+                        <dt>Country</dt>
+                        <dd>@_viewing.CountryCode — @_viewing.CountryName</dd>
+
+                        <dt>Region</dt>
+                        <dd>@_viewing.Region</dd>
+
+                        <dt>Valid from</dt>
+                        <dd>@Date(_viewing.ValidFrom)</dd>
+
+                        <dt>Valid to</dt>
+                        <dd>@(_viewing.ValidTo is null ? OpenEnded : Date(_viewing.ValidTo.Value))</dd>
+
+                        <dt>Status</dt>
+                        <dd>
+                            <span class="badge badge-status text-bg-@StatusColor(_viewing.Status)">
+                                @_viewing.Status
+                            </span>
+                        </dd>
+
+                        <dt>Added by</dt>
+                        <dd>
+                            @(IsSystem(_viewing.CreatedBy) ? "System" : _viewing.CreatedBy ?? OpenEnded)
+                            <span class="text-secondary">on @Date(_viewing.CreatedAt)</span>
+                        </dd>
+
+                        <dt>Last changed by</dt>
+                        <dd>
                             @(IsSystem(_viewing.UpdatedBy) ? "System" : _viewing.UpdatedBy ?? OpenEnded)
-                            <span class="text-secondary small">on @Date(_viewing.UpdatedAt)</span>
+                            <span class="text-secondary">on @Date(_viewing.UpdatedAt)</span>
                         </dd>
                     </dl>
                 </div>

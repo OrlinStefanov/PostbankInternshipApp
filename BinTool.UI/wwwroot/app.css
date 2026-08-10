@@ -732,6 +732,68 @@ a:focus-visible {
 }
 
 /* --------------------------------------------------------------------------
+   Detail lists
+
+   One record read top to bottom: label on the left, value on the right, one
+   pair per ruled row. Used wherever a single thing is being inspected rather
+   than a set of them compared - a lookup result, a details dialog - and used
+   under the card panels so the values a card draws are also there as plain
+   text to check against.
+   -------------------------------------------------------------------------- */
+
+.detail-list {
+    display: grid;
+    grid-template-columns: minmax(7rem, 40%) 1fr;
+    gap: 0;
+    margin: 0;
+    font-size: 13px;
+}
+
+.detail-list > dt,
+.detail-list > dd {
+    margin: 0;
+    padding: 7px 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.detail-list > dt {
+    color: var(--app-muted);
+    font-weight: 400;
+}
+
+.detail-list > dd {
+    color: var(--app-ink);
+    font-weight: 500;
+    text-align: right;
+}
+
+/* Ruled between pairs, not around them: the panel already has an edge. The
+   first two children start the list, so the rule goes on everything after. */
+.detail-list > dt:not(:first-of-type),
+.detail-list > dd:not(:first-of-type) {
+    border-top: 1px solid var(--app-line-soft);
+}
+
+/* A value with no room to sit beside its label - a sentence explaining a
+   pricing decision, say - takes the whole width and reads left-aligned. */
+.detail-list > dt.detail-wide,
+.detail-list > dd.detail-wide {
+    grid-column: 1 / -1;
+    text-align: left;
+}
+
+.detail-list > dd.detail-wide {
+    padding-top: 0;
+    color: var(--app-muted);
+    font-weight: 400;
+}
+
+.detail-list > dt.detail-wide {
+    border-top: 1px solid var(--app-line-soft);
+}
+
+/* --------------------------------------------------------------------------
    Forms
    -------------------------------------------------------------------------- */
 

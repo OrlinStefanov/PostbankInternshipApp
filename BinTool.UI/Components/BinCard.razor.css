@@ -1,0 +1,334 @@
+/* The scene owns the perspective and the pointer affordance; the card inside owns the
+   rotation. Keeping them apart is what lets the JS module write drag angles onto the
+   scene without ever touching the transform Blazor's flip contributes. */
+.bincard-scene {
+    display: flex;
+    justify-content: center;
+    padding: .5rem 0 .25rem;
+    perspective: 1100px;
+    cursor: grab;
+
+    /* Without this a touch drag scrolls the page instead of turning the card. */
+    touch-action: none;
+}
+
+.bincard-scene.is-dragging {
+    cursor: grabbing;
+}
+
+.bincard {
+    position: relative;
+    width: 340px;
+
+    /* ID-1, the bank card size: 85.60 x 53.98 mm. */
+    height: 214px;
+    transform-style: preserve-3d;
+    transform: rotateX(var(--drag-x, 0deg)) rotateY(calc(var(--flip, 0deg) + var(--drag-y, 0deg)));
+    transition: transform .7s cubic-bezier(.2, .7, .2, 1);
+}
+
+.bincard-scene.is-flipped .bincard {
+    --flip: 180deg;
+}
+
+/* A drag should track the hand exactly. Easing here would make the card lag behind the
+   pointer and feel broken; it is only wanted for the flip, which is a jump. */
+.bincard-scene.is-dragging .bincard {
+    transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bincard {
+        transition: none;
+    }
+}
+
+.bincard-face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 18px;
+    border-radius: 12px;
+    color: #fff;
+    backface-visibility: hidden;
+    box-shadow: 0 18px 30px -12px rgba(15, 23, 42, .55), 0 2px 6px rgba(15, 23, 42, .25);
+    overflow: hidden;
+}
+
+/* A sheen, so the faces read as a physical object catching light rather than as two
+   coloured rectangles. */
+.bincard-face::after {
+    content: "";
+    position: absolute;
+    inset: -40% -10%;
+    background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, .18) 47%, transparent 56%);
+    pointer-events: none;
+}
+
+.bincard-back {
+    transform: rotateY(180deg);
+}
+
+/* --- Liveries ------------------------------------------------------------ */
+
+.bincard-visa .bincard-face {
+    background: linear-gradient(135deg, #1a1f71, #2563eb 62%, #5b93f5);
+}
+
+.bincard-mastercard .bincard-face {
+    background: linear-gradient(135deg, #1f2937, #b45309 66%, #f59e0b);
+}
+
+.bincard-amex .bincard-face {
+    background: linear-gradient(135deg, #0f766e, #0d9488 60%, #5eead4);
+}
+
+.bincard-diners .bincard-face {
+    background: linear-gradient(135deg, #0f172a, #334155 62%, #64748b);
+}
+
+.bincard-discover .bincard-face {
+    background: linear-gradient(135deg, #7c2d12, #ea580c 62%, #fb923c);
+}
+
+.bincard-jcb .bincard-face {
+    background: linear-gradient(135deg, #134e4a, #1e3a8a 48%, #991b1b);
+}
+
+.bincard-generic .bincard-face {
+    background: linear-gradient(135deg, #1a2035, #374151 62%, #6b7280);
+}
+
+/* --- Front --------------------------------------------------------------- */
+
+.bincard-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+}
+
+.bincard-kind {
+    font-size: .6875rem;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    opacity: .75;
+}
+
+/* The status pill sits on an unknown gradient, so it tints a frosted panel rather than
+   trying to hold its own background colour against whatever is behind it. */
+.bincard-status {
+    padding: 2px 8px;
+    border-radius: var(--app-radius-pill);
+    background-color: rgba(255, 255, 255, .16);
+    backdrop-filter: blur(2px);
+    font-size: .625rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.bincard-status-success {
+    color: #bbf7d0;
+}
+
+.bincard-status-info {
+    color: #bfdbfe;
+}
+
+.bincard-status-warning {
+    color: #fde68a;
+}
+
+.bincard-status-secondary {
+    color: rgba(255, 255, 255, .8);
+}
+
+.bincard-chip {
+    position: relative;
+    width: 42px;
+    height: 31px;
+    margin: 12px 0 10px;
+    border-radius: 5px;
+    background: linear-gradient(135deg, #e6c877, #f8ecb8 45%, #c9a34a);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .18);
+}
+
+.bincard-chip::before {
+    content: "";
+    position: absolute;
+    inset: 6px 4px;
+    border: 1px solid rgba(0, 0, 0, .22);
+    border-radius: 2px;
+}
+
+.bincard-chip::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    background-color: rgba(0, 0, 0, .22);
+}
+
+.bincard-number {
+    font-family: var(--app-font-mono);
+    font-size: 1.25rem;
+    font-weight: 500;
+    letter-spacing: .05em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+    white-space: nowrap;
+}
+
+/* The one line on the face that is allowed its own colour: what kind of card this is
+   is the answer most lookups are actually after. */
+.bincard-tagline {
+    margin-top: 4px;
+    color: #6ee7b7;
+    font-size: .625rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bincard-number-note {
+    margin-top: 3px;
+    font-size: .625rem;
+    letter-spacing: .02em;
+    opacity: .7;
+}
+
+.bincard-meta {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    margin-top: auto;
+}
+
+/* A long scheme name would otherwise squeeze the labels until they wrap, turning
+   "VALID FROM" into two lines. The labels hold their width; the brand is what gives. */
+.bincard-meta > div {
+    flex: none;
+}
+
+.bincard-label {
+    display: block;
+    font-size: .5625rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    opacity: .65;
+}
+
+.bincard-value {
+    display: block;
+    font-family: var(--app-font-mono);
+    font-size: .8125rem;
+    letter-spacing: .02em;
+}
+
+.bincard-brand {
+    flex: 0 1 auto;
+    min-width: 0;
+    margin-left: auto;
+    font-size: .9375rem;
+    font-weight: 700;
+    font-style: italic;
+    line-height: 1.1;
+    letter-spacing: -.01em;
+    text-align: right;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, .3);
+}
+
+/* --- Back ---------------------------------------------------------------- */
+
+.bincard-stripe {
+    margin: 6px -18px 12px;
+    height: 38px;
+    background-color: rgba(8, 11, 20, .82);
+}
+
+.bincard-signature {
+    display: flex;
+    align-items: center;
+    height: 26px;
+    margin-bottom: 10px;
+    padding: 0 8px;
+    border-radius: 2px;
+    background-color: rgba(255, 255, 255, .88);
+}
+
+.bincard-signature-text {
+    color: #1f2937;
+    font-family: var(--app-font-mono);
+    font-size: .6875rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+}
+
+.bincard-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 14px;
+    margin: 0;
+    font-size: .625rem;
+    line-height: 1.35;
+}
+
+/* ::deep throughout, because the extra pairs are passed in as a render fragment: they
+   carry the calling page's scope, not this component's, and would otherwise miss every
+   rule here. */
+.bincard-details ::deep .bincard-span {
+    grid-column: 1 / -1;
+}
+
+.bincard-details ::deep dt {
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    opacity: .6;
+}
+
+.bincard-details ::deep dd {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bincard-details ::deep .bincard-when {
+    opacity: .65;
+}
+
+/* --- Controls ------------------------------------------------------------ */
+
+.bincard-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    margin-top: .75rem;
+}
+
+.bincard-hint {
+    margin-left: auto;
+    color: var(--app-faint);
+    font-size: .75rem;
+}
+
+/* Turning by hand needs a pointer; on a small screen the flip button is the whole story,
+   so the hint would be telling the reader to do something they cannot. */
+@media (max-width: 575.98px) {
+    .bincard-hint {
+        display: none;
+    }
+}
