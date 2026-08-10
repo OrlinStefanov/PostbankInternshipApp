@@ -98,7 +98,16 @@
                             <dd class="col-7"><code class="mono">@_result.MatchedPrefix</code></dd>
 
                             <dt class="col-5">Scheme</dt>
-                            <dd class="col-7">@_result.CardScheme</dd>
+                            <dd class="col-7">
+                                @_result.CardScheme
+                                @if (_result.DetectedScheme is not null)
+                                {
+                                    <span class="badge rounded-pill text-bg-warning ms-1"
+                                          title="@($"The matched prefix looks like {_result.DetectedScheme}, not {_result.CardScheme}. The stored range's scheme is likely wrong.")">
+                                        ! @_result.DetectedScheme
+                                    </span>
+                                }
+                            </dd>
 
                             <dt class="col-5">Product</dt>
                             <dd class="col-7">@_result.ProductType</dd>

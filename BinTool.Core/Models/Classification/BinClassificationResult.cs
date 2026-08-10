@@ -67,6 +67,14 @@ public class BinClassificationResult
     public DateTime? ValidTo { get; set; }
 
     /// <summary>
+    /// The card scheme the detector assigns to the matched prefix, populated only when it
+    /// disagrees with <see cref="CardScheme"/>. Lets a lookup surface the same "stored
+    /// scheme is wrong" warning the browse and vulnerabilities pages show, so a user who
+    /// looks up the BIN sees the disagreement rather than trusting a bad row silently.
+    /// </summary>
+    public string? DetectedScheme { get; set; }
+
+    /// <summary>
     /// The commission worked out for the request's amount. Null when no amount was supplied,
     /// when the BIN did not match, or when no rule matched and no default is configured.
     /// A non-null value with <see cref="CommissionCalculation.IsFallback"/> set means the

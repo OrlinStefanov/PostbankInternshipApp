@@ -25,12 +25,16 @@ public class BinClassificationService : IBinClassificationService
 
     private readonly AppDbContext _db;
     private readonly ICommissionResolver _commissionResolver;
+    private readonly ICardSchemeDetector _schemeDetector;
 
-    public BinClassificationService(AppDbContext db, ICommissionResolver commissionResolver)
+    public BinClassificationService(
+        AppDbContext db,
+        ICommissionResolver commissionResolver,
+        ICardSchemeDetector schemeDetector)
     {
         _db = db;
         _commissionResolver = commissionResolver;
-
+        _schemeDetector = schemeDetector;
     }
 
     public async Task<BinClassificationResult> ClassifyAsync(
@@ -90,6 +94,16 @@ public class BinClassificationService : IBinClassificationService
             ValidFrom = match.ValidFrom,
             ValidTo = match.ValidTo
         };
+
+        // Flag when the stored range is under a scheme the detector's IIN rules disagree
+        // with. Uses the matched prefix - what actually classified the card - rather than
+        // the input, so a short 6-digit stored range is judged on its own digits.
+        var detected = _schemeDetector.Detect(match.Prefix);
+        var detectedName = _schemeDetector.DisplayName(detected);
+        if (detectedName is not null && !_schemeDetector.Matches(detected, match.CardScheme))
+        {
+            result.DetectedScheme = detectedName;
+        }
 
         // Pricing only when the caller asked for it. The card matched, so every key id is
         // present - the resolver decides whether any rule (or the default) applies.

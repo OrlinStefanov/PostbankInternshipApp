@@ -38,6 +38,20 @@ public class BinRangeQueryService : IBinRangeQueryService
             .Select(BinRangeProjection.ToListItem(today))
             .ToListAsync(cancellationToken);
 
+        // Flag the mismatched rows on the ordinary listing too, so a browsing user sees
+        // the same warning the vulnerabilities page does. Runs on the sliced page only -
+        // capped by BinRangeQuery.MaxPageSize, so this is at most a couple of hundred
+        // Detect() calls.
+        foreach (var item in items)
+        {
+            var detected = _detector.Detect(item.Prefix);
+            var detectedName = _detector.DisplayName(detected);
+            if (detectedName is null) continue;
+            if (_detector.Matches(detected, item.CardScheme)) continue;
+
+            item.DetectedScheme = detectedName;
+        }
+
         return new PagedResult<BinRangeListItem>
         {
             Items = items,

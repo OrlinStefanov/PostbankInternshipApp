@@ -230,6 +230,31 @@ public class BinRangeQueryServiceTests : SqliteTestBase
         result.TotalPages.Should().Be(0);
     }
 
+    // ---- Detected-scheme flag on the browse listing ----------------------------
+
+    [Fact]
+    public async Task Browse_flags_a_row_whose_stored_scheme_contradicts_the_detector()
+    {
+        // A Visa prefix stored under Mastercard: the browse listing carries the
+        // detector's opinion so a viewer sees the disagreement without having to open
+        // the vulnerabilities page.
+        SeedBinRange("400001", MastercardId, ConsumerId, CreditId, UsCountryId, Started);
+
+        var result = await Search();
+
+        result.Items.Should().ContainSingle().Which.DetectedScheme.Should().Be("Visa");
+    }
+
+    [Fact]
+    public async Task Browse_leaves_detected_scheme_null_when_the_row_is_consistent()
+    {
+        SeedBinRange("400001", VisaId, ConsumerId, CreditId, UsCountryId, Started);
+
+        var result = await Search();
+
+        result.Items.Should().ContainSingle().Which.DetectedScheme.Should().BeNull();
+    }
+
     // ---- Attribution -----------------------------------------------------------
 
     [Fact]

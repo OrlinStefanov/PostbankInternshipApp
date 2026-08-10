@@ -323,7 +323,8 @@ public class BinRangeAdminServiceTests : SqliteTestBase
         await _service.DeleteAsync(range.BinRangeId);
 
         var context = NewContext();
-        var classification = await new BinClassificationService(context, new CommissionResolver(context))
+        var classification = await new BinClassificationService(
+                context, new CommissionResolver(context), new CardSchemeDetector())
             .ClassifyAsync("4000011234567");
 
         classification.Matched.Should().BeFalse();

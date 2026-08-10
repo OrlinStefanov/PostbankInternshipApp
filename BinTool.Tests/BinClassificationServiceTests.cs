@@ -1,3 +1,4 @@
+using BinTool.Core.Services;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
 
@@ -14,7 +15,8 @@ public class BinClassificationServiceTests : SqliteTestBase
 
     public BinClassificationServiceTests()
     {
-        _service = new BinClassificationService(Db, new CommissionResolver(Db));
+        _service = new BinClassificationService(
+            Db, new CommissionResolver(Db), new CardSchemeDetector());
     }
 
     // ---- Matching --------------------------------------------------------------
@@ -191,5 +193,31 @@ public class BinClassificationServiceTests : SqliteTestBase
 
         var thrown = await classify.Should().ThrowAsync<ArgumentException>();
         thrown.Which.Message.Should().NotContain("4000");
+    }
+
+    // ---- Detected-scheme flag --------------------------------------------------
+
+    [Fact]
+    public async Task Lookup_flags_when_the_stored_scheme_contradicts_the_matched_prefix()
+    {
+        // A Visa prefix stored under Mastercard: classification still returns the row,
+        // but the caller sees the detector's disagreement alongside it.
+        SeedBinRange("400001", MastercardId, ConsumerId, CreditId, UsCountryId, Active);
+
+        var result = await _service.ClassifyAsync("400001");
+
+        result.Matched.Should().BeTrue();
+        result.CardScheme.Should().Be("Mastercard");
+        result.DetectedScheme.Should().Be("Visa");
+    }
+
+    [Fact]
+    public async Task Lookup_leaves_detected_scheme_null_when_the_stored_scheme_agrees()
+    {
+        SeedBinRange("400001", VisaId, ConsumerId, CreditId, UsCountryId, Active);
+
+        var result = await _service.ClassifyAsync("400001");
+
+        result.DetectedScheme.Should().BeNull();
     }
 }

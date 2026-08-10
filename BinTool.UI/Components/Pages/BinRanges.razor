@@ -218,7 +218,16 @@ else
                                 <code class="mono">@item.Prefix</code>
                                 <span class="text-secondary small ms-1">@item.PrefixLength</span>
                             </td>
-                            <td>@item.CardScheme</td>
+                            <td>
+                                @item.CardScheme
+                                @if (item.DetectedScheme is not null)
+                                {
+                                    <span class="badge rounded-pill text-bg-warning ms-1"
+                                          title="@($"The prefix looks like {item.DetectedScheme}, not {item.CardScheme}. Edit the row to correct it.")">
+                                        ! @item.DetectedScheme
+                                    </span>
+                                }
+                            </td>
                             <td>@item.ProductType</td>
                             <td>@item.FundingType</td>
                             <td>
