@@ -1,4 +1,5 @@
 @inject BinRangeApiClient Api
+@inject ICardSchemeDetector SchemeDetector
 
 @* Rendered only while open, so the surrounding page owns "is the dialog up?" and this
    component owns everything inside it. *@
@@ -20,23 +21,76 @@
                         <div class="alert alert-danger" role="alert">@_error</div>
                     }
 
+                    @if (_mismatch is not null)
+                    {
+                        <div class="alert alert-warning d-flex flex-column gap-2" role="alert">
+                            <div>
+                                <strong>The prefix does not match the card scheme.</strong>
+                                <div class="small mt-1">@_mismatch</div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        @onclick="DismissMismatch" disabled="@_saving">
+                                    Change the scheme
+                                </button>
+                                <button type="button" class="btn btn-sm btn-warning"
+                                        @onclick="SaveAnyway" disabled="@_saving">
+                                    Save anyway
+                                </button>
+                            </div>
+                        </div>
+                    }
+
                     <div class="row g-3">
                         <div class="col-12 col-md-6">
                             <label class="form-label" for="e-prefix">Prefix</label>
-                            <InputText id="e-prefix" class="form-control mono" inputmode="numeric"
-                                       placeholder="6 to 8 digits" @bind-Value="_input.Prefix" />
+                            @* Plain input rather than InputText so oninput fires on every
+                               keystroke - the detector needs the current digits to suggest
+                               a scheme live rather than waiting for blur. *@
+                            <input id="e-prefix" type="text" class="form-control mono" inputmode="numeric"
+                                   placeholder="6 to 8 digits" value="@_input.Prefix"
+                                   @oninput="OnPrefixInput" />
                             <ValidationMessage For="() => _input.Prefix" class="form-text text-danger" />
                         </div>
 
                         <div class="col-12 col-md-6">
                             <label class="form-label" for="e-scheme">Card scheme</label>
-                            <InputSelect id="e-scheme" class="form-select" @bind-Value="_input.CardScheme">
+                            <InputSelect id="e-scheme" class="@SchemeSelectCssClass"
+                                         @bind-Value="_input.CardScheme">
                                 <option value="">Choose…</option>
                                 @foreach (var name in Options.CardSchemes)
                                 {
                                     <option value="@name">@name</option>
                                 }
                             </InputSelect>
+                            @if (_detectedScheme is not null)
+                            {
+                                if (SchemeDetector.Matches(_detected, _input.CardScheme))
+                                {
+                                    <div class="form-text text-success">
+                                        Matches the prefix (@_detectedScheme).
+                                    </div>
+                                }
+                                else if (string.IsNullOrWhiteSpace(_input.CardScheme))
+                                {
+                                    <div class="form-text">
+                                        Prefix looks like <strong>@_detectedScheme</strong>.
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="form-text text-warning-emphasis">
+                                        Prefix looks like <strong>@_detectedScheme</strong>, not
+                                        @_input.CardScheme.
+                                    </div>
+                                }
+                            }
+                            else if (_detectorRan)
+                            {
+                                <div class="form-text text-warning-emphasis">
+                                    Prefix does not sit in any known card-scheme range.
+                                </div>
+                            }
                             <ValidationMessage For="() => _input.CardScheme" class="form-text text-danger" />
                         </div>
 
@@ -143,6 +197,29 @@
     private BinRangeInput _input = new();
     private bool _saving;
     private string? _error;
+    private string? _mismatch;
+
+    // Live suggestion state, driven by every keystroke in the prefix input.
+    // _detectedScheme is the display name (null for Unknown or too-short prefixes);
+    // _detectorRan tells the hint apart from "nothing typed yet". _autoSuggested holds
+    // the name the code last wrote into the scheme select, so a subsequent detection
+    // can update it without overwriting a value the user chose deliberately.
+    private DetectedScheme _detected = DetectedScheme.Unknown;
+    private string? _detectedScheme;
+    private bool _detectorRan;
+    private string? _autoSuggested;
+
+    private string SchemeSelectCssClass
+    {
+        get
+        {
+            const string basic = "form-select";
+            if (_detectedScheme is null) return basic;
+            if (SchemeDetector.Matches(_detected, _input.CardScheme)) return $"{basic} is-valid";
+            if (string.IsNullOrWhiteSpace(_input.CardScheme)) return basic;
+            return $"{basic} is-invalid";
+        }
+    }
 
     private string Title => Range is null ? "Add BIN range" : $"Edit BIN range {Range.Prefix}";
 
@@ -162,12 +239,87 @@
             };
 
         _error = null;
+        _mismatch = null;
+        _autoSuggested = null;
+        DetectScheme();
     }
 
-    private async Task Save()
+    /// <summary>
+    /// Reflects each keystroke back onto the model and re-runs the detector, so the hint
+    /// under the scheme select updates while the user is still typing rather than after
+    /// the field loses focus.
+    /// </summary>
+    private void OnPrefixInput(ChangeEventArgs e)
+    {
+        _input.Prefix = e.Value?.ToString() ?? string.Empty;
+        DetectScheme();
+    }
+
+    /// <summary>
+    /// Runs the detector against the current prefix and, if the field would otherwise be
+    /// empty or still holds a previous suggestion, pre-fills the scheme select. Never
+    /// overwrites a value the user typed themselves - if they picked "Visa" for a
+    /// Mastercard prefix, the scheme select stays on Visa and the hint calls out the
+    /// disagreement.
+    /// </summary>
+    private void DetectScheme()
+    {
+        _detected = SchemeDetector.Detect(_input.Prefix ?? string.Empty);
+        _detectedScheme = SchemeDetector.DisplayName(_detected);
+        _detectorRan = !string.IsNullOrEmpty(_input.Prefix) && (_input.Prefix?.Length ?? 0) >= 2;
+
+        if (_detectedScheme is null)
+            return;
+
+        // Only auto-fill with a name that exists as reference data - a scheme the admin
+        // hasn't added yet would fail validation on the select.
+        if (!Options.CardSchemes.Contains(_detectedScheme))
+            return;
+
+        var currentIsEmpty = string.IsNullOrWhiteSpace(_input.CardScheme);
+        var currentIsPreviousSuggestion = _autoSuggested is not null &&
+            string.Equals(_input.CardScheme, _autoSuggested, StringComparison.Ordinal);
+
+        if (currentIsEmpty || currentIsPreviousSuggestion)
+        {
+            _input.CardScheme = _detectedScheme;
+            _autoSuggested = _detectedScheme;
+        }
+    }
+
+    /// <summary>
+    /// Submits the form. Clears the acknowledgement flag first so a warning shown on the
+    /// previous attempt cannot silently carry over into a fresh save - the user has to
+    /// click <see cref="SaveAnyway"/> for that to happen.
+    /// </summary>
+    private Task Save()
+    {
+        _input.AcknowledgeSchemeMismatch = false;
+        return SendAsync();
+    }
+
+    /// <summary>
+    /// Second attempt after a scheme mismatch warning: the user has looked at the message
+    /// and chosen to keep the row as declared. The API records the acknowledgement in the
+    /// same call, so nothing else has to remember it.
+    /// </summary>
+    private Task SaveAnyway()
+    {
+        _input.AcknowledgeSchemeMismatch = true;
+        return SendAsync();
+    }
+
+    private void DismissMismatch()
+    {
+        _mismatch = null;
+        _input.AcknowledgeSchemeMismatch = false;
+    }
+
+    private async Task SendAsync()
     {
         _saving = true;
         _error = null;
+        _mismatch = null;
 
         try
         {
@@ -175,10 +327,18 @@
                 ? await Api.CreateAsync(_input)
                 : await Api.UpdateAsync(Range.BinRangeId, _input);
 
+            if (result.Status == BinRangeMutationStatus.SchemeMismatch)
+            {
+                // A soft refusal: the row is fine, the detector just disagrees with the
+                // scheme choice. Show the reason and let the user decide.
+                _mismatch = result.Error;
+                return;
+            }
+
             if (!result.Succeeded)
             {
-                // A refusal - a taken prefix, a name that does not exist - belongs next to
-                // the form the user is still filling in, not on the page behind it.
+                // A hard refusal - a taken prefix, a name that does not exist - belongs
+                // next to the form the user is still filling in, not on the page behind.
                 _error = result.Error;
                 return;
             }

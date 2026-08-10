@@ -80,6 +80,42 @@ public class BinRangeApiClient
     }
 
     /// <summary>
+    /// Fetches one page of ranges whose stored scheme contradicts the prefix, from
+    /// <c>GET /api/BinRanges/scheme-mismatches</c>. Each item carries the detector's
+    /// suggestion in <c>DetectedScheme</c>.
+    /// </summary>
+    public async Task<PagedResult<BinRangeListItem>> GetSchemeMismatchesAsync(
+        int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        await AuthorizeAsync();
+
+        var url = $"api/BinRanges/scheme-mismatches?page={page.ToString(CultureInfo.InvariantCulture)}" +
+                  $"&pageSize={pageSize.ToString(CultureInfo.InvariantCulture)}";
+
+        return await _http.GetFromJsonAsync<PagedResult<BinRangeListItem>>(
+            url, Json, cancellationToken) ?? new PagedResult<BinRangeListItem>();
+    }
+
+    /// <summary>
+    /// Fetches the count of scheme-mismatched ranges, for a Home badge. Returns 0 if the
+    /// call fails - the badge is decoration, not the control.
+    /// </summary>
+    public async Task<int> CountSchemeMismatchesAsync(CancellationToken cancellationToken = default)
+    {
+        await AuthorizeAsync();
+
+        try
+        {
+            return await _http.GetFromJsonAsync<int>(
+                "api/BinRanges/scheme-mismatches/count", Json, cancellationToken);
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    /// <summary>
     /// Fetches the filter dropdown values from <c>GET /api/BinRanges/filters</c>.
     /// </summary>
     public async Task<BinRangeFilterOptions> GetFilterOptionsAsync(

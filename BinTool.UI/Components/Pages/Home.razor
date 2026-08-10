@@ -1,4 +1,6 @@
 @page "/"
+@rendermode InteractiveServer
+@inject BinRangeApiClient Api
 
 <PageTitle>BinTool</PageTitle>
 
@@ -12,6 +14,35 @@
 
 <AuthorizeView>
     <Authorized>
+        @* Vulnerabilities: stored rows whose scheme contradicts the detector. Only shown
+           when the scan actually finds something, so a healthy database has no callout at
+           all. The count is a decoration - a load failure hides it silently rather than
+           showing a stale badge. *@
+        <AuthorizeView Policy="@Permissions.BinRangesRead" Context="vuln">
+            <Authorized>
+                @if (_mismatchCount > 0)
+                {
+                    <div class="card border-warning bg-warning-subtle mt-4">
+                        <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+                            <div>
+                                <h2 class="h5 mb-1">
+                                    <span class="badge text-bg-warning me-2">@_mismatchCount</span>
+                                    BIN vulnerabilities need review
+                                </h2>
+                                <p class="mb-0 text-body-secondary">
+                                    Stored @(_mismatchCount == 1 ? "range has" : "ranges have")
+                                    a card scheme that contradicts the prefix. Correct
+                                    @(_mismatchCount == 1 ? "it" : "them") before the next
+                                    classification returns the wrong network.
+                                </p>
+                            </div>
+                            <a class="btn btn-warning" href="vulnerabilities">Review</a>
+                        </div>
+                    </div>
+                }
+            </Authorized>
+        </AuthorizeView>
+
         @* Only the cards a signed-in user can actually act on. Each route is guarded in
            its own right, so this is presentation rather than the control. *@
         <div class="entry-grid mt-4">
@@ -105,3 +136,30 @@
         </div>
     </NotAuthorized>
 </AuthorizeView>
+
+@code {
+    private int _mismatchCount;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    [Inject]
+    private IAuthorizationService Authorization { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Only fetch the count when the signed-in user can actually see the vulnerabilities
+        // page - an unauthenticated visitor or one without BinRangesRead has no card to
+        // render, so there is no reason to make the API call.
+        if (AuthenticationState is null) return;
+
+        var state = await AuthenticationState;
+        if (state.User.Identity is not { IsAuthenticated: true }) return;
+
+        var canRead = (await Authorization.AuthorizeAsync(
+            state.User, Permissions.BinRangesRead)).Succeeded;
+        if (!canRead) return;
+
+        _mismatchCount = await Api.CountSchemeMismatchesAsync();
+    }
+}

@@ -59,6 +59,61 @@ public class SchemeMismatchImportTests : ImportTestBase
     }
 
     [Fact]
+    public async Task A_discover_row_is_trusted_once_the_scheme_exists_in_reference_data()
+    {
+        // Discover is not seeded, so an admin adds it before any file can declare it.
+        var discover = new CardScheme { Name = "Discover", Description = "Discover Card" };
+        Db.CardSchemes.Add(discover);
+        await Db.SaveChangesAsync();
+
+        var result = await Run("601100,Discover,Consumer,Credit,US,2024-01-01,");
+
+        result.InsertedCount.Should().Be(1);
+        result.ConflictCount.Should().Be(0, "601100 is a Discover range and the file says so");
+        Db.BinRanges.Single().CardSchemeId.Should().Be(discover.CardSchemeId);
+    }
+
+    [Fact]
+    public async Task A_unionpay_row_is_trusted_under_the_name_the_sample_data_uses()
+    {
+        // samples/card_schemes.csv ships UnionPay with the description "China UnionPay",
+        // so both spellings have to be accepted as the same network.
+        var unionPay = new CardScheme { Name = "China UnionPay", Description = "China UnionPay" };
+        Db.CardSchemes.Add(unionPay);
+        await Db.SaveChangesAsync();
+
+        var result = await Run("620000,China UnionPay,Consumer,Credit,US,2024-01-01,");
+
+        result.InsertedCount.Should().Be(1);
+        result.ConflictCount.Should().Be(0, "620000 is a UnionPay range and the file says so");
+        Db.BinRanges.Single().CardSchemeId.Should().Be(unionPay.CardSchemeId);
+    }
+
+    [Fact]
+    public async Task A_mislabelled_unionpay_row_names_unionpay_in_the_reviewer_s_message()
+    {
+        // 62 is UnionPay's range; the file calls it Visa.
+        var result = await Run("620000,Visa,Consumer,Credit,US,2024-01-01,");
+
+        var conflict = result.Conflicts.Single();
+        conflict.Message.Should().Contain("UnionPay").And.Contain("Visa");
+        conflict.Message.Should().NotContain("does not match any known",
+            "the detector did recognise the range, so saying otherwise misleads the reviewer");
+    }
+
+    [Fact]
+    public async Task A_mislabelled_jcb_row_names_jcb_in_the_reviewer_s_message()
+    {
+        // 3528 is the bottom of the JCB range; the file calls it Visa.
+        var result = await Run("352800,Visa,Consumer,Credit,US,2024-01-01,");
+
+        var conflict = result.Conflicts.Single();
+        conflict.Message.Should().Contain("JCB").And.Contain("Visa");
+        conflict.Message.Should().NotContain("does not match any known",
+            "the detector did recognise the range, so saying otherwise misleads the reviewer");
+    }
+
+    [Fact]
     public async Task Applying_a_new_prefix_mismatch_inserts_the_range_as_declared()
     {
         var import = await Run(MislabelledRow);
@@ -160,7 +215,7 @@ public class SchemeMismatchImportTests : ImportTestBase
         await using var fresh = NewContext();
         var freshService = new Infrastructure.Services.BinCsvImportService(
             fresh, CurrentUser, new Infrastructure.Services.AuditLog(fresh, CurrentUser),
-            new Infrastructure.Services.CardSchemeDetector());
+            new Core.Services.CardSchemeDetector());
 
         var conflict = (await freshService.GetPendingConflictsAsync()).Single();
         conflict.ConflictType.Should().Be("SchemeMismatch");

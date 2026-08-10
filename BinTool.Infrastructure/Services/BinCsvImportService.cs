@@ -79,19 +79,25 @@ public class BinCsvImportService : IBinCsvImportService
         if (!csv.Read() || !csv.ReadHeader())
         {
             AddRejection(result, history, 0, "File is empty or has no header row", string.Empty);
+
             history.Status = "Failed";
+
             await FinalizeAsync(result, history, cancellationToken);
+
             return result;
         }
 
         var header = csv.HeaderRecord ?? Array.Empty<string>();
         var missing = RequiredColumns.Where(c => Array.IndexOf(header, c) < 0).ToList();
+
         if (missing.Count > 0)
         {
             AddRejection(result, history, 0,
                 $"Missing required column(s): {string.Join(", ", missing)}", string.Join(",", header));
             history.Status = "Failed";
+
             await FinalizeAsync(result, history, cancellationToken);
+
             return result;
         }
 
@@ -148,6 +154,7 @@ public class BinCsvImportService : IBinCsvImportService
         // Soft-deleted rows are included deliberately: the unique index on Prefix spans
         // them, so inserting alongside one would violate the constraint.
         var existing = new Dictionary<string, BinRange>(candidates.Count, StringComparer.Ordinal);
+
         foreach (var batch in candidates.Select(c => c.Values.Prefix).Chunk(PrefixLookupBatchSize))
         {
             // Read-only for the common compare path; the rare revived row is attached
@@ -162,7 +169,7 @@ public class BinCsvImportService : IBinCsvImportService
         }
 
         var now = DateTime.UtcNow;
-        var stagedConflicts = new List<(PendingBinConflict Entity, int RowNumber, List<BinFieldDiff> Diffs, string? Message)>();
+        var stagedConflicts = new List<(PendingBinConflict Entity, int RowNumber, List<BinFieldDiff> Diffs, string? Message, string? Advisory)>();
         var revivals = new Dictionary<int, ResolvedRow>();
 
         // Rows that changed live data, kept so each can be audited once its id exists.
@@ -192,18 +199,23 @@ public class BinCsvImportService : IBinCsvImportService
             // prefix in no known range at all) is held for review rather than trusted -
             // whether the row would otherwise insert, revive, or update an existing range.
             var declaredScheme = lookups.CardSchemeName(v.CardSchemeId);
+
             var detected = _schemeDetector.Detect(v.Prefix);
+
             if (!_schemeDetector.Matches(detected, declaredScheme))
             {
                 var mismatch = NewConflict(v, candidate.Raw, history, now, ConflictType.SchemeMismatch);
+
                 mismatch.TargetBinRangeId = current?.BinRangeId;
+                
                 _db.Set<PendingBinConflict>().Add(mismatch);
 
                 // Only a live target has an existing record to diff against; an insert or
                 // a revival is explained by the message alone.
                 var diffs = current is { IsDeleted: false } ? liveDiffs! : new List<BinFieldDiff>();
                 stagedConflicts.Add((mismatch, candidate.RowNumber, diffs,
-                    MismatchMessage(v.Prefix, detected, declaredScheme)));
+                    MismatchMessage(v.Prefix, detected, declaredScheme),
+                    StoredSchemeAdvisory(current, detected, lookups)));
                 continue;
             }
 
@@ -250,7 +262,8 @@ public class BinCsvImportService : IBinCsvImportService
             conflict.TargetBinRangeId = current.BinRangeId;
             _db.Set<PendingBinConflict>().Add(conflict);
 
-            stagedConflicts.Add((conflict, candidate.RowNumber, liveDiffs!, null));
+            stagedConflicts.Add((conflict, candidate.RowNumber, liveDiffs!, null,
+                StoredSchemeAdvisory(current, detected, lookups)));
         }
 
         // Revived rows are re-read with tracking so the change tracker owns the instance
@@ -303,7 +316,7 @@ public class BinCsvImportService : IBinCsvImportService
         await transaction.CommitAsync(cancellationToken);
 
         // Ids are generated now, so build the response conflicts.
-        foreach (var (entity, stagedRowNumber, diffs, message) in stagedConflicts)
+        foreach (var (entity, stagedRowNumber, diffs, message, advisory) in stagedConflicts)
         {
             result.Conflicts.Add(new BinConflict
             {
@@ -312,7 +325,9 @@ public class BinCsvImportService : IBinCsvImportService
                 Prefix = entity.Prefix,
                 ConflictType = entity.ConflictType.ToString(),
                 Message = message,
-                Differences = diffs
+                Differences = diffs,
+                DetectedScheme = _schemeDetector.DisplayName(_schemeDetector.Detect(entity.Prefix)),
+                SchemeAdvisory = advisory
             });
         }
 
@@ -523,12 +538,15 @@ public class BinCsvImportService : IBinCsvImportService
                 conflict.Prefix, conflict.CardSchemeId, conflict.ProductTypeId,
                 conflict.FundingTypeId, conflict.CountryId, conflict.ValidFrom, conflict.ValidTo);
 
+            var detected = _schemeDetector.Detect(conflict.Prefix);
+            var detectedName = _schemeDetector.DisplayName(detected);
+            var advisory = StoredSchemeAdvisory(target, detected, lookups);
+
             if (conflict.ConflictType == ConflictType.SchemeMismatch)
             {
                 // A scheme mismatch stands on its own - a new-prefix mismatch never has a
                 // target, so a missing one is not staleness. Diff only when there is an
                 // existing row it would overwrite.
-                var detected = _schemeDetector.Detect(conflict.Prefix);
                 conflicts.Add(new BinConflict
                 {
                     PendingBinConflictId = conflict.PendingBinConflictId,
@@ -537,7 +555,9 @@ public class BinCsvImportService : IBinCsvImportService
                     ConflictType = conflict.ConflictType.ToString(),
                     Message = MismatchMessage(conflict.Prefix, detected,
                         lookups.CardSchemeName(conflict.CardSchemeId)),
-                    Differences = target is not null ? Diff(target, incoming, lookups) : new()
+                    Differences = target is not null ? Diff(target, incoming, lookups) : new(),
+                    DetectedScheme = detectedName,
+                    SchemeAdvisory = advisory
                 });
                 continue;
             }
@@ -553,7 +573,9 @@ public class BinCsvImportService : IBinCsvImportService
                 RowNumber = 0, // not meaningful outside the originating file
                 Prefix = conflict.Prefix,
                 ConflictType = conflict.ConflictType.ToString(),
-                Differences = Diff(target, incoming, lookups)
+                Differences = Diff(target, incoming, lookups),
+                DetectedScheme = detectedName,
+                SchemeAdvisory = advisory
             });
         }
 
@@ -793,6 +815,27 @@ public class BinCsvImportService : IBinCsvImportService
         return detectedName is null
             ? $"Prefix {prefix} does not match any known card-scheme range, but the file declares {declaredName}."
             : $"Prefix {prefix} is a {detectedName} range, but the file declares {declaredName}.";
+    }
+
+    /// <summary>
+    /// Non-null when the target row already sitting in the database holds a scheme the
+    /// detector disagrees with - the case where a reviewer needs to be told the stored
+    /// row is wrong for its prefix, even if the incoming row is not changing it. Silent
+    /// when there is no target, the detector does not know the prefix, or the stored
+    /// scheme is already the right one.
+    /// </summary>
+    private string? StoredSchemeAdvisory(BinRange? target, DetectedScheme detected, Lookups lookups)
+    {
+        if (target is null) return null;
+
+        var detectedName = _schemeDetector.DisplayName(detected);
+        if (detectedName is null) return null;
+
+        var storedName = lookups.CardSchemeName(target.CardSchemeId);
+        if (_schemeDetector.Matches(detected, storedName)) return null;
+
+        var storedLabel = string.IsNullOrWhiteSpace(storedName) ? "an unknown scheme" : storedName;
+        return $"The stored row is on {storedLabel}, but prefix {target.Prefix} is a {detectedName} range.";
     }
 
     private static void AddRejection(

@@ -46,6 +46,13 @@ public class BinRangeInput : IValidatableObject
     public DateTime? ValidTo { get; set; }
 
     /// <summary>
+    /// Set to true to save even when the prefix's detected network does not match
+    /// <see cref="CardScheme"/>. False on the first attempt so the caller sees the warning;
+    /// true on the second so the caller is on record as having chosen to override it.
+    /// </summary>
+    public bool AcknowledgeSchemeMismatch { get; set; }
+
+    /// <summary>
     /// The rules that span more than one field. Kept on the model rather than in the
     /// service so the API's automatic model validation and a direct service call reject
     /// exactly the same input.

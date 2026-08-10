@@ -1,5 +1,6 @@
 using BinTool.Core.Entities;
 using BinTool.Core.Models.Import;
+using BinTool.Core.Services;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -129,6 +130,95 @@ public class BinConflictWorkflowTests : ImportTestBase
         var delete = async () => await other.SaveChangesAsync();
 
         await delete.Should().ThrowAsync<DbUpdateException>();
+    }
+
+    // ---- Detector suggestions on the conflict ---------------------------------
+
+    [Fact]
+    public async Task Every_conflict_carries_the_detector_s_suggested_scheme()
+    {
+        var staged = await StageConflict();
+
+        staged.DetectedScheme.Should().Be("Visa",
+            "the prefix 400001 is a Visa range regardless of what the row or the DB declares");
+
+        // And the same after rehydration through GetPendingConflictsAsync.
+        var reloaded = (await Service.GetPendingConflictsAsync()).Single();
+        reloaded.DetectedScheme.Should().Be("Visa");
+    }
+
+    [Fact]
+    public async Task An_unknown_prefix_carries_no_detected_scheme()
+    {
+        // 999999 is in no known IIN range, so the detector deliberately reports null
+        // rather than guessing - the UI shows "unknown range" for these.
+        SeedBinRange("999999", VisaId, ConsumerId, CreditId, UsCountryId, new DateTime(2024, 1, 1));
+        var result = await Run("999999,Visa,Consumer,Debit,US,2024-01-01,");
+
+        // A prefix the detector does not know is refused as SchemeMismatch (nothing to
+        // match against), so the returned conflict is a scheme mismatch on that prefix.
+        var conflict = result.Conflicts.Single();
+        conflict.DetectedScheme.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task A_stored_row_whose_scheme_contradicts_its_prefix_raises_an_advisory()
+    {
+        // The DB holds a Visa-range prefix labelled Mastercard - the case the user asked
+        // to be surfaced. The incoming row is labelled correctly, so it stages as a plain
+        // value conflict (scheme differs, but incoming is fine); the advisory tells the
+        // reviewer that the row already on file is on the wrong network for the prefix.
+        SeedBinRange("400001", MastercardId, ConsumerId, CreditId, UsCountryId, new DateTime(2024, 1, 1));
+
+        var result = await Run("400001,Visa,Consumer,Debit,US,2024-01-01,");
+        var conflict = result.Conflicts.Single();
+
+        conflict.ConflictType.Should().Be("ValueConflict");
+        conflict.SchemeAdvisory.Should().NotBeNull()
+            .And.Subject.Should().Contain("Mastercard").And.Contain("Visa");
+    }
+
+    [Fact]
+    public async Task A_scheme_mismatch_row_on_a_wrongly_stored_prefix_carries_both_message_and_advisory()
+    {
+        // The incoming row is also wrong for the prefix (Mastercard on 400001), so the
+        // main story is the scheme mismatch - but the advisory still points out that the
+        // row already on file was wrong too, which the message alone would not tell you.
+        SeedBinRange("400001", MastercardId, ConsumerId, CreditId, UsCountryId, new DateTime(2024, 1, 1));
+
+        var result = await Run("400001,Mastercard,Consumer,Debit,US,2024-01-01,");
+        var conflict = result.Conflicts.Single();
+
+        conflict.ConflictType.Should().Be("SchemeMismatch");
+        conflict.Message.Should().NotBeNull();
+        conflict.SchemeAdvisory.Should().NotBeNull()
+            .And.Subject.Should().Contain("Mastercard").And.Contain("Visa");
+    }
+
+    [Fact]
+    public async Task The_advisory_is_absent_when_the_stored_scheme_matches_the_prefix()
+    {
+        // Stored Mastercard on a Mastercard prefix - detector agrees, no advisory needed.
+        SeedBinRange("520001", MastercardId, ConsumerId, CreditId, UsCountryId, new DateTime(2024, 1, 1));
+
+        var result = await Run("520001,Mastercard,Consumer,Debit,US,2024-01-01,");
+        var conflict = result.Conflicts.Single();
+
+        conflict.ConflictType.Should().Be("ValueConflict");
+        conflict.SchemeAdvisory.Should().BeNull();
+        conflict.DetectedScheme.Should().Be("Mastercard");
+    }
+
+    [Fact]
+    public async Task The_advisory_survives_rehydration_through_get_pending()
+    {
+        SeedBinRange("400001", MastercardId, ConsumerId, CreditId, UsCountryId, new DateTime(2024, 1, 1));
+        await Run("400001,Visa,Consumer,Debit,US,2024-01-01,");
+
+        var reloaded = (await Service.GetPendingConflictsAsync()).Single();
+
+        reloaded.SchemeAdvisory.Should().NotBeNull();
+        reloaded.DetectedScheme.Should().Be("Visa");
     }
 
     [Fact]

@@ -46,6 +46,17 @@
             </Authorized>
         </AuthorizeView>
 
+        <AuthorizeView Policy="@Permissions.BinRangesRead">
+            <Authorized>
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="vulnerabilities" title="BIN Vulnerabilities">
+                        <span class="nav-icon icon-ranges" aria-hidden="true"></span>
+                        <span class="nav-text">Vulnerabilities</span>
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
         <AuthorizeView Policy="@Permissions.BinRangesImport">
             <Authorized>
                 <div class="nav-item">

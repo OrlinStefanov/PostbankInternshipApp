@@ -13,12 +13,14 @@ public class BinRangeAdminService : IBinRangeAdminService
     private readonly AppDbContext _db;
     private readonly ICurrentUser _currentUser;
     private readonly IAuditLog _audit;
+    private readonly ICardSchemeDetector _schemeDetector;
 
-    public BinRangeAdminService(AppDbContext db, ICurrentUser currentUser, IAuditLog audit)
+    public BinRangeAdminService(AppDbContext db, ICurrentUser currentUser, IAuditLog audit, ICardSchemeDetector schemeDetector)
     {
         _db = db;
         _currentUser = currentUser;
         _audit = audit;
+        _schemeDetector = schemeDetector;
     }
 
     public async Task<BinRangeListItem?> GetAsync(
@@ -39,6 +41,7 @@ public class BinRangeAdminService : IBinRangeAdminService
         var prefix = input.Prefix.Trim();
 
         var (resolved, unresolved) = await ResolveAsync(input, cancellationToken);
+
         if (unresolved is not null) return unresolved;
 
         // The unique index on Prefix spans soft-deleted rows, so a deleted range would
@@ -53,6 +56,10 @@ public class BinRangeAdminService : IBinRangeAdminService
                 BinRangeMutationStatus.PrefixInUse,
                 $"Prefix '{prefix}' already belongs to another BIN range.");
         }
+
+        // Held in reserve: an admin can accept the row anyway (co-brand block, new
+        // allocation the detector does not know) but never by accident.
+        if (SchemeMismatch(prefix, resolved, input) is { } mismatch) return mismatch;
 
         var now = DateTime.UtcNow;
 
@@ -131,6 +138,10 @@ public class BinRangeAdminService : IBinRangeAdminService
                     $"Prefix '{prefix}' already belongs to another BIN range.");
             }
         }
+
+        // Same rule as on insert: the network the digits belong to has to match the name
+        // being saved, or the caller has to say they know and want it anyway.
+        if (SchemeMismatch(prefix, resolved, input) is { } mismatch) return mismatch;
 
         // Read the stored values before they are overwritten - afterwards they are gone.
         var before = await SnapshotAsync(binRangeId, cancellationToken);
@@ -233,6 +244,33 @@ public class BinRangeAdminService : IBinRangeAdminService
         range.ValidTo = input.ValidTo?.Date;
         range.UpdatedAt = now;
         range.UpdatedBy = _currentUser.Name;
+    }
+
+    /// <summary>
+    /// Cross-checks the row's declared card scheme against what the prefix's digits say
+    /// the network actually is, and refuses the write when they disagree - unless the
+    /// caller ticks <see cref="BinRangeInput.AcknowledgeSchemeMismatch"/>. The resolved
+    /// name is used rather than the raw input so the message matches how the row would be
+    /// stored (canonical spelling, not "visa").
+    /// </summary>
+    private BinRangeMutationResult? SchemeMismatch(
+        string prefix, Lookup resolved, BinRangeInput input)
+    {
+        if (input.AcknowledgeSchemeMismatch) return null;
+
+        var detected = _schemeDetector.Detect(prefix);
+        if (_schemeDetector.Matches(detected, resolved.CardScheme.Name)) return null;
+
+        var detectedName = _schemeDetector.DisplayName(detected);
+        var declaredName = resolved.CardScheme.Name;
+
+        var message = detectedName is null
+            ? $"Prefix {prefix} does not match any known card-scheme range, but the form declares {declaredName}. " +
+              "Tick 'Save anyway' if this is intentional."
+            : $"Prefix {prefix} is a {detectedName} range, but the form declares {declaredName}. " +
+              "Tick 'Save anyway' if this is intentional.";
+
+        return BinRangeMutationResult.Failure(BinRangeMutationStatus.SchemeMismatch, message);
     }
 
     /// <summary>

@@ -30,6 +30,7 @@ public class BinClassificationService : IBinClassificationService
     {
         _db = db;
         _commissionResolver = commissionResolver;
+
     }
 
     public async Task<BinClassificationResult> ClassifyAsync(
@@ -42,6 +43,7 @@ public class BinClassificationService : IBinClassificationService
         // more specific than the 6-digit range it sits inside, so it wins. The key ids come
         // back alongside the names so a fee can be resolved without a second lookup.
         var candidates = Candidates(lookupKey);
+
         var today = DateTime.UtcNow.Date;
 
         var match = await _db.BinRanges

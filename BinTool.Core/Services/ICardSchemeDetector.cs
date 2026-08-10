@@ -13,7 +13,8 @@ public enum DetectedScheme
     AmericanExpress,
     DinersClub,
     JCB,
-    Discover
+    Discover,
+    UnionPay
 }
 
 /// <summary>

@@ -23,13 +23,15 @@ public class BinRangeAdminServiceTests : SqliteTestBase
         SeedUser(AdminUserId, "admin");
 
         var currentUser = new TestUser(AdminUserId, "admin");
-        _service = new BinRangeAdminService(Db, currentUser, new AuditLog(Db, currentUser));
+        _service = new BinRangeAdminService(
+            Db, currentUser, new AuditLog(Db, currentUser), new CardSchemeDetector());
     }
 
     private static BinRangeInput Input(
         string prefix = "400001", string cardScheme = "Visa", string productType = "Consumer",
         string fundingType = "Credit", string countryCode = "US",
-        DateTime? validFrom = null, DateTime? validTo = null) => new()
+        DateTime? validFrom = null, DateTime? validTo = null,
+        bool acknowledgeSchemeMismatch = false) => new()
     {
         Prefix = prefix,
         CardScheme = cardScheme,
@@ -37,7 +39,8 @@ public class BinRangeAdminServiceTests : SqliteTestBase
         FundingType = fundingType,
         CountryCode = countryCode,
         ValidFrom = validFrom ?? Started,
-        ValidTo = validTo
+        ValidTo = validTo,
+        AcknowledgeSchemeMismatch = acknowledgeSchemeMismatch
     };
 
     // ---- Create ----------------------------------------------------------------
@@ -108,7 +111,10 @@ public class BinRangeAdminServiceTests : SqliteTestBase
         deleted.DeletedBy = "someone";
         Db.SaveChanges();
 
-        var result = await _service.CreateAsync(Input(cardScheme: "Mastercard"));
+        // Reviving with a scheme that contradicts the prefix would trip the new detector
+        // check; this test is about revival, not the check, so it acknowledges up front.
+        var result = await _service.CreateAsync(
+            Input(cardScheme: "Mastercard", acknowledgeSchemeMismatch: true));
 
         result.Status.Should().Be(BinRangeMutationStatus.Restored);
         result.Range!.BinRangeId.Should().Be(deleted.BinRangeId, "the row keeps its identity");
@@ -156,6 +162,59 @@ public class BinRangeAdminServiceTests : SqliteTestBase
         (await NewContext().CardSchemes.AnyAsync(c => c.Name == "Discover")).Should().BeFalse();
     }
 
+    // ---- Prefix vs declared scheme ---------------------------------------------
+
+    [Fact]
+    public async Task Adding_a_prefix_whose_network_contradicts_the_declared_scheme_is_refused()
+    {
+        // 520001 is Mastercard; the form says Visa.
+        var result = await _service.CreateAsync(Input(prefix: "520001", cardScheme: "Visa"));
+
+        result.Status.Should().Be(BinRangeMutationStatus.SchemeMismatch);
+        result.Succeeded.Should().BeFalse();
+        result.Error.Should().Contain("Mastercard").And.Contain("Visa");
+
+        (await NewContext().BinRanges.CountAsync())
+            .Should().Be(0, "the row is refused, not saved silently");
+    }
+
+    [Fact]
+    public async Task Acknowledging_the_scheme_mismatch_saves_the_row_as_declared()
+    {
+        // Same input, but this time the caller has ticked the override.
+        var result = await _service.CreateAsync(Input(
+            prefix: "520001", cardScheme: "Visa", acknowledgeSchemeMismatch: true));
+
+        result.Status.Should().Be(BinRangeMutationStatus.Created);
+        result.Range!.CardScheme.Should().Be("Visa", "the caller is on record as choosing to override");
+    }
+
+    [Fact]
+    public async Task A_prefix_the_detector_does_not_recognise_is_refused_without_the_override()
+    {
+        // 990000 falls outside every known IIN range. The declared scheme is fine on its
+        // own - the point of the check is that the detector cannot vouch for it.
+        var result = await _service.CreateAsync(Input(prefix: "990000", cardScheme: "Visa"));
+
+        result.Status.Should().Be(BinRangeMutationStatus.SchemeMismatch);
+        result.Error.Should().Contain("does not match any known").And.Contain("Visa");
+    }
+
+    [Fact]
+    public async Task Editing_the_scheme_to_one_that_contradicts_the_prefix_is_refused()
+    {
+        // The row exists as Visa on a Visa prefix; the edit tries to relabel it Mastercard
+        // without acknowledging the mismatch.
+        var range = SeedBinRange("400001", VisaId, ConsumerId, CreditId, UsCountryId, Started);
+
+        var result = await _service.UpdateAsync(
+            range.BinRangeId, Input(cardScheme: "Mastercard"));
+
+        result.Status.Should().Be(BinRangeMutationStatus.SchemeMismatch);
+        (await NewContext().BinRanges.SingleAsync()).CardSchemeId
+            .Should().Be(VisaId, "the refusal must not partially apply");
+    }
+
     // ---- Update ----------------------------------------------------------------
 
     [Fact]
@@ -163,9 +222,11 @@ public class BinRangeAdminServiceTests : SqliteTestBase
     {
         var range = SeedBinRange("400001", VisaId, ConsumerId, CreditId, UsCountryId, Started);
 
+        // Prefix stays 400001 (Visa range) but the scheme moves to Mastercard - this test
+        // is about the overwrite, not the scheme check, so it acknowledges the mismatch.
         var result = await _service.UpdateAsync(range.BinRangeId, Input(
             cardScheme: "Mastercard", fundingType: "Debit", countryCode: "BG",
-            validTo: new DateTime(2030, 1, 1)));
+            validTo: new DateTime(2030, 1, 1), acknowledgeSchemeMismatch: true));
 
         result.Status.Should().Be(BinRangeMutationStatus.Updated);
         result.Range!.BinRangeId.Should().Be(range.BinRangeId);

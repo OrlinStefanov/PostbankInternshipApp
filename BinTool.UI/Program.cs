@@ -1,4 +1,5 @@
 using BinTool.Core.Authorization;
+using BinTool.Core.Services;
 using BinTool.UI.Components;
 using BinTool.UI.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -33,6 +34,10 @@ builder.Services.AddPermissionAuthorization();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAccessTokenProvider, AccessTokenProvider>();
+
+// The scheme detector is pure logic - lives in Core and is safe as a singleton. Injected
+// into the BIN range editor so a typed prefix can suggest its scheme live in the form.
+builder.Services.AddSingleton<ICardSchemeDetector, CardSchemeDetector>();
 
 // Typed clients for the BinTool API. Base URL is configurable; the dev cert is
 // accepted only in Development so localhost HTTPS calls don't fail the handshake.

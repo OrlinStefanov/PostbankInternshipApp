@@ -101,6 +101,47 @@ public class BinRangesController : ControllerBase
     }
 
     /// <summary>
+    /// Lists BIN ranges whose stored card scheme contradicts the network the detector
+    /// assigns to the prefix.
+    /// </summary>
+    /// <remarks>
+    /// One row per live range where the digits say one network and the stored
+    /// <c>cardScheme</c> names another. Each item carries the detector's opinion in
+    /// <c>detectedScheme</c>. Rows the detector cannot judge (a prefix in no known IIN
+    /// range) are not returned - only genuine contradictions.
+    /// </remarks>
+    /// <param name="page">1-based page number.</param>
+    /// <param name="pageSize">Rows per page, capped at 200.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <response code="200">One page of mismatched ranges. Empty when nothing is wrong.</response>
+    [HttpGet("scheme-mismatches")]
+    [Authorize(Policy = Permissions.BinRangesRead)]
+    [ProducesResponseType(typeof(PagedResult<BinRangeListItem>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SchemeMismatches(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = BinRangeQuery.DefaultPageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _service.GetSchemeMismatchesAsync(page, pageSize, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Total number of scheme-mismatched ranges, for a "vulnerabilities" badge on the home
+    /// screen. Same scan as <see cref="SchemeMismatches"/>, without the projection.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <response code="200">The count.</response>
+    [HttpGet("scheme-mismatches/count")]
+    [Authorize(Policy = Permissions.BinRangesRead)]
+    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SchemeMismatchCount(CancellationToken cancellationToken)
+    {
+        var count = await _service.CountSchemeMismatchesAsync(cancellationToken);
+        return Ok(count);
+    }
+
+    /// <summary>
     /// Returns one BIN range by id.
     /// </summary>
     /// <remarks>
@@ -151,13 +192,19 @@ public class BinRangesController : ControllerBase
     ///
     /// The range records the signed-in user as having added it, which is what the browse
     /// listing's "added by" reports.
+    ///
+    /// The prefix's leading digits are cross-checked against the declared `cardScheme`.
+    /// A mismatch is refused with `409 Conflict` and `status: SchemeMismatch` so the
+    /// caller can show the reason - the body's `error` names the network the digits belong
+    /// to. To save anyway (co-brand block, new allocation, deliberate correction), resend
+    /// with `acknowledgeSchemeMismatch: true`; then the row is stored as declared.
     /// </remarks>
     /// <param name="input">The range to add.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="201">Added. The body carries the stored range.</response>
     /// <response code="200">An existing soft-deleted range was revived with these values.</response>
     /// <response code="400">A field broke a rule, or named reference data that does not exist.</response>
-    /// <response code="409">A live range already owns that prefix.</response>
+    /// <response code="409">A live range already owns that prefix, or the declared scheme contradicts the prefix.</response>
     [HttpPost]
     [Authorize(Policy = Permissions.BinRangesWrite)]
     [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status201Created)]
@@ -187,6 +234,10 @@ public class BinRangesController : ControllerBase
     ///
     /// A soft-deleted range cannot be edited: restore it first, so bringing it back is
     /// never a side effect of a correction.
+    ///
+    /// The same prefix-vs-scheme cross-check as on insert: a mismatch is refused with
+    /// `409 Conflict` and `status: SchemeMismatch`. Resend with
+    /// `acknowledgeSchemeMismatch: true` to save it anyway.
     /// </remarks>
     /// <param name="id">Id of the range to edit.</param>
     /// <param name="input">The new values.</param>
@@ -194,7 +245,7 @@ public class BinRangesController : ControllerBase
     /// <response code="200">Updated. The body carries the stored range.</response>
     /// <response code="400">A field broke a rule, or named reference data that does not exist.</response>
     /// <response code="404">No such range, or it is deleted and must be restored first.</response>
-    /// <response code="409">Another range already owns that prefix.</response>
+    /// <response code="409">Another range already owns that prefix, or the declared scheme contradicts the prefix.</response>
     [HttpPut("{id:int}")]
     [Authorize(Policy = Permissions.BinRangesWrite)]
     [ProducesResponseType(typeof(BinRangeMutationResult), StatusCodes.Status200OK)]
@@ -270,6 +321,7 @@ public class BinRangesController : ControllerBase
         BinRangeMutationStatus.NotFound => NotFound(result),
         BinRangeMutationStatus.PrefixInUse => Conflict(result),
         BinRangeMutationStatus.AlreadyInThatState => Conflict(result),
+        BinRangeMutationStatus.SchemeMismatch => Conflict(result),
         BinRangeMutationStatus.Invalid => BadRequest(result),
         _ => Ok(result)
     };

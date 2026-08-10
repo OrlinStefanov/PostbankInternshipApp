@@ -69,4 +69,12 @@ public class BinRangeListItem
     /// once someone applies a conflict that overwrites it.
     /// </summary>
     public string? UpdatedBy { get; set; }
+
+    /// <summary>
+    /// The card scheme the detector assigns to this prefix, or null if the prefix sits in
+    /// no range the detector recognises. Populated by the vulnerability listing so the
+    /// disagreement with <see cref="CardScheme"/> is visible per row; null on the ordinary
+    /// browse listing.
+    /// </summary>
+    public string? DetectedScheme { get; set; }
 }

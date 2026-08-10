@@ -31,5 +31,14 @@ public enum BinRangeMutationStatus
     Invalid = 6,
 
     /// <summary>Deleting an already-deleted range, or restoring one that was never deleted.</summary>
-    AlreadyInThatState = 7
+    AlreadyInThatState = 7,
+
+    /// <summary>
+    /// The BIN prefix belongs to a different card network than the caller declared, or
+    /// to no network the detector knows. Refused unless the caller sets
+    /// <see cref="BinRangeInput.AcknowledgeSchemeMismatch"/> - the detector is right often
+    /// enough that a silent save would hide a data-entry mistake, but wrong often enough
+    /// (co-branded ranges, new allocations) that the human has to have the last word.
+    /// </summary>
+    SchemeMismatch = 8
 }

@@ -1,0 +1,274 @@
+@page "/vulnerabilities"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Permissions.BinRangesRead)]
+@inject BinRangeApiClient Api
+
+<PageTitle>BIN vulnerabilities</PageTitle>
+
+<div class="page-head">
+    <h1 class="h3 mb-1">BIN vulnerabilities</h1>
+    <p class="text-secondary mb-0">
+        Stored ranges whose card scheme contradicts what the prefix's digits say. Each
+        row would misclassify a card until it is corrected - open it, apply the detector's
+        suggestion (or the right value if the detector is wrong), and it drops off this
+        list.
+    </p>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger mt-4" role="alert">@_error</div>
+}
+
+@if (_notice is not null)
+{
+    <div class="alert alert-success alert-dismissible mt-4" role="alert">
+        @_notice
+        <button type="button" class="btn-close" aria-label="Dismiss"
+                @onclick="() => _notice = null"></button>
+    </div>
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-4 mb-2">
+    <span class="text-secondary small">
+        @if (_loading)
+        {
+            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            <span>Scanning…</span>
+        }
+        else if (_page.TotalCount == 0)
+        {
+            <span>No mismatched ranges - every stored scheme agrees with its prefix.</span>
+        }
+        else
+        {
+            <span>
+                @FirstOnPage–@LastOnPage of <strong class="text-body">@_page.TotalCount</strong>
+                mismatched @(_page.TotalCount == 1 ? "range" : "ranges")
+            </span>
+        }
+    </span>
+
+    <div class="d-flex align-items-center gap-2">
+        <label class="text-secondary small mb-0" for="v-size">Per page</label>
+        <select id="v-size" style="min-width: 75px;" class="form-select form-select-sm w-auto" value="@_pageSize"
+                @onchange="OnPageSizeChanged">
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+        </select>
+    </div>
+</div>
+
+@if (!_loading && _page.TotalCount == 0 && _error is null)
+{
+    <div class="card empty-state">
+        <div class="card-body text-center py-5">
+            <p class="mb-1 fw-semibold">Nothing to fix</p>
+            <p class="text-secondary mb-0">
+                No stored range disagrees with the detector on its prefix.
+            </p>
+        </div>
+    </div>
+}
+else if (_page.TotalCount > 0)
+{
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0 range-table">
+                <thead>
+                    <tr>
+                        <th class="ps-3">Prefix</th>
+                        <th>Stored scheme</th>
+                        <th>Detected scheme</th>
+                        <th>Product</th>
+                        <th>Funding</th>
+                        <th>Country</th>
+                        <th class="pe-3 text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in _page.Items)
+                    {
+                        <tr>
+                            <td class="ps-3">
+                                <code class="mono">@item.Prefix</code>
+                                <span class="text-secondary small ms-1">@item.PrefixLength</span>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill text-bg-danger">@item.CardScheme</span>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill text-bg-success">@item.DetectedScheme</span>
+                            </td>
+                            <td>@item.ProductType</td>
+                            <td>@item.FundingType</td>
+                            <td>
+                                <span class="fw-semibold">@item.CountryCode</span>
+                                <span class="text-secondary small d-block">@item.CountryName</span>
+                            </td>
+                            <td class="pe-3 text-end text-nowrap">
+                                @if (_canWrite)
+                                {
+                                    <button class="btn btn-outline-primary btn-sm"
+                                            @onclick="() => StartEdit(item)" disabled="@_busy">
+                                        Edit
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="text-secondary small">Read-only</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @if (_page.TotalPages > 1)
+    {
+        <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="Vulnerability pages">
+            <button class="btn btn-outline-secondary btn-sm"
+                    @onclick="() => GoToPage(_page.Page - 1)"
+                    disabled="@(_loading || !_page.HasPrevious)">
+                Previous
+            </button>
+
+            <span class="text-secondary small">Page @_page.Page of @_page.TotalPages</span>
+
+            <button class="btn btn-outline-secondary btn-sm"
+                    @onclick="() => GoToPage(_page.Page + 1)"
+                    disabled="@(_loading || !_page.HasNext)">
+                Next
+            </button>
+        </nav>
+    }
+}
+
+@if (_editorOpen && _editing is not null)
+{
+    <BinRangeEditor Options="_options" Range="_editing" OnSaved="OnSaved" OnCancel="CloseEditor" />
+}
+
+@code {
+    private bool _loading = true;
+    private bool _busy;
+    private string? _error;
+    private string? _notice;
+
+    private BinRangeFilterOptions _options = new();
+    private PagedResult<BinRangeListItem> _page = new();
+
+    private int _pageSize = BinRangeQuery.DefaultPageSize;
+    private int _currentPage = 1;
+
+    private bool _canWrite;
+    private bool _editorOpen;
+    private BinRangeListItem? _editing;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    [Inject]
+    private IAuthorizationService Authorization { get; set; } = default!;
+
+    private int FirstOnPage => (_page.Page - 1) * _page.PageSize + 1;
+
+    private int LastOnPage => Math.Min(_page.Page * _page.PageSize, _page.TotalCount);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationState is not null)
+        {
+            var state = await AuthenticationState;
+            _canWrite = (await Authorization.AuthorizeAsync(
+                state.User, Permissions.BinRangesWrite)).Succeeded;
+        }
+
+        // The editor needs the reference dropdowns even here - the user may pick a different
+        // scheme, product or country while correcting the row.
+        try
+        {
+            _options = await Api.GetFilterOptionsAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Could not load filter options: {ex.Message}";
+        }
+
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        _loading = true;
+        try
+        {
+            _page = await Api.GetSchemeMismatchesAsync(_currentPage, _pageSize);
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Could not load the mismatch list: {ex.Message}";
+            _page = new PagedResult<BinRangeListItem>();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnPageSizeChanged(ChangeEventArgs e)
+    {
+        _pageSize = int.TryParse(e.Value?.ToString(), out var size)
+            ? size
+            : BinRangeQuery.DefaultPageSize;
+
+        _currentPage = 1;
+        await Load();
+    }
+
+    private async Task GoToPage(int page)
+    {
+        if (page < 1 || page > _page.TotalPages) return;
+        _currentPage = page;
+        await Load();
+    }
+
+    private void StartEdit(BinRangeListItem item)
+    {
+        _editing = item;
+        _notice = null;
+        _editorOpen = true;
+    }
+
+    private void CloseEditor()
+    {
+        _editorOpen = false;
+        _editing = null;
+    }
+
+    /// <summary>
+    /// After a save, re-scan rather than patching the row in place: fixing a range's scheme
+    /// should make it drop off this list, and confirming that with a fresh scan is worth
+    /// one extra request.
+    /// </summary>
+    private async Task OnSaved(BinRangeMutationResult result)
+    {
+        CloseEditor();
+
+        var range = result.Range!;
+        _notice = result.Status switch
+        {
+            BinRangeMutationStatus.Updated => $"Saved BIN range {range.Prefix}.",
+            BinRangeMutationStatus.Created => $"Added BIN range {range.Prefix}.",
+            BinRangeMutationStatus.Restored =>
+                $"{range.Prefix} was restored with these values.",
+            _ => $"BIN range {range.Prefix} saved."
+        };
+
+        await Load();
+    }
+}

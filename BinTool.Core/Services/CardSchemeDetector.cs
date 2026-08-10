@@ -1,12 +1,11 @@
-using BinTool.Core.Services;
-using System.ComponentModel.Design;
-
-namespace BinTool.Infrastructure.Services;
+namespace BinTool.Core.Services;
 
 /// <summary>
 /// Maps a BIN prefix to its card network using the well-known IIN ranges. The rules
-/// cover the four schemes the reference data ships with; anything outside them is
-/// reported as <see cref="DetectedScheme.Unknown"/> rather than guessed at.
+/// cover seven networks - the four the reference data seeds, plus JCB, Discover and
+/// UnionPay, which an administrator may add; anything outside them is reported as
+/// <see cref="DetectedScheme.Unknown"/> rather than guessed at. The list is a deliberate
+/// subset of the published allocations, so adding a network is a code change here.
 /// <para>
 /// Only leading digits are inspected, so a 6-8 digit prefix is classified the same
 /// way a full card number would be. The detector is stateless and holds no data of
@@ -24,7 +23,8 @@ public class CardSchemeDetector : ICardSchemeDetector
         [DetectedScheme.AmericanExpress] = new[] { "American Express", "Amex" },
         [DetectedScheme.DinersClub] = new[] { "Diners Club", "Diners", "Diners Club International" },
         [DetectedScheme.JCB] = new[] { "JCB" },
-        [DetectedScheme.Discover] = new[] { "Disocver" } 
+        [DetectedScheme.Discover] = new[] { "Discover", "Discover Card" },
+        [DetectedScheme.UnionPay] = new[] { "UnionPay", "China UnionPay", "Union Pay" }
     };
 
     public DetectedScheme Detect(string prefix)
@@ -64,9 +64,17 @@ public class CardSchemeDetector : ICardSchemeDetector
         }
 
         //Discover
-        if (two is 65 or 6011 || three is >= 644 and <= 649)
+        if (two is 65 || three is >= 644 and <= 649 || four is 6011)
         {
             return DetectedScheme.Discover;
+        }
+
+        // UnionPay: the whole 62 range, plus 810-817. Tested after Discover so the
+        // 6011/644-649/65 ranges keep their own answer; the remainder of 62 - including
+        // the 622126-622925 block Discover co-brands - is reported as UnionPay.
+        if (two == 62 || three is >= 810 and <= 817)
+        {
+            return DetectedScheme.UnionPay;
         }
 
         return DetectedScheme.Unknown;
@@ -88,6 +96,9 @@ public class CardSchemeDetector : ICardSchemeDetector
         DetectedScheme.Mastercard => "Mastercard",
         DetectedScheme.AmericanExpress => "American Express",
         DetectedScheme.DinersClub => "Diners Club",
+        DetectedScheme.Discover => "Discover",
+        DetectedScheme.JCB => "JCB",
+        DetectedScheme.UnionPay => "UnionPay",
         _ => null
     };
 

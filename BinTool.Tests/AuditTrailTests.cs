@@ -26,12 +26,14 @@ public class AuditTrailTests : ImportTestBase
         SeedUser(AdminUserId, "admin");
 
         CurrentUser = new TestUser(AdminUserId, "admin");
-        _admin = new BinRangeAdminService(Db, CurrentUser, new AuditLog(Db, CurrentUser));
+        _admin = new BinRangeAdminService(
+            Db, CurrentUser, new AuditLog(Db, CurrentUser), new CardSchemeDetector());
     }
 
     private static BinRangeInput Input(
         string prefix = "400001", string cardScheme = "Visa", string productType = "Consumer",
-        string fundingType = "Credit", string countryCode = "US", DateTime? validTo = null) => new()
+        string fundingType = "Credit", string countryCode = "US", DateTime? validTo = null,
+        bool acknowledgeSchemeMismatch = false) => new()
     {
         Prefix = prefix,
         CardScheme = cardScheme,
@@ -39,7 +41,8 @@ public class AuditTrailTests : ImportTestBase
         FundingType = fundingType,
         CountryCode = countryCode,
         ValidFrom = Started,
-        ValidTo = validTo
+        ValidTo = validTo,
+        AcknowledgeSchemeMismatch = acknowledgeSchemeMismatch
     };
 
     /// <summary>
@@ -82,8 +85,9 @@ public class AuditTrailTests : ImportTestBase
     {
         var created = await _admin.CreateAsync(Input());
 
-        await _admin.UpdateAsync(created.Range!.BinRangeId,
-            Input(cardScheme: "Mastercard", fundingType: "Debit", countryCode: "BG"));
+        await _admin.UpdateAsync(created.Range!.BinRangeId, Input(
+            cardScheme: "Mastercard", fundingType: "Debit", countryCode: "BG",
+            acknowledgeSchemeMismatch: true));
 
         var entry = Entries().Last();
         entry.Action.Should().Be(AuditAction.Updated);

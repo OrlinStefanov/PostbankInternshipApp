@@ -37,4 +37,19 @@ public class BinConflict
     /// for a scheme mismatch on a new prefix, where there is no existing row to diff.
     /// </summary>
     public List<BinFieldDiff> Differences { get; set; } = new();
+
+    /// <summary>
+    /// The card scheme the detector would assign to this prefix, or null if the prefix
+    /// sits in no range the detector knows. Populated for every conflict so a reviewer
+    /// can spot a wrongly-labelled row even when both sides of the diff agree.
+    /// </summary>
+    public string? DetectedScheme { get; set; }
+
+    /// <summary>
+    /// Set when the stored row's scheme contradicts the detector's opinion of the
+    /// prefix - i.e. the database already holds the wrong network for this BIN and the
+    /// incoming row would leave it that way. Reviewers see it as an extra callout on
+    /// what would otherwise look like a plain value change.
+    /// </summary>
+    public string? SchemeAdvisory { get; set; }
 }

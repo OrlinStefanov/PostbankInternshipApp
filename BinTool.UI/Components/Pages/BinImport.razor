@@ -253,6 +253,18 @@ else
                                             {
                                                 <div class="text-secondary small">row @conflict.RowNumber</div>
                                             }
+                                            @if (conflict.DetectedScheme is not null)
+                                            {
+                                                <div class="text-secondary small mt-1">
+                                                    Detector: <span class="fw-semibold">@conflict.DetectedScheme</span>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-secondary small mt-1 fst-italic">
+                                                    Detector: unknown range
+                                                </div>
+                                            }
                                         </td>
                                         <td>
                                             @if (conflict.ConflictType == "SchemeMismatch")
@@ -262,9 +274,16 @@ else
                                                     <span>@conflict.Message</span>
                                                 </div>
                                             }
+                                            @if (conflict.SchemeAdvisory is not null)
+                                            {
+                                                <div class="d-flex align-items-start gap-2 @(conflict.ConflictType == "SchemeMismatch" ? "mt-2" : null)">
+                                                    <span class="badge rounded-pill text-bg-warning flex-shrink-0">Stored scheme wrong</span>
+                                                    <span>@conflict.SchemeAdvisory</span>
+                                                </div>
+                                            }
                                             @if (conflict.Differences.Count > 0)
                                             {
-                                                <ul class="diff-list @(conflict.ConflictType == "SchemeMismatch" ? "mt-2" : null)">
+                                                <ul class="diff-list @(conflict.ConflictType == "SchemeMismatch" || conflict.SchemeAdvisory is not null ? "mt-2" : null)">
                                                     @foreach (var diff in conflict.Differences)
                                                     {
                                                         <li>

@@ -9,10 +9,12 @@ namespace BinTool.Infrastructure.Services;
 public class BinRangeQueryService : IBinRangeQueryService
 {
     private readonly AppDbContext _db;
+    private readonly ICardSchemeDetector _detector;
 
-    public BinRangeQueryService(AppDbContext db)
+    public BinRangeQueryService(AppDbContext db, ICardSchemeDetector detector)
     {
         _db = db;
+        _detector = detector;
     }
 
     public async Task<PagedResult<BinRangeListItem>> SearchAsync(
@@ -140,6 +142,81 @@ public class BinRangeQueryService : IBinRangeQueryService
             _ => rows.Where(b => !b.IsDeleted)
         };
     }
+
+    public async Task<PagedResult<BinRangeListItem>> GetSchemeMismatchesAsync(
+        int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var actualPage = Math.Max(1, page);
+        var actualSize = Math.Clamp(
+            pageSize <= 0 ? BinRangeQuery.DefaultPageSize : pageSize,
+            1, BinRangeQuery.MaxPageSize);
+
+        var mismatches = await FindMismatchesAsync(cancellationToken);
+
+        var pageIds = mismatches
+            .OrderBy(m => m.Prefix, StringComparer.Ordinal)
+            .Skip((actualPage - 1) * actualSize)
+            .Take(actualSize)
+            .ToList();
+
+        // Second query for the full projection - only for the sliced ids, so the payload
+        // stays small even when the mismatch set is large.
+        var today = DateTime.UtcNow.Date;
+        var ids = pageIds.Select(m => m.Id).ToList();
+        var items = await _db.BinRanges.AsNoTracking()
+            .Where(b => ids.Contains(b.BinRangeId))
+            .Select(BinRangeProjection.ToListItem(today))
+            .ToListAsync(cancellationToken);
+
+        // Attach the detector's opinion; order the response by prefix to match pageIds.
+        var byId = pageIds.ToDictionary(m => m.Id, m => m.DetectedName);
+        foreach (var item in items)
+        {
+            item.DetectedScheme = byId[item.BinRangeId];
+        }
+
+        return new PagedResult<BinRangeListItem>
+        {
+            Items = items.OrderBy(i => i.Prefix, StringComparer.Ordinal).ToList(),
+            Page = actualPage,
+            PageSize = actualSize,
+            TotalCount = mismatches.Count
+        };
+    }
+
+    public async Task<int> CountSchemeMismatchesAsync(CancellationToken cancellationToken = default)
+    {
+        var mismatches = await FindMismatchesAsync(cancellationToken);
+        return mismatches.Count;
+    }
+
+    /// <summary>
+    /// Scans every live BIN range through the detector, returning the ones whose stored
+    /// scheme contradicts the detector's opinion. Selects only the three columns needed to
+    /// judge each row, so the scan stays cheap even at tens of thousands of ranges.
+    /// </summary>
+    private async Task<List<MismatchRow>> FindMismatchesAsync(CancellationToken cancellationToken)
+    {
+        var rows = await _db.BinRanges.AsNoTracking()
+            .Where(b => !b.IsDeleted)
+            .Select(b => new { b.BinRangeId, b.Prefix, SchemeName = b.CardScheme!.Name })
+            .ToListAsync(cancellationToken);
+
+        var mismatches = new List<MismatchRow>();
+        foreach (var row in rows)
+        {
+            var detected = _detector.Detect(row.Prefix);
+            var detectedName = _detector.DisplayName(detected);
+            if (detectedName is null) continue; // detector cannot judge this prefix
+            if (_detector.Matches(detected, row.SchemeName)) continue;
+
+            mismatches.Add(new MismatchRow(row.BinRangeId, row.Prefix, detectedName));
+        }
+
+        return mismatches;
+    }
+
+    private readonly record struct MismatchRow(int Id, string Prefix, string DetectedName);
 
     private static string? Normalize(string? value)
     {
