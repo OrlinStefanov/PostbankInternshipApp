@@ -19,6 +19,11 @@
          come with them. Nothing else ASP.NET-shaped belongs in this layer, and there is
          deliberately no reference to Entity Framework. -->
     <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="8.0.19" />
+
+    <!-- ILogger<T> only - the abstraction, never a logging provider. Which sink the
+         messages end up in is a hosting decision and stays in the Api project. The
+         package also carries the [LoggerMessage] source generator. -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
   </ItemGroup>
 
 </Project>

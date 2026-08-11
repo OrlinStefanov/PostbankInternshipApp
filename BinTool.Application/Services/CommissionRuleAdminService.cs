@@ -4,6 +4,7 @@ using BinTool.Application.Models.Audit;
 using BinTool.Application.Models.Commission;
 using BinTool.Application.Validation;
 using BinTool.Domain.Common;
+using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
@@ -24,17 +25,20 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
     private readonly IReferenceDataRepository _reference;
     private readonly ICurrentUser _currentUser;
     private readonly IAuditLog _audit;
+    private readonly ILogger<CommissionRuleAdminService> _logger;
 
     public CommissionRuleAdminService(
         ICommissionRuleRepository rules,
         IReferenceDataRepository reference,
         ICurrentUser currentUser,
-        IAuditLog audit)
+        IAuditLog audit,
+        ILogger<CommissionRuleAdminService> logger)
     {
         _rules = rules;
         _reference = reference;
         _currentUser = currentUser;
         _audit = audit;
+        _logger = logger;
     }
 
     public async Task<List<CommissionRuleListItem>> SearchAsync(
@@ -73,7 +77,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         CommissionRuleInput input, CancellationToken cancellationToken = default)
     {
         var (names, refused) = await PrepareAsync(input, excludeRuleId: 0, cancellationToken);
-        if (refused is not null) return refused;
+        if (refused is not null) return Refused(refused, ruleId: 0);
 
         var now = DateTime.UtcNow;
         var rule = new CommissionRule { CreatedAt = now, CreatedBy = _currentUser.Name };
@@ -98,6 +102,10 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         await _rules.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
+        _logger.Created(
+            rule.CommissionRuleId, rule.RuleName, _currentUser.Name,
+            rule.Priority, rule.PriorityScore());
+
         return await SucceededAsync(
             CommissionRuleMutationStatus.Created, rule.CommissionRuleId, cancellationToken);
     }
@@ -110,13 +118,13 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
 
         if (rule.IsDeleted)
         {
-            return CommissionRuleMutationResult.Failure(
+            return Refused(CommissionRuleMutationResult.Failure(
                 CommissionRuleMutationStatus.NotFound,
-                $"Commission rule {id} is deleted. Restore it before editing.");
+                $"Commission rule {id} is deleted. Restore it before editing."), id);
         }
 
         var (names, refused) = await PrepareAsync(input, excludeRuleId: id, cancellationToken);
-        if (refused is not null) return refused;
+        if (refused is not null) return Refused(refused, id);
 
         // Read the stored values before they are overwritten; afterwards they are gone.
         var before = await SnapshotAsync(id, cancellationToken);
@@ -139,6 +147,8 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
 
         await _rules.SaveChangesAsync(cancellationToken);
 
+        _logger.Updated(id, rule.RuleName, _currentUser.Name);
+
         return await SucceededAsync(CommissionRuleMutationStatus.Updated, id, cancellationToken);
     }
 
@@ -150,18 +160,18 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
 
         if (rule.IsDeleted)
         {
-            return CommissionRuleMutationResult.Failure(
+            return Refused(CommissionRuleMutationResult.Failure(
                 CommissionRuleMutationStatus.AlreadyInThatState,
-                $"Commission rule '{rule.RuleName}' is already deleted.");
+                $"Commission rule '{rule.RuleName}' is already deleted."), id);
         }
 
         if (await _rules.GetDefaultRuleIdAsync(cancellationToken) == id)
         {
             // Deleting the default would leave unmatched classifications with no fallback.
-            return CommissionRuleMutationResult.Failure(
+            return Refused(CommissionRuleMutationResult.Failure(
                 CommissionRuleMutationStatus.InUse,
                 $"Commission rule '{rule.RuleName}' is the default rule. " +
-                "Set another rule as the default, or clear it, before deleting this one.");
+                "Set another rule as the default, or clear it, before deleting this one."), id);
         }
 
         var now = DateTime.UtcNow;
@@ -182,6 +192,8 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
 
         await _rules.SaveChangesAsync(cancellationToken);
 
+        _logger.Deleted(id, rule.RuleName, _currentUser.Name);
+
         return await SucceededAsync(CommissionRuleMutationStatus.Deleted, id, cancellationToken);
     }
 
@@ -193,9 +205,9 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
 
         if (!rule.IsDeleted)
         {
-            return CommissionRuleMutationResult.Failure(
+            return Refused(CommissionRuleMutationResult.Failure(
                 CommissionRuleMutationStatus.AlreadyInThatState,
-                $"Commission rule '{rule.RuleName}' is not deleted.");
+                $"Commission rule '{rule.RuleName}' is not deleted."), id);
         }
 
         var now = DateTime.UtcNow;
@@ -212,6 +224,8 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
 
         await _rules.SaveChangesAsync(cancellationToken);
 
+        _logger.Restored(id, rule.RuleName, _currentUser.Name);
+
         return await SucceededAsync(CommissionRuleMutationStatus.Restored, id, cancellationToken);
     }
 
@@ -223,9 +237,9 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
 
         if (rule.IsDeleted || !rule.IsActive)
         {
-            return CommissionRuleMutationResult.Failure(
+            return Refused(CommissionRuleMutationResult.Failure(
                 CommissionRuleMutationStatus.Invalid,
-                $"Commission rule '{rule.RuleName}' must be active and not deleted to be the default.");
+                $"Commission rule '{rule.RuleName}' must be active and not deleted to be the default."), id);
         }
 
         var existing = await _rules.GetDefaultAsync(cancellationToken);
@@ -257,6 +271,8 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         await _rules.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
+        _logger.DefaultSet(id, rule.RuleName, _currentUser.Name);
+
         return await SucceededAsync(CommissionRuleMutationStatus.Updated, id, cancellationToken);
     }
 
@@ -280,6 +296,11 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
             before, new DefaultRuleSnapshot(null, null));
 
         await _rules.SaveChangesAsync(cancellationToken);
+
+        // Worth an event of its own: with no default, a card that matches no rule stops
+        // being priced at all, and that is a configuration change someone should be able
+        // to find later without reading the audit table.
+        _logger.DefaultCleared(_currentUser.Name);
 
         return new CommissionRuleMutationResult { Status = CommissionRuleMutationStatus.Updated };
     }
@@ -432,9 +453,37 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         return CommissionRuleMutationResult.Success(status, item!);
     }
 
-    private static CommissionRuleMutationResult NotFound(int id) =>
-        CommissionRuleMutationResult.Failure(
-            CommissionRuleMutationStatus.NotFound, $"No commission rule with id {id}.");
+    /// <summary>
+    /// Logs a refusal on its way out. Every refused write goes through here, so the log
+    /// cannot drift out of step with what the caller was told - the reason logged is the
+    /// same string the user reads.
+    /// </summary>
+    private CommissionRuleMutationResult Refused(CommissionRuleMutationResult result, int ruleId)
+    {
+        var reason = result.Error ?? string.Empty;
+
+        switch (result.Status)
+        {
+            case CommissionRuleMutationStatus.Overlap:
+                _logger.RefusedAsConflicting(
+                    result.ConflictingRuleId ?? 0, result.ConflictingRuleName ?? "(unnamed)", reason);
+                break;
+
+            case CommissionRuleMutationStatus.Invalid:
+                _logger.RefusedAsInvalid(reason);
+                break;
+
+            default:
+                _logger.RefusedAsUnavailable(ruleId, reason);
+                break;
+        }
+
+        return result;
+    }
+
+    private CommissionRuleMutationResult NotFound(int id) =>
+        Refused(CommissionRuleMutationResult.Failure(
+            CommissionRuleMutationStatus.NotFound, $"No commission rule with id {id}."), id);
 
     private static int StatusRank(CommissionRuleStatus status) => status switch
     {

@@ -215,7 +215,8 @@ public class SchemeMismatchImportTests : ImportTestBase
         await using var fresh = NewContext();
         var freshService = new Infrastructure.Services.BinCsvImportService(
             fresh, CurrentUser, new Infrastructure.Services.AuditLog(fresh, CurrentUser),
-            new Domain.Services.CardSchemeDetector());
+            new Domain.Services.CardSchemeDetector(),
+            new RecordingLogger<Infrastructure.Services.BinCsvImportService>());
 
         var conflict = (await freshService.GetPendingConflictsAsync()).Single();
         conflict.ConflictType.Should().Be("SchemeMismatch");

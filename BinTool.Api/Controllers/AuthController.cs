@@ -85,6 +85,10 @@ public class AuthController : ControllerBase
 
         if (user is null || !user.IsActive)
         {
+            // Deliberately the same event as a wrong password: the log must not become the
+            // place where "does this account exist?" can be answered.
+            _logger.CredentialsRejected(request.UserName);
+
             return Unauthorized(new LoginRejection { Reason = LoginRejectionReason.InvalidCredentials });
         }
 
@@ -111,10 +115,7 @@ public class AuthController : ControllerBase
             {
                 var lockoutEnd = await _users.GetLockoutEndDateAsync(user);
 
-                _logger.LogWarning(
-                    "Sign-in refused for {UserName}: the account is locked out until {LockoutEnd:u}. " +
-                    "The correct password would unlock it now; otherwise it clears on its own then.",
-                    user.UserName, lockoutEnd);
+                _logger.LockedOut(user.UserName, lockoutEnd);
 
                 return Unauthorized(new LoginRejection
                 {
@@ -122,6 +123,8 @@ public class AuthController : ControllerBase
                     LockoutEndsUtc = lockoutEnd?.UtcDateTime
                 });
             }
+
+            _logger.CredentialsRejected(request.UserName);
 
             return Unauthorized(new LoginRejection { Reason = LoginRejectionReason.InvalidCredentials });
         }
@@ -133,6 +136,9 @@ public class AuthController : ControllerBase
         user.LastLoginAt = DateTime.UtcNow;
 
         await _users.UpdateAsync(user);
+
+        // The token itself is never logged - only that one was issued and when it lapses.
+        _logger.SignedIn(user.UserName!, expiresAt);
 
         return Ok(new LoginResponse
         {

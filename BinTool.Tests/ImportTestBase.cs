@@ -2,6 +2,7 @@ using System.Text;
 using BinTool.Application.Models.Import;
 using BinTool.Application.Abstractions;
 using BinTool.Infrastructure.Services;
+using BinTool.Tests.Fakes;
 
 namespace BinTool.Tests;
 
@@ -16,6 +17,9 @@ public abstract class ImportTestBase : SqliteTestBase
 
     protected readonly BinCsvImportService Service;
 
+    /// <summary>What the import logged, for the tests that assert on the run summary.</summary>
+    protected readonly RecordingLogger<BinCsvImportService> ImportLogger = new();
+
     /// <summary>
     /// The identity the import records on audit fields. Swap it in a test to assert what
     /// gets stamped; defaults to the out-of-request "system" identity.
@@ -29,7 +33,8 @@ public abstract class ImportTestBase : SqliteTestBase
         var currentUser = new DeferredCurrentUser(() => CurrentUser);
 
         Service = new BinCsvImportService(
-            Db, currentUser, new AuditLog(Db, currentUser), new CardSchemeDetector());
+            Db, currentUser, new AuditLog(Db, currentUser), new CardSchemeDetector(),
+            ImportLogger);
     }
 
     private sealed class DeferredCurrentUser : ICurrentUser

@@ -7,6 +7,7 @@ using BinTool.Infrastructure.Data;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace BinTool.Infrastructure.Services;
 
@@ -45,19 +46,35 @@ public class BinCsvImportService : IBinCsvImportService
     private readonly ICurrentUser _currentUser;
     private readonly IAuditLog _audit;
     private readonly ICardSchemeDetector _schemeDetector;
+    private readonly ILogger<BinCsvImportService> _logger;
 
     public BinCsvImportService(
-        AppDbContext db, ICurrentUser currentUser, IAuditLog audit, ICardSchemeDetector schemeDetector)
+        AppDbContext db, ICurrentUser currentUser, IAuditLog audit,
+        ICardSchemeDetector schemeDetector, ILogger<BinCsvImportService> logger)
     {
         _db = db;
         _currentUser = currentUser;
         _audit = audit;
         _schemeDetector = schemeDetector;
+        _logger = logger;
     }
 
     public async Task<BinImportResult> ImportAsync(
         Stream csvStream, string fileName, CancellationToken cancellationToken = default)
     {
+        // Everything logged for the rest of this call carries the run id and the file name,
+        // so a run that rejected rows can be read end to end without each event having to
+        // repeat which import it belonged to. The run id is generated here rather than taken
+        // from the history row because the row has no id until the first save, and the
+        // failure paths above that save need to be traceable too.
+        using var scope = _logger.BeginScope(new Dictionary<string, object>
+        {
+            ["ImportRunId"] = Guid.NewGuid(),
+            ["ImportFile"] = fileName
+        });
+
+        _logger.Started(fileName, _currentUser.Name);
+
         var result = new BinImportResult { FileName = fileName };
 
         // Load the lookup tables once so every row resolves against in-memory maps.
@@ -82,6 +99,8 @@ public class BinCsvImportService : IBinCsvImportService
 
             history.Status = "Failed";
 
+            _logger.FileRejected(fileName, "the file is empty or has no header row");
+
             await FinalizeAsync(result, history, cancellationToken);
 
             return result;
@@ -95,6 +114,9 @@ public class BinCsvImportService : IBinCsvImportService
             AddRejection(result, history, 0,
                 $"Missing required column(s): {string.Join(", ", missing)}", string.Join(",", header));
             history.Status = "Failed";
+
+            _logger.FileRejected(
+                fileName, $"required column(s) missing: {string.Join(", ", missing)}");
 
             await FinalizeAsync(result, history, cancellationToken);
 
@@ -333,6 +355,19 @@ public class BinCsvImportService : IBinCsvImportService
 
         result.ConflictCount = result.Conflicts.Count;
         result.ImportHistoryId = history.ImportHistoryId;
+
+        _logger.Finished(
+            fileName, history.Status, result.TotalRows, result.InsertedCount,
+            result.UnchangedCount, result.RejectedCount, result.ConflictCount);
+
+        // Separate from the summary and at Warning, because a pending conflict is work the
+        // import could not finish on its own - the run "succeeded" but the data is not yet
+        // what the file said it should be.
+        if (result.ConflictCount > 0)
+        {
+            _logger.ConflictsPending(fileName, result.ConflictCount);
+        }
+
         return result;
     }
 
@@ -464,6 +499,9 @@ public class BinCsvImportService : IBinCsvImportService
         if (insertedFromConflicts.Count == 0)
         {
             await _db.SaveChangesAsync(cancellationToken);
+
+            LogResolved(result);
+
             return result;
         }
 
@@ -479,8 +517,16 @@ public class BinCsvImportService : IBinCsvImportService
 
         await _db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+
+        LogResolved(result);
+
         return result;
     }
+
+    private void LogResolved(ConflictResolutionResult result) =>
+        _logger.ConflictsResolved(
+            result.UpdatedCount + result.DiscardedCount, _currentUser.Name,
+            result.UpdatedCount, result.DiscardedCount);
 
     /// <summary>
     /// Adds resolved-conflict outcomes back onto the originating imports: updates bump

@@ -29,7 +29,8 @@ public class CommissionRuleAdminServiceTests : SqliteTestBase
             new CommissionRuleRepository(Db),
             new ReferenceDataRepository(Db),
             currentUser,
-            new AuditLog(Db, currentUser));
+            new AuditLog(Db, currentUser),
+            new RecordingLogger<CommissionRuleAdminService>());
     }
 
     private static CommissionRuleInput Input(

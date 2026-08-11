@@ -2,6 +2,7 @@ using BinTool.Application.Models.Commission;
 using BinTool.Application.Services;
 using BinTool.Tests.Fakes;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 
 namespace BinTool.Tests;
 
@@ -19,12 +20,13 @@ public class CommissionRuleAdminServiceUnitTests
 
     private readonly FakeCommissionRuleRepository _rules = new();
     private readonly RecordingAuditLog _audit = new();
+    private readonly RecordingLogger<CommissionRuleAdminService> _log = new();
     private readonly CommissionRuleAdminService _service;
 
     public CommissionRuleAdminServiceUnitTests()
     {
         _service = new CommissionRuleAdminService(
-            _rules, new FakeReferenceDataRepository(), new StubCurrentUser(), _audit);
+            _rules, new FakeReferenceDataRepository(), new StubCurrentUser(), _audit, _log);
     }
 
     private static CommissionRuleInput Input(
@@ -315,5 +317,72 @@ public class CommissionRuleAdminServiceUnitTests
         var result = await _service.UpdateAsync(404, Input());
 
         result.Status.Should().Be(CommissionRuleMutationStatus.NotFound);
+    }
+
+    // ---- What gets logged -------------------------------------------------------
+
+    [Fact]
+    public async Task A_created_rule_is_logged_with_its_id_as_a_field()
+    {
+        var result = await _service.CreateAsync(Input(name: "Visa retail", scheme: Visa));
+
+        var entry = _log.Entries.Should().ContainSingle().Subject;
+
+        entry.Level.Should().Be(LogLevel.Information);
+
+        // The id has to arrive as a field, not baked into the sentence - that is the whole
+        // difference between a message template and an interpolated string.
+        entry.Fields["RuleId"].Should().Be(result.Rule!.Id);
+        entry.Fields["RuleName"].Should().Be("Visa retail");
+        entry.Fields["User"].Should().Be("admin");
+    }
+
+    [Theory]
+    [MemberData(nameof(RefusedWrites))]
+    public async Task A_refusal_is_logged_as_a_warning_and_never_as_an_error(
+        string _, Func<CommissionRuleAdminService, Task> refusedWrite)
+    {
+        _rules.Seed("Visa/Consumer", priority: 5, priorityScore: 2,
+            scheme: Visa, product: Consumer);
+
+        await refusedWrite(_service);
+
+        _log.Entries.Should().NotBeEmpty();
+        _log.Entries.Should().OnlyContain(e => e.Level == LogLevel.Warning);
+        _log.Entries.Should().OnlyContain(e => e.Exception == null);
+    }
+
+    public static TheoryData<string, Func<CommissionRuleAdminService, Task>> RefusedWrites => new()
+    {
+        {
+            "co-matchable at the same priority",
+            s => s.CreateAsync(Input(name: "Clash", scheme: Visa, funding: Credit, priority: 5))
+        },
+        {
+            "an id that does not resolve",
+            s => s.CreateAsync(Input(scheme: 999))
+        },
+        {
+            "an end date before the start date",
+            s => s.CreateAsync(Input(
+                validFrom: new DateTime(2025, 6, 1), validTo: new DateTime(2025, 1, 1)))
+        },
+        {
+            "a rule that does not exist",
+            s => s.UpdateAsync(404, Input())
+        }
+    };
+
+    [Fact]
+    public async Task The_reason_logged_is_the_reason_the_caller_was_given()
+    {
+        _rules.Seed("Visa/Consumer", priority: 5, priorityScore: 2,
+            scheme: Visa, product: Consumer);
+
+        var result = await _service.CreateAsync(Input(
+            name: "Clash", scheme: Visa, funding: Credit, priority: 5));
+
+        _log.Entries.Should().ContainSingle()
+            .Which.Fields["Reason"].Should().Be(result.Error);
     }
 }
