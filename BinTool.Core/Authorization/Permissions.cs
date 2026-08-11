@@ -20,6 +20,7 @@ public sealed record PermissionInfo(string Key, string Name, string Description,
 public static class Permissions
 {
     public const string BinClassify = "bin.classify";
+    public const string CurrenciesRead = "currencies.read";
     public const string BinRangesRead = "binranges.read";
     public const string BinRangesWrite = "binranges.write";
     public const string BinRangesImport = "binranges.import";
@@ -43,6 +44,8 @@ public static class Permissions
     {
         new PermissionInfo(BinClassify, "Classify BINs",
             "Look up a card BIN against the stored ranges.", Groups.Classification),
+        new PermissionInfo(CurrenciesRead, "Read currencies",
+            "See the currency list and its euro rates - needed to price a lookup in a currency other than euro, and to read a commission rule's currency.", Groups.Classification),
         new PermissionInfo(BinRangesRead, "Browse BIN ranges",
             "View the stored BIN ranges, their filters and a single range.", Groups.BinRanges),
         new PermissionInfo(BinRangesWrite, "Maintain BIN ranges",

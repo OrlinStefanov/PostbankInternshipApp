@@ -42,9 +42,10 @@
                                      placeholder="e.g. 100" @bind-Value="_input.Amount" />
                         <InputSelect class="form-select flex-grow-0 w-auto" aria-label="Amount currency"
                                      @bind-Value="_input.AmountCurrency">
-                            @foreach (var c in _currencies)
+                            @* Named "currency", not "code": @code is the Razor directive. *@
+                            @foreach (var currency in CurrencyCodes)
                             {
-                                <option value="@c.Code">@c.Code</option>
+                                <option value="@currency">@currency</option>
                             }
                         </InputSelect>
                     </div>
@@ -242,6 +243,22 @@
                             <dt>Minimum applied</dt>
                             <dd>@(c.MinimumApplied ? "Yes" : "No")</dd>
 
+                            @* The arithmetic itself, one line per step. The figures above say
+                               what went into the fee; this says what was done with them, so a
+                               reader can check the number rather than take it on trust. *@
+                            <dt class="detail-wide">How the fee was worked out</dt>
+                            <dd class="detail-wide">
+                                <ul class="fee-working">
+                                    @foreach (var step in Working(c))
+                                    {
+                                        <li>
+                                            <span class="fee-working-expr mono">@step.Expression</span>
+                                            <span class="fee-working-note">@step.Note</span>
+                                        </li>
+                                    }
+                                </ul>
+                            </dd>
+
                             @* The reason is a sentence, not a value - it takes the full width
                                and reads left to right like prose. *@
                             <dt class="detail-wide">Why</dt>
@@ -278,6 +295,14 @@
     private bool _amountAsked;
     private bool _busy;
     private string? _error;
+
+    /// <summary>
+    /// The codes offered in the amount selector. Euro is offered even when the list could not
+    /// be loaded - a role that cannot read currencies can still price in euro, rather than
+    /// facing a selector with nothing in it and no way to submit an amount.
+    /// </summary>
+    private IEnumerable<string> CurrencyCodes =>
+        _currencies.Count > 0 ? _currencies.Select(c => c.Code) : new[] { "EUR" };
 
     protected override async Task OnInitializedAsync()
     {
@@ -332,6 +357,63 @@
         string.Join(" · ", new[] { _result?.FundingType, _result?.ProductType }
             .Where(v => !string.IsNullOrWhiteSpace(v)));
 
+    // ---- The working -----------------------------------------------------------
+
+    /// <summary>One line of the fee arithmetic: the sum itself, and what it is doing.</summary>
+    private sealed record FeeStep(string Expression, string Note);
+
+    /// <summary>
+    /// The fee restated as the steps that produced it. Nothing here is recalculated from the
+    /// rule - every figure is one the server returned, so the lines agree with the values
+    /// listed above them even where the server rounded partway through.
+    /// </summary>
+    private static IReadOnlyList<FeeStep> Working(CommissionCalculation c)
+    {
+        var steps = new List<FeeStep>();
+        var code = c.CurrencyCode;
+
+        if (!string.Equals(c.InputCurrencyCode, code, StringComparison.OrdinalIgnoreCase))
+        {
+            steps.Add(new(
+                $"{Money(c.InputAmount, c.InputCurrencyCode)} → {Money(c.Amount, code)}",
+                "the amount entered, converted into the rule's currency"));
+        }
+
+        // Read back off the raw fee rather than worked out again from the rate: the server
+        // rounds the percentage part to 4dp before adding the fixed amount, so recomputing it
+        // here could print a sum that does not quite add up to the raw fee shown above.
+        var percentage = c.RawFee - c.FixedAmount;
+
+        steps.Add(new(
+            $"{Dec(c.Amount)} × {Num(c.PercentageRate)}% = {Dec(percentage)}",
+            "the rule's percentage of the amount"));
+
+        steps.Add(new(
+            $"{Dec(percentage)} + {Dec(c.FixedAmount)} = {Money(c.RawFee, code)}",
+            "plus the rule's fixed amount"));
+
+        if (c.MinimumApplied)
+        {
+            steps.Add(new(
+                $"{Dec(c.RawFee)} < {Dec(c.MinimumFee)} → {Money(c.Fee, code)}",
+                "under the rule's minimum fee, so the minimum is charged instead"));
+        }
+        else if (c.MinimumFee > 0)
+        {
+            steps.Add(new(
+                $"{Dec(c.RawFee)} ≥ {Dec(c.MinimumFee)} → {Money(c.Fee, code)}",
+                "at or above the rule's minimum fee, so it stands"));
+        }
+        else
+        {
+            steps.Add(new(
+                $"= {Money(c.Fee, code)}",
+                "the fee charged; this rule sets no minimum"));
+        }
+
+        return steps;
+    }
+
     // ---- Formatting ------------------------------------------------------------
 
     /// <summary>
@@ -339,6 +421,13 @@
     /// locale, so the panel matches what was typed and what the API returned.
     /// </summary>
     private static string Num(decimal value) => value.ToString("0.####", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// A bare figure in the working, always to at least two decimals so the sums line up,
+    /// but not truncated to two - a rate that carries more precision has to show it or the
+    /// arithmetic on the line would look wrong.
+    /// </summary>
+    private static string Dec(decimal value) => value.ToString("0.00##", CultureInfo.InvariantCulture);
 
     /// <summary>A money amount with its currency code, e.g. "0.97 BGN".</summary>
     private static string Money(decimal value, string code) =>

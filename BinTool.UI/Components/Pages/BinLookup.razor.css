@@ -17,3 +17,30 @@
 .lookup-card-panel ::deep .bincard-hint {
     margin-left: 0;
 }
+
+/* The working is a derivation, not a list of values, so it is set off by a rule down its
+   left edge and reads as one block rather than as more rows of the list above it. */
+.fee-working {
+    list-style: none;
+    margin: 2px 0 0;
+    padding: 0 0 0 .75rem;
+    border-left: 2px solid var(--app-line);
+}
+
+.fee-working li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .5rem;
+    padding: 3px 0;
+}
+
+.fee-working-expr {
+    color: var(--app-ink);
+    font-weight: 600;
+}
+
+.fee-working-note {
+    color: var(--app-muted);
+    font-size: 12px;
+}

@@ -11,14 +11,20 @@ namespace BinTool.Api.Controllers;
 /// Maintains the currency table and the euro rates commission is priced and displayed in.
 /// A currency is a code, a name and the euro value of one unit; euro is the base at rate 1.
 /// <para>
-/// Everything here needs <c>referencedata.manage</c> - currencies are reference data. A
-/// currency still used by a live commission rule cannot be deleted. Deletes are soft.
+/// Reading and maintaining are separate privileges, unlike the other reference-data tables.
+/// The currency list is not only an admin's to edit: anyone pricing a lookup has to choose
+/// the currency the amount is in, and anyone reading a commission rule sees the currency it
+/// is denominated in. So the two reads take <c>currencies.read</c> and the writes take
+/// <c>referencedata.manage</c>, stated per action rather than once on the class.
+/// </para>
+/// <para>
+/// A currency still used by a live commission rule cannot be deleted. Deletes are soft.
 /// </para>
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-[Authorize(Policy = Permissions.ReferenceDataManage)]
+[Authorize]
 public class CurrenciesController : ControllerBase
 {
     private readonly ICurrencyService _service;
@@ -33,6 +39,7 @@ public class CurrenciesController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="200">The currencies.</response>
     [HttpGet]
+    [Authorize(Policy = Permissions.CurrenciesRead)]
     [ProducesResponseType(typeof(List<CurrencyListItem>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Search(
         [FromQuery] bool includeDeleted = false, CancellationToken cancellationToken = default)
@@ -46,6 +53,7 @@ public class CurrenciesController : ControllerBase
     /// <response code="200">The currency.</response>
     /// <response code="404">No currency has that id.</response>
     [HttpGet("{id:int}")]
+    [Authorize(Policy = Permissions.CurrenciesRead)]
     [ProducesResponseType(typeof(CurrencyListItem), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
@@ -64,6 +72,7 @@ public class CurrenciesController : ControllerBase
     /// <response code="400">A field broke a rule.</response>
     /// <response code="409">A live row already owns that code.</response>
     [HttpPost]
+    [Authorize(Policy = Permissions.ReferenceDataManage)]
     [ProducesResponseType(typeof(CurrencyMutationResult), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(CurrencyMutationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -87,6 +96,7 @@ public class CurrenciesController : ControllerBase
     /// <response code="404">No such row, or it is deleted and must be restored first.</response>
     /// <response code="409">Another row already owns that code.</response>
     [HttpPut("{id:int}")]
+    [Authorize(Policy = Permissions.ReferenceDataManage)]
     [ProducesResponseType(typeof(CurrencyMutationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(CurrencyMutationResult), StatusCodes.Status404NotFound)]
@@ -106,6 +116,7 @@ public class CurrenciesController : ControllerBase
     /// <response code="404">No currency has that id.</response>
     /// <response code="409">The row is already deleted, or is still in use.</response>
     [HttpDelete("{id:int}")]
+    [Authorize(Policy = Permissions.ReferenceDataManage)]
     [ProducesResponseType(typeof(CurrencyMutationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(CurrencyMutationResult), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(CurrencyMutationResult), StatusCodes.Status409Conflict)]
@@ -121,6 +132,7 @@ public class CurrenciesController : ControllerBase
     /// <response code="404">No currency has that id.</response>
     /// <response code="409">The row was not deleted.</response>
     [HttpPost("{id:int}/restore")]
+    [Authorize(Policy = Permissions.ReferenceDataManage)]
     [ProducesResponseType(typeof(CurrencyMutationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(CurrencyMutationResult), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(CurrencyMutationResult), StatusCodes.Status409Conflict)]

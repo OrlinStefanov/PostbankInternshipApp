@@ -96,6 +96,42 @@ public class ApiAuthorizationTests
         Authorize(controller)!.Policy.Should().Be(Permissions.ReferenceDataManage);
     }
 
+    /// <summary>
+    /// Currencies are the one reference-data table whose reads are split off: pricing a lookup
+    /// needs the list, and a viewer holds no administration permission. A class-level manage
+    /// policy would put it out of their reach, and would not be overridden by the per-action
+    /// one - authorize attributes stack.
+    /// </summary>
+    [Fact]
+    public void The_currencies_controller_requires_authentication_but_no_single_policy()
+    {
+        var attribute = Authorize(typeof(CurrenciesController));
+
+        attribute.Should().NotBeNull("the currency list is not public");
+        attribute!.Policy.Should().BeNull("the per-action permissions decide access");
+        attribute.Roles.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(nameof(CurrenciesController.Search))]
+    [InlineData(nameof(CurrenciesController.GetById))]
+    public void Reading_a_currency_requires_only_the_currencies_read_permission(string action)
+    {
+        Authorize(typeof(CurrenciesController), action)!.Policy
+            .Should().Be(Permissions.CurrenciesRead, "{0} is needed to price a lookup", action);
+    }
+
+    [Theory]
+    [InlineData(nameof(CurrenciesController.Create))]
+    [InlineData(nameof(CurrenciesController.Update))]
+    [InlineData(nameof(CurrenciesController.Delete))]
+    [InlineData(nameof(CurrenciesController.Restore))]
+    public void Maintaining_a_currency_requires_the_reference_data_manage_permission(string action)
+    {
+        Authorize(typeof(CurrenciesController), action)!.Policy
+            .Should().Be(Permissions.ReferenceDataManage, "{0} changes reference data", action);
+    }
+
     [Fact]
     public void Health_stays_anonymous()
     {

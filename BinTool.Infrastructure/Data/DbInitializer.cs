@@ -59,7 +59,12 @@ public static class DbInitializer
         new Dictionary<string, IReadOnlyList<string>>
         {
             [AppRoles.Admin] = Permissions.AllKeys,
-            [AppRoles.Viewer] = new[] { Permissions.BinClassify, Permissions.BinRangesRead }
+            // Currencies come with classifying, not with administering: a viewer who can price
+            // a lookup has to be able to choose the currency the amount is in.
+            [AppRoles.Viewer] = new[]
+            {
+                Permissions.BinClassify, Permissions.CurrenciesRead, Permissions.BinRangesRead
+            }
         };
 
     /// <summary>
