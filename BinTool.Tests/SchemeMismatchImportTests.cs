@@ -1,5 +1,5 @@
-using BinTool.Core.Entities;
-using BinTool.Core.Models.Import;
+using BinTool.Domain.Entities;
+using BinTool.Application.Models.Import;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 
@@ -215,7 +215,7 @@ public class SchemeMismatchImportTests : ImportTestBase
         await using var fresh = NewContext();
         var freshService = new Infrastructure.Services.BinCsvImportService(
             fresh, CurrentUser, new Infrastructure.Services.AuditLog(fresh, CurrentUser),
-            new Core.Services.CardSchemeDetector());
+            new Domain.Services.CardSchemeDetector());
 
         var conflict = (await freshService.GetPendingConflictsAsync()).Single();
         conflict.ConflictType.Should().Be("SchemeMismatch");

@@ -1,4 +1,4 @@
-using BinTool.Core.Services;
+using BinTool.Application.Abstractions;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
 

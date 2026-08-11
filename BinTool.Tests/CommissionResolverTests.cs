@@ -1,4 +1,4 @@
-using BinTool.Core.Entities;
+using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
 
@@ -90,7 +90,7 @@ public class CommissionResolverTests : SqliteTestBase
         Db.SaveChanges();
     }
 
-    private Task<Core.Models.Commission.CommissionCalculation?> Resolve(
+    private Task<Application.Models.Commission.CommissionCalculation?> Resolve(
         decimal amount = 100m, int? inputCurrencyId = null) =>
         Resolver().ResolveAsync(
             VisaId, ConsumerId, CreditId, DomesticRegionId, amount, OnDate, inputCurrencyId);

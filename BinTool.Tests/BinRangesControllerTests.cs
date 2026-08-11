@@ -1,6 +1,6 @@
 using BinTool.Api.Controllers;
-using BinTool.Core.Models.BinRanges;
-using BinTool.Core.Services;
+using BinTool.Application.Models.BinRanges;
+using BinTool.Application.Abstractions;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Moq;

@@ -1,5 +1,5 @@
-using BinTool.Core.Models.Classification;
-using BinTool.Core.Services;
+using BinTool.Application.Models.Classification;
+using BinTool.Application.Abstractions;
 using BinTool.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 

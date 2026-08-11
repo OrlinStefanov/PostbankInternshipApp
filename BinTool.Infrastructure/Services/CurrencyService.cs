@@ -1,9 +1,9 @@
 using System.ComponentModel.DataAnnotations;
-using BinTool.Core.Entities;
-using BinTool.Core.Models.Audit;
-using BinTool.Core.Models.Currency;
-using BinTool.Core.Models.ReferenceData;
-using BinTool.Core.Services;
+using BinTool.Domain.Entities;
+using BinTool.Application.Models.Audit;
+using BinTool.Application.Models.Currency;
+using BinTool.Application.Models.ReferenceData;
+using BinTool.Application.Abstractions;
 using BinTool.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 

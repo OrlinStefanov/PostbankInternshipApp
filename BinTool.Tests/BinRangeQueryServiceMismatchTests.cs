@@ -1,5 +1,5 @@
-using BinTool.Core.Models.BinRanges;
-using BinTool.Core.Services;
+using BinTool.Application.Models.BinRanges;
+using BinTool.Application.Abstractions;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
 

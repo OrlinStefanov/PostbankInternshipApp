@@ -1,5 +1,5 @@
-using BinTool.Core.Entities;
-using BinTool.Core.Services;
+using BinTool.Domain.Entities;
+using BinTool.Application.Abstractions;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 
@@ -74,7 +74,7 @@ public class ImportAuditTests : ImportTestBase
 
         await Service.ResolveConflictsAsync(new[]
         {
-            new Core.Models.Import.ConflictResolution { PendingBinConflictId = conflictId, Update = true }
+            new Application.Models.Import.ConflictResolution { PendingBinConflictId = conflictId, Update = true }
         });
 
         var conflict = await Db.PendingBinConflicts.AsNoTracking().SingleAsync();

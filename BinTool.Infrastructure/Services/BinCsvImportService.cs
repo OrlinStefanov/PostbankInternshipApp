@@ -1,8 +1,8 @@
 using System.Globalization;
-using BinTool.Core.Entities;
-using BinTool.Core.Models.Audit;
-using BinTool.Core.Models.Import;
-using BinTool.Core.Services;
+using BinTool.Domain.Entities;
+using BinTool.Application.Models.Audit;
+using BinTool.Application.Models.Import;
+using BinTool.Application.Abstractions;
 using BinTool.Infrastructure.Data;
 using CsvHelper;
 using CsvHelper.Configuration;

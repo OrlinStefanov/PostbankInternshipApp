@@ -17,7 +17,7 @@ namespace BinTool.Infrastructure.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.19");
 
-            modelBuilder.Entity("BinTool.Core.Entities.ApplicationRole", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.ApplicationRole", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("TEXT");
@@ -72,7 +72,7 @@ namespace BinTool.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.ApplicationUser", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("TEXT");
@@ -166,7 +166,7 @@ namespace BinTool.Infrastructure.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.AuditEntry", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.AuditEntry", b =>
                 {
                     b.Property<int>("AuditEntryId")
                         .ValueGeneratedOnAdd()
@@ -209,7 +209,7 @@ namespace BinTool.Infrastructure.Migrations
                     b.ToTable("AuditEntries", (string)null);
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.BinRange", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.BinRange", b =>
                 {
                     b.Property<int>("BinRangeId")
                         .ValueGeneratedOnAdd()
@@ -285,7 +285,7 @@ namespace BinTool.Infrastructure.Migrations
                     b.ToTable("BinRanges", (string)null);
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.CardScheme", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.CardScheme", b =>
                 {
                     b.Property<int>("CardSchemeId")
                         .ValueGeneratedOnAdd()
@@ -347,7 +347,7 @@ namespace BinTool.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.CommissionRule", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.CommissionRule", b =>
                 {
                     b.Property<int>("CommissionRuleId")
                         .ValueGeneratedOnAdd()
@@ -425,7 +425,7 @@ namespace BinTool.Infrastructure.Migrations
                     b.ToTable("CommissionRules", (string)null);
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.Country", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.Country", b =>
                 {
                     b.Property<int>("CountryId")
                         .ValueGeneratedOnAdd()
@@ -622,7 +622,7 @@ namespace BinTool.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.Currency", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.Currency", b =>
                 {
                     b.Property<int>("CurrencyId")
                         .ValueGeneratedOnAdd()
@@ -698,7 +698,7 @@ namespace BinTool.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.DefaultRule", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.DefaultRule", b =>
                 {
                     b.Property<int>("DefaultRuleId")
                         .ValueGeneratedOnAdd()
@@ -718,7 +718,7 @@ namespace BinTool.Infrastructure.Migrations
                     b.ToTable("DefaultRules", (string)null);
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.FundingType", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.FundingType", b =>
                 {
                     b.Property<int>("FundingTypeId")
                         .ValueGeneratedOnAdd()
@@ -766,7 +766,7 @@ namespace BinTool.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.ImportHistory", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.ImportHistory", b =>
                 {
                     b.Property<int>("ImportHistoryId")
                         .ValueGeneratedOnAdd()
@@ -810,7 +810,7 @@ namespace BinTool.Infrastructure.Migrations
                     b.ToTable("ImportHistories", (string)null);
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.PendingBinConflict", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.PendingBinConflict", b =>
                 {
                     b.Property<int>("PendingBinConflictId")
                         .ValueGeneratedOnAdd()
@@ -882,7 +882,7 @@ namespace BinTool.Infrastructure.Migrations
                     b.ToTable("PendingBinConflicts", (string)null);
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.ProductType", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.ProductType", b =>
                 {
                     b.Property<int>("ProductTypeId")
                         .ValueGeneratedOnAdd()
@@ -937,7 +937,7 @@ namespace BinTool.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.Region", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.Region", b =>
                 {
                     b.Property<int>("RegionId")
                         .ValueGeneratedOnAdd()
@@ -992,7 +992,7 @@ namespace BinTool.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.RejectedImportRow", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.RejectedImportRow", b =>
                 {
                     b.Property<int>("RejectedRowId")
                         .ValueGeneratedOnAdd()
@@ -1020,7 +1020,7 @@ namespace BinTool.Infrastructure.Migrations
                     b.ToTable("RejectedImportRows", (string)null);
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.RuleCriteria", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.RuleCriteria", b =>
                 {
                     b.Property<int>("RuleCriteriaId")
                         .ValueGeneratedOnAdd()
@@ -1162,9 +1162,9 @@ namespace BinTool.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.AuditEntry", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.AuditEntry", b =>
                 {
-                    b.HasOne("BinTool.Core.Entities.ApplicationUser", "PerformedByUser")
+                    b.HasOne("BinTool.Domain.Entities.ApplicationUser", "PerformedByUser")
                         .WithMany("AuditEntries")
                         .HasForeignKey("PerformedByUserId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -1172,27 +1172,27 @@ namespace BinTool.Infrastructure.Migrations
                     b.Navigation("PerformedByUser");
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.BinRange", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.BinRange", b =>
                 {
-                    b.HasOne("BinTool.Core.Entities.CardScheme", "CardScheme")
+                    b.HasOne("BinTool.Domain.Entities.CardScheme", "CardScheme")
                         .WithMany("BinRanges")
                         .HasForeignKey("CardSchemeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("BinTool.Core.Entities.Country", "Country")
+                    b.HasOne("BinTool.Domain.Entities.Country", "Country")
                         .WithMany("BinRanges")
                         .HasForeignKey("CountryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("BinTool.Core.Entities.FundingType", "FundingType")
+                    b.HasOne("BinTool.Domain.Entities.FundingType", "FundingType")
                         .WithMany("BinRanges")
                         .HasForeignKey("FundingTypeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("BinTool.Core.Entities.ProductType", "ProductType")
+                    b.HasOne("BinTool.Domain.Entities.ProductType", "ProductType")
                         .WithMany("BinRanges")
                         .HasForeignKey("ProductTypeId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1207,9 +1207,9 @@ namespace BinTool.Infrastructure.Migrations
                     b.Navigation("ProductType");
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.CommissionRule", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.CommissionRule", b =>
                 {
-                    b.HasOne("BinTool.Core.Entities.Currency", "Currency")
+                    b.HasOne("BinTool.Domain.Entities.Currency", "Currency")
                         .WithMany("CommissionRules")
                         .HasForeignKey("CurrencyId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1218,9 +1218,9 @@ namespace BinTool.Infrastructure.Migrations
                     b.Navigation("Currency");
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.Country", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.Country", b =>
                 {
-                    b.HasOne("BinTool.Core.Entities.Region", "Region")
+                    b.HasOne("BinTool.Domain.Entities.Region", "Region")
                         .WithMany("Countries")
                         .HasForeignKey("RegionId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1229,20 +1229,20 @@ namespace BinTool.Infrastructure.Migrations
                     b.Navigation("Region");
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.DefaultRule", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.DefaultRule", b =>
                 {
-                    b.HasOne("BinTool.Core.Entities.CommissionRule", "CommissionRule")
+                    b.HasOne("BinTool.Domain.Entities.CommissionRule", "CommissionRule")
                         .WithOne("DefaultRule")
-                        .HasForeignKey("BinTool.Core.Entities.DefaultRule", "CommissionRuleId")
+                        .HasForeignKey("BinTool.Domain.Entities.DefaultRule", "CommissionRuleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("CommissionRule");
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.ImportHistory", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.ImportHistory", b =>
                 {
-                    b.HasOne("BinTool.Core.Entities.ApplicationUser", "ImportedByUser")
+                    b.HasOne("BinTool.Domain.Entities.ApplicationUser", "ImportedByUser")
                         .WithMany("Imports")
                         .HasForeignKey("ImportedByUserId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -1250,15 +1250,15 @@ namespace BinTool.Infrastructure.Migrations
                     b.Navigation("ImportedByUser");
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.PendingBinConflict", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.PendingBinConflict", b =>
                 {
-                    b.HasOne("BinTool.Core.Entities.ImportHistory", "ImportHistory")
+                    b.HasOne("BinTool.Domain.Entities.ImportHistory", "ImportHistory")
                         .WithMany()
                         .HasForeignKey("ImportHistoryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("BinTool.Core.Entities.BinRange", "TargetBinRange")
+                    b.HasOne("BinTool.Domain.Entities.BinRange", "TargetBinRange")
                         .WithMany()
                         .HasForeignKey("TargetBinRangeId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -1268,9 +1268,9 @@ namespace BinTool.Infrastructure.Migrations
                     b.Navigation("TargetBinRange");
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.RejectedImportRow", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.RejectedImportRow", b =>
                 {
-                    b.HasOne("BinTool.Core.Entities.ImportHistory", "ImportHistory")
+                    b.HasOne("BinTool.Domain.Entities.ImportHistory", "ImportHistory")
                         .WithMany("RejectedRows_Navigation")
                         .HasForeignKey("ImportHistoryId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1279,30 +1279,30 @@ namespace BinTool.Infrastructure.Migrations
                     b.Navigation("ImportHistory");
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.RuleCriteria", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.RuleCriteria", b =>
                 {
-                    b.HasOne("BinTool.Core.Entities.CardScheme", "CardScheme")
+                    b.HasOne("BinTool.Domain.Entities.CardScheme", "CardScheme")
                         .WithMany("RuleCriteria")
                         .HasForeignKey("CardSchemeId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("BinTool.Core.Entities.CommissionRule", "CommissionRule")
+                    b.HasOne("BinTool.Domain.Entities.CommissionRule", "CommissionRule")
                         .WithMany("RuleCriteria")
                         .HasForeignKey("CommissionRuleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("BinTool.Core.Entities.FundingType", "FundingType")
+                    b.HasOne("BinTool.Domain.Entities.FundingType", "FundingType")
                         .WithMany("RuleCriteria")
                         .HasForeignKey("FundingTypeId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("BinTool.Core.Entities.ProductType", "ProductType")
+                    b.HasOne("BinTool.Domain.Entities.ProductType", "ProductType")
                         .WithMany("RuleCriteria")
                         .HasForeignKey("ProductTypeId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("BinTool.Core.Entities.Region", "Region")
+                    b.HasOne("BinTool.Domain.Entities.Region", "Region")
                         .WithMany("RuleCriteria")
                         .HasForeignKey("RegionId")
                         .OnDelete(DeleteBehavior.SetNull);
@@ -1320,7 +1320,7 @@ namespace BinTool.Infrastructure.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
-                    b.HasOne("BinTool.Core.Entities.ApplicationRole", null)
+                    b.HasOne("BinTool.Domain.Entities.ApplicationRole", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1329,7 +1329,7 @@ namespace BinTool.Infrastructure.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("BinTool.Core.Entities.ApplicationUser", null)
+                    b.HasOne("BinTool.Domain.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1338,7 +1338,7 @@ namespace BinTool.Infrastructure.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("BinTool.Core.Entities.ApplicationUser", null)
+                    b.HasOne("BinTool.Domain.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1347,13 +1347,13 @@ namespace BinTool.Infrastructure.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
                 {
-                    b.HasOne("BinTool.Core.Entities.ApplicationRole", null)
+                    b.HasOne("BinTool.Domain.Entities.ApplicationRole", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("BinTool.Core.Entities.ApplicationUser", null)
+                    b.HasOne("BinTool.Domain.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1362,64 +1362,64 @@ namespace BinTool.Infrastructure.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("BinTool.Core.Entities.ApplicationUser", null)
+                    b.HasOne("BinTool.Domain.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.ApplicationUser", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.ApplicationUser", b =>
                 {
                     b.Navigation("AuditEntries");
 
                     b.Navigation("Imports");
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.CardScheme", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.CardScheme", b =>
                 {
                     b.Navigation("BinRanges");
 
                     b.Navigation("RuleCriteria");
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.CommissionRule", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.CommissionRule", b =>
                 {
                     b.Navigation("DefaultRule");
 
                     b.Navigation("RuleCriteria");
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.Country", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.Country", b =>
                 {
                     b.Navigation("BinRanges");
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.Currency", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.Currency", b =>
                 {
                     b.Navigation("CommissionRules");
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.FundingType", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.FundingType", b =>
                 {
                     b.Navigation("BinRanges");
 
                     b.Navigation("RuleCriteria");
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.ImportHistory", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.ImportHistory", b =>
                 {
                     b.Navigation("RejectedRows_Navigation");
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.ProductType", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.ProductType", b =>
                 {
                     b.Navigation("BinRanges");
 
                     b.Navigation("RuleCriteria");
                 });
 
-            modelBuilder.Entity("BinTool.Core.Entities.Region", b =>
+            modelBuilder.Entity("BinTool.Domain.Entities.Region", b =>
                 {
                     b.Navigation("Countries");
 

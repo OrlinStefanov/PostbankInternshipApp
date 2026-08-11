@@ -1,8 +1,8 @@
 using System.Text.Json;
-using BinTool.Core.Entities;
-using BinTool.Core.Models.Audit;
-using BinTool.Core.Models.BinRanges;
-using BinTool.Core.Services;
+using BinTool.Domain.Entities;
+using BinTool.Application.Models.Audit;
+using BinTool.Application.Models.BinRanges;
+using BinTool.Application.Abstractions;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -238,7 +238,7 @@ public class AuditTrailTests : ImportTestBase
 
         await Service.ResolveConflictsAsync(new[]
         {
-            new Core.Models.Import.ConflictResolution
+            new Application.Models.Import.ConflictResolution
             {
                 PendingBinConflictId = import.Conflicts[0].PendingBinConflictId,
                 Update = true
@@ -261,7 +261,7 @@ public class AuditTrailTests : ImportTestBase
 
         await Service.ResolveConflictsAsync(new[]
         {
-            new Core.Models.Import.ConflictResolution
+            new Application.Models.Import.ConflictResolution
             {
                 PendingBinConflictId = import.Conflicts[0].PendingBinConflictId,
                 Update = false

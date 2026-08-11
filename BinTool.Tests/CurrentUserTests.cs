@@ -1,6 +1,6 @@
 using System.Security.Claims;
 using BinTool.Api.Services;
-using BinTool.Core.Services;
+using BinTool.Application.Abstractions;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 

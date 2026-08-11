@@ -2,8 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using BinTool.Api.Options;
-using BinTool.Core.Authorization;
-using BinTool.Core.Entities;
+using BinTool.Application.Authorization;
+using BinTool.Domain.Entities;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 

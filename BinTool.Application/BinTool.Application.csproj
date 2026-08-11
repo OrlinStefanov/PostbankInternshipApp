@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- Doc comments on the models become schema descriptions in Swagger. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BinTool.Domain\BinTool.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The permission policies and handlers live here, so the authorization abstractions
+         come with them. Nothing else ASP.NET-shaped belongs in this layer, and there is
+         deliberately no reference to Entity Framework. -->
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="8.0.19" />
+  </ItemGroup>
+
+</Project>

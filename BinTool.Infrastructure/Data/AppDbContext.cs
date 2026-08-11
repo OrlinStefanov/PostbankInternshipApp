@@ -1,4 +1,4 @@
-using BinTool.Core.Entities;
+using BinTool.Domain.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 

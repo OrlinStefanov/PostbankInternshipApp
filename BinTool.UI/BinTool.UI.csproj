@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BinTool.Core\BinTool.Core.csproj" />
+    <ProjectReference Include="..\BinTool.Application\BinTool.Application.csproj" />
   </ItemGroup>
 
 </Project>

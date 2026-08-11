@@ -1,4 +1,4 @@
-using BinTool.Core.Models.Auth;
+using BinTool.Application.Models.Auth;
 using FluentAssertions;
 
 namespace BinTool.Tests;

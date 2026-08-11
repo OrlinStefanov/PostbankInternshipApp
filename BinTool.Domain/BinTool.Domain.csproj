@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- Doc comments here reach Swagger through the models that expose these types. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The innermost layer: no project references, and one package only.
+         ApplicationUser derives from IdentityUser, and AuditEntry has a foreign key to it,
+         so the two cannot be separated without splitting the audit trail from its author.
+         This is the abstractions package - Identity's EF stores stay in Infrastructure. -->
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" Version="8.0.19" />
+  </ItemGroup>
+
+</Project>

@@ -1,6 +1,6 @@
 using System.Reflection;
 using BinTool.Api.Controllers;
-using BinTool.Core.Authorization;
+using BinTool.Application.Authorization;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

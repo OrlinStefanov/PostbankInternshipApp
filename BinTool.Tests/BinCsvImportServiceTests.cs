@@ -1,5 +1,5 @@
 using System.Text;
-using BinTool.Core.Entities;
+using BinTool.Domain.Entities;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 

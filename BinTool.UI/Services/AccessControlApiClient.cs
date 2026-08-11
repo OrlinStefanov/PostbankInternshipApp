@@ -3,8 +3,8 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using BinTool.Core.Authorization;
-using BinTool.Core.Models.Access;
+using BinTool.Application.Authorization;
+using BinTool.Application.Models.Access;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.UI.Services;

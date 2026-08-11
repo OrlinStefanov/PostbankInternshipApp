@@ -2,7 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using BinTool.Core.Models.Classification;
+using BinTool.Application.Models.Classification;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.UI.Services;

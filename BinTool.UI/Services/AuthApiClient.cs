@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using BinTool.Core.Models.Auth;
+using BinTool.Application.Models.Auth;
 
 namespace BinTool.UI.Services;
 

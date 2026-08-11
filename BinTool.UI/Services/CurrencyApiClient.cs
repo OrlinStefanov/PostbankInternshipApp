@@ -3,8 +3,8 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using BinTool.Core.Models.Currency;
-using BinTool.Core.Models.ReferenceData;
+using BinTool.Application.Models.Currency;
+using BinTool.Application.Models.ReferenceData;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.UI.Services;

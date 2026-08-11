@@ -1,4 +1,4 @@
-using BinTool.Core.Services;
+using BinTool.Application.Abstractions;
 
 namespace BinTool.Infrastructure.Services;
 

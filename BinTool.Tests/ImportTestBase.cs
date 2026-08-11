@@ -1,6 +1,6 @@
 using System.Text;
-using BinTool.Core.Models.Import;
-using BinTool.Core.Services;
+using BinTool.Application.Models.Import;
+using BinTool.Application.Abstractions;
 using BinTool.Infrastructure.Services;
 
 namespace BinTool.Tests;

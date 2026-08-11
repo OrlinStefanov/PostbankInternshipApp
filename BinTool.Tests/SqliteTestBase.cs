@@ -1,4 +1,4 @@
-using BinTool.Core.Entities;
+using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Data;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;

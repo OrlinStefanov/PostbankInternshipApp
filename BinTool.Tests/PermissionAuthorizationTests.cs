@@ -1,6 +1,6 @@
 using System.Security.Claims;
-using BinTool.Core.Authorization;
-using BinTool.Core.Entities;
+using BinTool.Application.Authorization;
+using BinTool.Domain.Entities;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;

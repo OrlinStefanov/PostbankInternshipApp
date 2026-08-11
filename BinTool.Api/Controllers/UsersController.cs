@@ -1,6 +1,6 @@
-using BinTool.Core.Authorization;
-using BinTool.Core.Models.Access;
-using BinTool.Core.Services;
+using BinTool.Application.Authorization;
+using BinTool.Application.Models.Access;
+using BinTool.Application.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

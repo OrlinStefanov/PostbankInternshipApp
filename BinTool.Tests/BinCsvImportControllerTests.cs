@@ -1,7 +1,7 @@
 using System.Text;
 using BinTool.Api.Controllers;
-using BinTool.Core.Models.Import;
-using BinTool.Core.Services;
+using BinTool.Application.Models.Import;
+using BinTool.Application.Abstractions;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -141,7 +141,7 @@ public class BinCsvImportControllerTests
     public async Task GetHistory_returns_the_service_result()
     {
         var query = new ImportHistoryQuery { Status = "Partial" };
-        var expected = new BinTool.Core.Models.BinRanges.PagedResult<ImportHistoryItem>
+        var expected = new BinTool.Application.Models.BinRanges.PagedResult<ImportHistoryItem>
         {
             Items = new List<ImportHistoryItem> { new() { ImportHistoryId = 3, FileName = "bins.csv" } },
             Page = 1,

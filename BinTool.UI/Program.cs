@@ -1,5 +1,5 @@
-using BinTool.Core.Authorization;
-using BinTool.Core.Services;
+using BinTool.Application.Authorization;
+using BinTool.Application.Abstractions;
 using BinTool.UI.Components;
 using BinTool.UI.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;

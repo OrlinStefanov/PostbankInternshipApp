@@ -1,6 +1,6 @@
-using BinTool.Core.Entities;
-using BinTool.Core.Models.ReferenceData;
-using BinTool.Core.Services;
+using BinTool.Domain.Entities;
+using BinTool.Application.Models.ReferenceData;
+using BinTool.Application.Abstractions;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
 

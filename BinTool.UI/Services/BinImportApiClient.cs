@@ -1,8 +1,8 @@
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using BinTool.Core.Models.BinRanges;
-using BinTool.Core.Models.Import;
+using BinTool.Application.Models.BinRanges;
+using BinTool.Application.Models.Import;
 
 namespace BinTool.UI.Services;
 
