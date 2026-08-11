@@ -43,6 +43,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IRoleRepository, RoleRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IBinRangeRepository, BinRangeRepository>();
+        services.AddScoped<IBinImportRepository, BinImportRepository>();
 
         services.AddScoped<IRoleAdminService, RoleAdminService>();
         services.AddScoped<IUserAdminService, UserAdminService>();

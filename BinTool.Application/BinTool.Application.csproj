@@ -24,6 +24,11 @@
          messages end up in is a hosting decision and stays in the Api project. The
          package also carries the [LoggerMessage] source generator. -->
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
+
+    <!-- The BIN import lives here, and what a valid import row is is an application rule,
+         not a storage one. CsvHelper is a parser rather than a persistence library, so it
+         does not breach the rule this layer actually holds: no Entity Framework. -->
+    <PackageReference Include="CsvHelper" Version="33.1.0" />
   </ItemGroup>
 
 </Project>

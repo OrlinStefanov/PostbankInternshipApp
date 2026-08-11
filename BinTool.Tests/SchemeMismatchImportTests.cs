@@ -213,10 +213,11 @@ public class SchemeMismatchImportTests : ImportTestBase
         await Run(MislabelledRow);
 
         await using var fresh = NewContext();
-        var freshService = new Infrastructure.Services.BinCsvImportService(
-            fresh, CurrentUser, new Infrastructure.Services.AuditLog(fresh, CurrentUser),
+        var freshService = new Application.Services.BinCsvImportService(
+            new Infrastructure.Repositories.BinImportRepository(fresh), CurrentUser,
+            new Infrastructure.Services.AuditLog(fresh, CurrentUser),
             new Domain.Services.CardSchemeDetector(),
-            new RecordingLogger<Infrastructure.Services.BinCsvImportService>());
+            new RecordingLogger<Application.Services.BinCsvImportService>());
 
         var conflict = (await freshService.GetPendingConflictsAsync()).Single();
         conflict.ConflictType.Should().Be("SchemeMismatch");

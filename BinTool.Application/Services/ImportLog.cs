@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace BinTool.Infrastructure.Services;
+namespace BinTool.Application.Services;
 
 /// <summary>
 /// The log events a BIN import emits.
