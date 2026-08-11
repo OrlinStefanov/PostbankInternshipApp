@@ -3,12 +3,18 @@ using BinTool.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddApplicationServices(builder.Configuration);
+builder.Services
+    .AddPersistence(builder.Configuration)
+    .AddIdentityServices()
+    .AddJwtAuthentication(builder.Configuration)
+    .AddWebApi()
+    .AddSwaggerDocumentation()
+    .AddApplicationServices();
 
 var app = builder.Build();
 
 await DbInitializer.InitializeAsync(app.Services);
 
-app.AddApplicationMiddleware();
+app.UseApplicationPipeline();
 
 app.Run();

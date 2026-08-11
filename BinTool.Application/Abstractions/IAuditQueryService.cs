@@ -14,7 +14,7 @@ public interface IAuditQueryService
 
     /// <summary>
     /// Returns the entity-type values the log currently records - the entries the
-    /// EntityType filter can take. Sourced from <see cref="Entities.AuditEntityTypes"/>
+    /// EntityType filter can take. Sourced from <see cref="AuditEntityTypes"/>
     /// rather than the data, so a filter option exists even before its first row.
     /// </summary>
     IReadOnlyList<string> GetEntityTypes();
