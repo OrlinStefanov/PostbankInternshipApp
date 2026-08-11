@@ -2,9 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BinTool.Application.Models.Classification;
 
-/// <summary>
-/// A request to classify a single BIN.
-/// </summary>
+/// <summary>A request to classify a single BIN.</summary>
 public class BinClassificationRequest
 {
     /// <summary>

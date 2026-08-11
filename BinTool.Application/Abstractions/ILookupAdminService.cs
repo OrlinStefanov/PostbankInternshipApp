@@ -10,12 +10,10 @@ namespace BinTool.Application.Abstractions;
 /// </summary>
 public interface ILookupAdminService
 {
-    /// <summary>
-    /// Lists the rows for one kind, ordered by name.
-    /// </summary>
+    /// <summary>Lists the rows for one kind, ordered by name.</summary>
     /// <param name="kind">Which reference table to read.</param>
     /// <param name="includeDeleted">When true, soft-deleted rows are included.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken"></param>
     Task<List<LookupListItem>> SearchAsync(
         LookupKind kind, bool includeDeleted, CancellationToken cancellationToken = default);
 

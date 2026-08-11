@@ -39,35 +39,7 @@ public class AuthController : ControllerBase
         _logger = logger;
     }
 
-    /// <summary>
-    /// Exchanges credentials for an access token.
-    /// </summary>
-    /// <remarks>
-    /// Sample request:
-    ///
-    ///     POST /api/auth/login
-    ///     { "userName": "admin", "password": "Admin@123" }
-    ///
-    /// Send the returned token on every other call as
-    /// `Authorization: Bearer &lt;accessToken&gt;`. It carries the user's roles, which is
-    /// what the API authorizes against - a client hiding a button changes nothing here.
-    ///
-    /// The token expires at `expiresAtUtc`. There is no refresh token: when it expires
-    /// the user logs in again.
-    ///
-    /// Either the user name or the email address works as `userName`.
-    ///
-    /// A wrong password, an unknown user and a deactivated account all return the same 401
-    /// with <c>Reason: InvalidCredentials</c>, so the response cannot be used to discover
-    /// which accounts exist.
-    ///
-    /// **Five failed attempts lock the account for five minutes.** A locked-out account is
-    /// reported distinctly as <c>Reason: LockedOut</c> with <c>lockoutEndsUtc</c>, because a
-    /// lockout is the one refusal the caller can neither see nor fix by retrying. The
-    /// password is still checked first, so **the correct password releases the lockout and
-    /// signs in immediately** - it clears the failed-attempt count and the lock rather than
-    /// making the owner wait it out.
-    /// </remarks>
+    /// <summary>Exchanges credentials for an access token.</summary>
     /// <param name="request">The credentials.</param>
     /// <response code="200">The credentials were accepted. Returns the token and the user's roles.</response>
     /// <response code="400">The user name or password was missing.</response>
@@ -185,12 +157,7 @@ public class AuthController : ControllerBase
         return permissions.ToList();
     }
 
-    /// <summary>
-    /// Returns the identity behind the bearer token.
-    /// </summary>
-    /// <remarks>
-    /// Useful for confirming a token is still valid and seeing which roles it grants.
-    /// </remarks>
+    /// <summary>Returns the identity behind the bearer token.</summary>
     /// <response code="200">The token is valid. Returns the caller's id, name and roles.</response>
     /// <response code="401">No token was sent, or it has expired.</response>
     [Authorize]

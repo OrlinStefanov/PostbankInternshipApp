@@ -6,9 +6,7 @@ namespace BinTool.Application.Abstractions;
 /// </summary>
 public interface ICurrentUser
 {
-    /// <summary>
-    /// Identity user id, or null when the caller is not authenticated.
-    /// </summary>
+    /// <summary>Identity user id, or null when the caller is not authenticated.</summary>
     string? UserId { get; }
 
     /// <summary>

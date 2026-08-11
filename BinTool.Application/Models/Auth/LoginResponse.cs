@@ -1,13 +1,9 @@
 namespace BinTool.Application.Models.Auth;
 
-/// <summary>
-/// A successfully issued access token and the identity it represents.
-/// </summary>
+/// <summary>A successfully issued access token and the identity it represents.</summary>
 public class LoginResponse
 {
-    /// <summary>
-    /// The signed JWT. Send it as <c>Authorization: Bearer &lt;token&gt;</c>.
-    /// </summary>
+    /// <summary>The signed JWT. Send it as <c>Authorization: Bearer &lt;token&gt;</c>.</summary>
     public string AccessToken { get; set; } = string.Empty;
 
     /// <summary>
@@ -20,9 +16,7 @@ public class LoginResponse
 
     public string UserName { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Display name, for greeting the user in a client.
-    /// </summary>
+    /// <summary>Display name, for greeting the user in a client.</summary>
     public string FullName { get; set; } = string.Empty;
 
     /// <summary>

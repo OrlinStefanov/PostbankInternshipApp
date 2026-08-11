@@ -9,12 +9,10 @@ namespace BinTool.Application.Abstractions;
 /// </summary>
 public interface ICommissionRuleAdminService
 {
-    /// <summary>
-    /// Lists rules, active ones first, then by specificity and priority.
-    /// </summary>
+    /// <summary>Lists rules, active ones first, then by specificity and priority.</summary>
     /// <param name="includeDeleted">When true, soft-deleted rules are included.</param>
     /// <param name="includeExpired">When true, expired rules are included.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken"></param>
     Task<List<CommissionRuleListItem>> SearchAsync(
         bool includeDeleted, bool includeExpired, CancellationToken cancellationToken = default);
 

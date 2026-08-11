@@ -2,9 +2,7 @@ using BinTool.Application.Models.Common;
 
 namespace BinTool.Application.Models.BinRanges;
 
-/// <summary>
-/// What a single-range write actually did, or why it did nothing.
-/// </summary>
+/// <summary>What a single-range write actually did, or why it did nothing.</summary>
 public enum BinRangeMutationStatus
 {
     /// <summary>A new range was inserted.</summary>

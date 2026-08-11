@@ -11,13 +11,9 @@ public class BinImportError
     /// </summary>
     public int RowNumber { get; set; }
 
-    /// <summary>
-    /// Why the row was rejected (e.g. "Prefix must be 6-8 digits").
-    /// </summary>
+    /// <summary>Why the row was rejected (e.g. "Prefix must be 6-8 digits").</summary>
     public string Reason { get; set; } = string.Empty;
 
-    /// <summary>
-    /// The raw row content, kept for inspection/debugging.
-    /// </summary>
+    /// <summary>The raw row content, kept for inspection/debugging.</summary>
     public string RawData { get; set; } = string.Empty;
 }

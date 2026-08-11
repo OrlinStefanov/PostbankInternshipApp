@@ -1,8 +1,6 @@
 namespace BinTool.Application.Models.Auth;
 
-/// <summary>
-/// Why a sign-in was refused.
-/// </summary>
+/// <summary>Why a sign-in was refused.</summary>
 public enum LoginRejectionReason
 {
     /// <summary>
@@ -26,9 +24,7 @@ public enum LoginRejectionReason
 /// </summary>
 public class LoginRejection
 {
-    /// <summary>
-    /// Why the sign-in was refused.
-    /// </summary>
+    /// <summary>Why the sign-in was refused.</summary>
     public LoginRejectionReason Reason { get; set; }
 
     /// <summary>

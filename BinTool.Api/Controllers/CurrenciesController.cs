@@ -37,7 +37,6 @@ public class CurrenciesController : ControllerBase
 
     /// <summary>Lists currencies, ordered by code. Soft-deleted rows only when asked.</summary>
     /// <param name="includeDeleted">Include soft-deleted rows.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="200">The currencies.</response>
     [HttpGet]
     [Authorize(Policy = Permissions.CurrenciesRead)]

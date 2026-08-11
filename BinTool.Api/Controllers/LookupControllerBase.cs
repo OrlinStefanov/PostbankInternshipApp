@@ -35,15 +35,8 @@ public abstract class LookupControllerBase : ControllerBase
     /// <summary>Human-readable name shown in refusal messages.</summary>
     protected abstract string ResourceName { get; }
 
-    /// <summary>
-    /// Lists rows for this reference table, ordered by name.
-    /// </summary>
-    /// <remarks>
-    /// By default only live rows are returned. Pass <c>includeDeleted=true</c> to also
-    /// receive soft-deleted rows - the only way to find one before restoring it.
-    /// </remarks>
+    /// <summary>Lists rows for this reference table, ordered by name.</summary>
     /// <param name="includeDeleted">Include soft-deleted rows.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="200">The rows.</response>
     [HttpGet]
     [ProducesResponseType(typeof(List<LookupListItem>), StatusCodes.Status200OK)]
@@ -68,15 +61,7 @@ public abstract class LookupControllerBase : ControllerBase
         return item is null ? NotFound() : Ok(item);
     }
 
-    /// <summary>
-    /// Adds a new row.
-    /// </summary>
-    /// <remarks>
-    /// Names are case-insensitively unique across live and soft-deleted rows. Naming
-    /// a value that exists on a soft-deleted row revives that row in place with the
-    /// supplied values and the response comes back as <c>Restored</c> - the row keeps
-    /// its id and its audit history.
-    /// </remarks>
+    /// <summary>Adds a new row.</summary>
     /// <response code="201">Added. The body carries the row.</response>
     /// <response code="200">An existing soft-deleted row was revived with these values.</response>
     /// <response code="400">A field broke a rule.</response>

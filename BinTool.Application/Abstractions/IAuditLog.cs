@@ -13,9 +13,7 @@ namespace BinTool.Application.Abstractions;
 /// </summary>
 public interface IAuditLog
 {
-    /// <summary>
-    /// Stages one entry.
-    /// </summary>
+    /// <summary>Stages one entry.</summary>
     /// <param name="action">What was done.</param>
     /// <param name="entityType">One of <see cref="AuditEntityTypes"/>.</param>
     /// <param name="entityId">Key of the row that changed. It must already exist - an

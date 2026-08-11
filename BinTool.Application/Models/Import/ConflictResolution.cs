@@ -1,8 +1,6 @@
 namespace BinTool.Application.Models.Import;
 
-/// <summary>
-/// A user's decision for a single staged conflict.
-/// </summary>
+/// <summary>A user's decision for a single staged conflict.</summary>
 public class ConflictResolution
 {
     /// <summary>

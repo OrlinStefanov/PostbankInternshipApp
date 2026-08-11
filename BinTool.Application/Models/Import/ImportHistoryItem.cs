@@ -9,14 +9,10 @@ public class ImportHistoryItem
 {
     public int ImportHistoryId { get; set; }
 
-    /// <summary>
-    /// Name of the uploaded file.
-    /// </summary>
+    /// <summary>Name of the uploaded file.</summary>
     public string FileName { get; set; } = string.Empty;
 
-    /// <summary>
-    /// UTC timestamp of when the import ran.
-    /// </summary>
+    /// <summary>UTC timestamp of when the import ran.</summary>
     public DateTime ImportedAt { get; set; }
 
     /// <summary>
@@ -30,14 +26,10 @@ public class ImportHistoryItem
     /// </summary>
     public int UpdatedRows { get; set; }
 
-    /// <summary>
-    /// Rows rejected by validation.
-    /// </summary>
+    /// <summary>Rows rejected by validation.</summary>
     public int RejectedRows { get; set; }
 
-    /// <summary>
-    /// Recorded status - Success, Partial or Failed.
-    /// </summary>
+    /// <summary>Recorded status - Success, Partial or Failed.</summary>
     public string Status { get; set; } = string.Empty;
 
     /// <summary>

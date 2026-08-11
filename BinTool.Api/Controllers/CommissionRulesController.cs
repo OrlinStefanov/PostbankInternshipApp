@@ -34,14 +34,8 @@ public class CommissionRulesController : ControllerBase
     /// <summary>
     /// Lists commission rules, active ones first, then by specificity and priority.
     /// </summary>
-    /// <remarks>
-    /// Expired rules are hidden by default; pass <c>includeExpired=true</c> to keep them in
-    /// the listing (visually distinguished by their <c>Expired</c> status). Soft-deleted
-    /// rules only appear when <c>includeDeleted=true</c>.
-    /// </remarks>
     /// <param name="includeDeleted">Include soft-deleted rules.</param>
     /// <param name="includeExpired">Include rules whose validity has passed.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="200">The rules.</response>
     [HttpGet]
     [Authorize(Policy = Permissions.CommissionRulesRead)]
@@ -70,14 +64,7 @@ public class CommissionRulesController : ControllerBase
         return item is null ? NotFound() : Ok(item);
     }
 
-    /// <summary>
-    /// Adds a rule.
-    /// </summary>
-    /// <remarks>
-    /// A null scheme, product or region is a wildcard. The validity window must not overlap
-    /// an existing rule that shares the same key - the save is refused with 409 and the
-    /// conflicting rule is named.
-    /// </remarks>
+    /// <summary>Adds a rule.</summary>
     /// <response code="201">Added. The body carries the rule.</response>
     /// <response code="400">A field broke a rule, or a key id does not exist.</response>
     /// <response code="409">The validity overlaps an existing rule on the same key.</response>

@@ -29,33 +29,8 @@ public class AuditController : ControllerBase
         _service = service;
     }
 
-    /// <summary>
-    /// Lists audit entries, filtered and paged.
-    /// </summary>
-    /// <remarks>
-    /// Sample request:
-    ///
-    ///     GET /api/audit?entityType=BinRange&amp;from=2026-08-01T00:00:00Z&amp;page=1&amp;pageSize=25
-    ///
-    /// Every filter is optional and they combine with AND. Dates are UTC: <c>from</c> is
-    /// inclusive, <c>to</c> is exclusive, so two adjacent day queries never claim the
-    /// same row twice. <c>entityType</c> is one of the values from
-    /// <c>GET /api/audit/entity-types</c>, matched case-insensitively.
-    ///
-    /// <c>userName</c> is a starts-with match against the Identity user name. The literal
-    /// <c>system</c> selects rows written with no user signed in - it is not an account.
-    ///
-    /// Results are ordered by <c>performedAt</c> descending, then by id descending so
-    /// two rows written in the same tick stay in a stable order across pages.
-    ///
-    /// <c>oldValues</c> and <c>newValues</c> are the JSON snapshots the writer stored.
-    /// They are returned as raw strings - the client decides how to render them.
-    ///
-    /// <c>pageSize</c> is capped at 200; <c>totalCount</c> counts every match rather
-    /// than just this page so a client can render a pager without a second call.
-    /// </remarks>
+    /// <summary>Lists audit entries, filtered and paged.</summary>
     /// <param name="query">Filters and paging.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="200">One page of matching entries. Empty when nothing matched.</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<AuditLogItem>), StatusCodes.Status200OK)]
@@ -72,7 +47,6 @@ public class AuditController : ControllerBase
     /// <c>entityType</c> filter accepts. Sourced from the canonical constants rather than
     /// from the data, so an option exists even before its first row is written.
     /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="200">The available entity-type values, ordered.</response>
     [HttpGet("entity-types")]
     [ProducesResponseType(typeof(IReadOnlyList<string>), StatusCodes.Status200OK)]

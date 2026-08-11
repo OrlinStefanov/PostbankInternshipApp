@@ -21,9 +21,7 @@ public enum UserRolesStatus
     Invalid,
 }
 
-/// <summary>
-/// The outcome of setting a user's roles, in the app's usual result shape.
-/// </summary>
+/// <summary>The outcome of setting a user's roles, in the app's usual result shape.</summary>
 public class UserRolesResult : IMutationResult
 {
     public UserRolesStatus Status { get; set; }

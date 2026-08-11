@@ -12,9 +12,7 @@ namespace BinTool.Application.Models.BinRanges;
 /// </summary>
 public class BinRangeInput : IValidatableObject
 {
-    /// <summary>
-    /// BIN prefix, 6 to 8 digits. Must not already belong to another range.
-    /// </summary>
+    /// <summary>BIN prefix, 6 to 8 digits. Must not already belong to another range.</summary>
     [Required(ErrorMessage = "Prefix is required.")]
     [RegularExpression(@"^\d{6,8}$", ErrorMessage = "Prefix must be 6 to 8 digits.")]
     public string Prefix { get; set; } = string.Empty;
@@ -28,21 +26,15 @@ public class BinRangeInput : IValidatableObject
     [Required(ErrorMessage = "FundingType is required.")]
     public string FundingType { get; set; } = string.Empty;
 
-    /// <summary>
-    /// ISO 3166-1 alpha-2 code of the issuing country.
-    /// </summary>
+    /// <summary>ISO 3166-1 alpha-2 code of the issuing country.</summary>
     [Required(ErrorMessage = "CountryCode is required.")]
     [RegularExpression("^[A-Za-z]{2}$", ErrorMessage = "CountryCode must be a 2-letter ISO code.")]
     public string CountryCode { get; set; } = string.Empty;
 
-    /// <summary>
-    /// First day the range is valid, inclusive.
-    /// </summary>
+    /// <summary>First day the range is valid, inclusive.</summary>
     public DateTime ValidFrom { get; set; }
 
-    /// <summary>
-    /// Last day the range is valid, inclusive. Null leaves the range open-ended.
-    /// </summary>
+    /// <summary>Last day the range is valid, inclusive. Null leaves the range open-ended.</summary>
     public DateTime? ValidTo { get; set; }
 
     /// <summary>

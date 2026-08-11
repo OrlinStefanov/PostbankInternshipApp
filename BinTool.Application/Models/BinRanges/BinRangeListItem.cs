@@ -8,9 +8,7 @@ public class BinRangeListItem
 {
     public int BinRangeId { get; set; }
 
-    /// <summary>
-    /// BIN prefix, 6 to 8 digits.
-    /// </summary>
+    /// <summary>BIN prefix, 6 to 8 digits.</summary>
     public string Prefix { get; set; } = string.Empty;
 
     /// <summary>
@@ -24,33 +22,23 @@ public class BinRangeListItem
 
     public string FundingType { get; set; } = string.Empty;
 
-    /// <summary>
-    /// ISO 3166-1 alpha-2 code of the issuing country.
-    /// </summary>
+    /// <summary>ISO 3166-1 alpha-2 code of the issuing country.</summary>
     public string CountryCode { get; set; } = string.Empty;
 
     public string CountryName { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Region the issuing country belongs to.
-    /// </summary>
+    /// <summary>Region the issuing country belongs to.</summary>
     public string Region { get; set; } = string.Empty;
 
     public DateTime ValidFrom { get; set; }
 
-    /// <summary>
-    /// Null for an open-ended range.
-    /// </summary>
+    /// <summary>Null for an open-ended range.</summary>
     public DateTime? ValidTo { get; set; }
 
-    /// <summary>
-    /// Derived from the validity dates and the soft-delete flag, not stored.
-    /// </summary>
+    /// <summary>Derived from the validity dates and the soft-delete flag, not stored.</summary>
     public BinRangeStatus Status { get; set; }
 
-    /// <summary>
-    /// When the range first entered the database.
-    /// </summary>
+    /// <summary>When the range first entered the database.</summary>
     public DateTime CreatedAt { get; set; }
 
     /// <summary>

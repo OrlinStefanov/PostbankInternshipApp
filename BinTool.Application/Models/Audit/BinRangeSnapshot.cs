@@ -26,9 +26,7 @@ public sealed record BinRangeSnapshot(
 {
     public const string DateFormat = "yyyy-MM-dd";
 
-    /// <summary>
-    /// Takes the snapshot from a range already resolved for display.
-    /// </summary>
+    /// <summary>Takes the snapshot from a range already resolved for display.</summary>
     /// <param name="range">The range to describe.</param>
     /// <param name="isDeleted">
     /// Overrides the deleted flag, for describing the far side of a delete or restore

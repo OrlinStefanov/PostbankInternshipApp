@@ -20,7 +20,7 @@ public interface IBinClassificationService
     /// priced in a different currency the amount is converted first. Defaults to euro when
     /// null or unrecognised.
     /// </param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken"></param>
     /// <exception cref="ArgumentException">
     /// The input is empty, contains a non-digit, or is shorter than 6 / longer than 19 digits.
     /// </exception>

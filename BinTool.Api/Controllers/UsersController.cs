@@ -28,10 +28,7 @@ public class UsersController : ControllerBase
         _service = service;
     }
 
-    /// <summary>
-    /// Lists users with the roles they currently hold.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <summary>Lists users with the roles they currently hold.</summary>
     /// <response code="200">The users.</response>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<UserListItem>), StatusCodes.Status200OK)]
@@ -40,22 +37,9 @@ public class UsersController : ControllerBase
         return Ok(await _service.GetUsersAsync(cancellationToken));
     }
 
-    /// <summary>
-    /// Replaces a user's roles with the supplied set.
-    /// </summary>
-    /// <remarks>
-    /// Sample request:
-    ///
-    ///     PUT /api/Users/{id}/roles
-    ///     { "roles": ["Analyst", "Viewer"] }
-    ///
-    /// The set is a replacement, not a delta: a role not listed is removed. Every role named
-    /// must exist. The change reaches the user's own access when their token is next issued, not
-    /// mid-session.
-    /// </remarks>
+    /// <summary>Replaces a user's roles with the supplied set.</summary>
     /// <param name="id">Id of the user.</param>
     /// <param name="input">The complete set of roles the user should hold.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="200">Updated. The body carries the user with their roles.</response>
     /// <response code="400">A named role does not exist.</response>
     /// <response code="404">No user has that id.</response>

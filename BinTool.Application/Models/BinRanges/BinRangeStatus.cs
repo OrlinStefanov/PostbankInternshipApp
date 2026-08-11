@@ -6,19 +6,13 @@ namespace BinTool.Application.Models.BinRanges;
 /// </summary>
 public enum BinRangeStatus
 {
-    /// <summary>
-    /// Valid today: classification will match it.
-    /// </summary>
+    /// <summary>Valid today: classification will match it.</summary>
     Active = 0,
 
-    /// <summary>
-    /// Valid from a future date. Stored, but not yet used for classification.
-    /// </summary>
+    /// <summary>Valid from a future date. Stored, but not yet used for classification.</summary>
     Scheduled = 1,
 
-    /// <summary>
-    /// Its <c>ValidTo</c> has passed. Kept for history; no longer classifies.
-    /// </summary>
+    /// <summary>Its <c>ValidTo</c> has passed. Kept for history; no longer classifies.</summary>
     Expired = 2,
 
     /// <summary>

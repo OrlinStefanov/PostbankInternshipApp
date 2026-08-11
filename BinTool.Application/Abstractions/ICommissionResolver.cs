@@ -9,9 +9,7 @@ namespace BinTool.Application.Abstractions;
 /// </summary>
 public interface ICommissionResolver
 {
-    /// <summary>
-    /// Works out the fee for a transaction.
-    /// </summary>
+    /// <summary>Works out the fee for a transaction.</summary>
     /// <param name="cardSchemeId">The card's scheme id.</param>
     /// <param name="productTypeId">The card's product type id.</param>
     /// <param name="fundingTypeId">The card's funding type id.</param>
@@ -22,7 +20,7 @@ public interface ICommissionResolver
     /// The currency the amount is supplied in. When the applied rule is priced in a different
     /// currency the amount is converted first. Null means the euro base currency.
     /// </param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken"></param>
     /// <returns>
     /// The calculation, or null when no rule matched and no default is configured - there is
     /// simply no price to quote, which the caller renders as an "unknown pricing" state.

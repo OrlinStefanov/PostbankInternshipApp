@@ -6,15 +6,24 @@
     <ImplicitUsings>enable</ImplicitUsings>
 
     <!-- Feeds the doc comments on controllers into the Swagger document.
-         1591 = "missing XML comment"; we document the API surface, not every member. -->
+         1591 = "missing XML comment"; we document the API surface, not every member.
+         1573 = "parameter has no matching param tag". Every action takes a
+         CancellationToken, which is bound by the framework rather than sent by a caller
+         and does not appear in Swagger at all. Forty repetitions of "Cancellation token."
+         documented nothing and buried the parameters that do need describing. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>
+    <NoWarn>$(NoWarn);1591;1573</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- The Swagger overview prose. Embedded so it ships with the assembly and is read at
          startup, rather than living as concatenated string literals in a startup class. -->
     <EmbeddedResource Include="Documentation\ApiDescription.md" />
+
+    <!-- Per-operation prose, one file per controller, attached to the Swagger operations
+         by OperationRemarksFilter. Globbed rather than listed so adding a controller's
+         documentation is adding a file. -->
+    <EmbeddedResource Include="Documentation\Operations\*.md" />
   </ItemGroup>
 
   <ItemGroup>

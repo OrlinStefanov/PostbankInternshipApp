@@ -1,8 +1,6 @@
 namespace BinTool.Application.Models.ReferenceData;
 
-/// <summary>
-/// One Name+Description reference row as it appears in a browse listing.
-/// </summary>
+/// <summary>One Name+Description reference row as it appears in a browse listing.</summary>
 public class LookupListItem
 {
     public int Id { get; set; }
@@ -11,9 +9,7 @@ public class LookupListItem
 
     public string? Description { get; set; }
 
-    /// <summary>
-    /// Derived from the soft-delete flag, not stored.
-    /// </summary>
+    /// <summary>Derived from the soft-delete flag, not stored.</summary>
     public LookupStatus Status { get; set; }
 
     public DateTime? DeletedAt { get; set; }

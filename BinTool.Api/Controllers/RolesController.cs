@@ -28,10 +28,7 @@ public class RolesController : ControllerBase
         _service = service;
     }
 
-    /// <summary>
-    /// Lists all roles, each with its permissions and how many users hold it.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <summary>Lists all roles, each with its permissions and how many users hold it.</summary>
     /// <response code="200">The roles.</response>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<RoleListItem>), StatusCodes.Status200OK)]
@@ -40,14 +37,7 @@ public class RolesController : ControllerBase
         return Ok(await _service.GetRolesAsync(cancellationToken));
     }
 
-    /// <summary>
-    /// Lists the permission catalog a role can be composed from.
-    /// </summary>
-    /// <remarks>
-    /// The set is fixed in code, because each permission maps to real enforcement on an
-    /// endpoint. What is data-driven is which of these a role holds. Each entry carries a group,
-    /// so a client can lay the permissions out under headings.
-    /// </remarks>
+    /// <summary>Lists the permission catalog a role can be composed from.</summary>
     /// <response code="200">The permission catalog.</response>
     [HttpGet("permissions")]
     [ProducesResponseType(typeof(IReadOnlyList<PermissionInfo>), StatusCodes.Status200OK)]
@@ -56,21 +46,8 @@ public class RolesController : ControllerBase
         return Ok(_service.GetPermissionCatalog());
     }
 
-    /// <summary>
-    /// Creates a role.
-    /// </summary>
-    /// <remarks>
-    /// Sample request:
-    ///
-    ///     POST /api/Roles
-    ///     { "name": "Analyst", "description": "Reads and edits BIN ranges",
-    ///       "permissions": ["binranges.read", "binranges.write"] }
-    ///
-    /// The name must be free, and every permission must be a catalog key. Members are assigned
-    /// separately, through the users endpoint.
-    /// </remarks>
+    /// <summary>Creates a role.</summary>
     /// <param name="input">The role to create.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="201">Created. The body carries the stored role.</response>
     /// <response code="400">A field broke a rule, or named an unknown permission.</response>
     /// <response code="409">A role already owns that name.</response>
@@ -91,16 +68,9 @@ public class RolesController : ControllerBase
         return ApiResults.From(result);
     }
 
-    /// <summary>
-    /// Overwrites a role's name, description and permissions.
-    /// </summary>
-    /// <remarks>
-    /// The permissions are replaced wholesale, so send the complete set. The protected Admin
-    /// role is refused with a 409.
-    /// </remarks>
+    /// <summary>Overwrites a role's name, description and permissions.</summary>
     /// <param name="id">Id of the role to edit.</param>
     /// <param name="input">The new values.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="200">Updated. The body carries the stored role.</response>
     /// <response code="400">A field broke a rule, or named an unknown permission.</response>
     /// <response code="404">No role has that id.</response>
@@ -116,14 +86,8 @@ public class RolesController : ControllerBase
         return ApiResults.From(await _service.UpdateAsync(id, input, cancellationToken));
     }
 
-    /// <summary>
-    /// Deletes a role.
-    /// </summary>
-    /// <remarks>
-    /// Refused while any user still holds the role, and always for the protected Admin role.
-    /// </remarks>
+    /// <summary>Deletes a role.</summary>
     /// <param name="id">Id of the role to delete.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="200">Deleted.</response>
     /// <response code="404">No role has that id.</response>
     /// <response code="409">The role has members, or is protected.</response>

@@ -12,7 +12,7 @@ public interface IBinCsvImportService
     /// </summary>
     /// <param name="csvStream">The uploaded CSV content.</param>
     /// <param name="fileName">Original file name, recorded in the import history.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <param name="cancellationToken"></param>
     Task<BinImportResult> ImportAsync(Stream csvStream, string fileName, CancellationToken cancellationToken = default);
 
     /// <summary>

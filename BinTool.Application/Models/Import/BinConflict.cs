@@ -7,14 +7,10 @@ namespace BinTool.Application.Models.Import;
 /// </summary>
 public class BinConflict
 {
-    /// <summary>
-    /// Id of the persisted <c>PendingBinConflict</c>, used later to resolve it.
-    /// </summary>
+    /// <summary>Id of the persisted <c>PendingBinConflict</c>, used later to resolve it.</summary>
     public int PendingBinConflictId { get; set; }
 
-    /// <summary>
-    /// 1-based row number in the original CSV.
-    /// </summary>
+    /// <summary>1-based row number in the original CSV.</summary>
     public int RowNumber { get; set; }
 
     public string Prefix { get; set; } = string.Empty;

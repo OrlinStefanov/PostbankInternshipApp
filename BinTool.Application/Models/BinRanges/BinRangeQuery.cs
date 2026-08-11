@@ -19,19 +19,13 @@ public class BinRangeQuery
     /// </summary>
     public string? Prefix { get; set; }
 
-    /// <summary>
-    /// Card scheme name, matched case-insensitively (for example "Visa").
-    /// </summary>
+    /// <summary>Card scheme name, matched case-insensitively (for example "Visa").</summary>
     public string? CardScheme { get; set; }
 
-    /// <summary>
-    /// Product type name, matched case-insensitively (for example "Consumer").
-    /// </summary>
+    /// <summary>Product type name, matched case-insensitively (for example "Consumer").</summary>
     public string? ProductType { get; set; }
 
-    /// <summary>
-    /// Funding type name, matched case-insensitively (for example "Credit").
-    /// </summary>
+    /// <summary>Funding type name, matched case-insensitively (for example "Credit").</summary>
     public string? FundingType { get; set; }
 
     /// <summary>
@@ -52,13 +46,9 @@ public class BinRangeQuery
     /// </summary>
     public string? CreatedBy { get; set; }
 
-    /// <summary>
-    /// 1-based page number. Values below 1 are treated as 1.
-    /// </summary>
+    /// <summary>1-based page number. Values below 1 are treated as 1.</summary>
     public int Page { get; set; } = 1;
 
-    /// <summary>
-    /// Rows per page, capped at <see cref="MaxPageSize"/>.
-    /// </summary>
+    /// <summary>Rows per page, capped at <see cref="MaxPageSize"/>.</summary>
     public int PageSize { get; set; } = DefaultPageSize;
 }

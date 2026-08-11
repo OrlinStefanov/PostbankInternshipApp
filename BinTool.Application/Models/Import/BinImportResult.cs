@@ -8,14 +8,10 @@ namespace BinTool.Application.Models.Import;
 /// </summary>
 public class BinImportResult
 {
-    /// <summary>
-    /// Name of the uploaded file.
-    /// </summary>
+    /// <summary>Name of the uploaded file.</summary>
     public string FileName { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Id of the <c>ImportHistory</c> record written for this run.
-    /// </summary>
+    /// <summary>Id of the <c>ImportHistory</c> record written for this run.</summary>
     public int ImportHistoryId { get; set; }
 
     /// <summary>
@@ -29,9 +25,7 @@ public class BinImportResult
     /// </summary>
     public int InsertedCount { get; set; }
 
-    /// <summary>
-    /// Existing prefixes whose values matched exactly and were skipped.
-    /// </summary>
+    /// <summary>Existing prefixes whose values matched exactly and were skipped.</summary>
     public int UnchangedCount { get; set; }
 
     /// <summary>
@@ -51,8 +45,6 @@ public class BinImportResult
     /// </summary>
     public List<BinConflict> Conflicts { get; set; } = new();
 
-    /// <summary>
-    /// Rows that were rejected, with the row number and reason.
-    /// </summary>
+    /// <summary>Rows that were rejected, with the row number and reason.</summary>
     public List<BinImportError> Errors { get; set; } = new();
 }

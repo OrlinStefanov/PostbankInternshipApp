@@ -1,4 +1,5 @@
 using System.Reflection;
+using BinTool.Api.Documentation;
 using BinTool.Application.Models.Import;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.OpenApi.Models;
@@ -23,6 +24,9 @@ public static class SwaggerExtensions
             });
 
             IncludeXmlComments(options);
+
+            // After the XML comments, so the markdown is what ends up on Description.
+            options.OperationFilter<OperationRemarksFilter>();
 
             options.SupportNonNullableReferenceTypes();
             AddBearerSecurity(options);

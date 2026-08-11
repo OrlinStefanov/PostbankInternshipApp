@@ -1,8 +1,6 @@
 namespace BinTool.Application.Models.Audit;
 
-/// <summary>
-/// How one field fared between the before and after snapshots of an audit entry.
-/// </summary>
+/// <summary>How one field fared between the before and after snapshots of an audit entry.</summary>
 public enum AuditChangeKind
 {
     /// <summary>
@@ -21,9 +19,7 @@ public enum AuditChangeKind
     /// </summary>
     Removed,
 
-    /// <summary>
-    /// Present in both, with different values.
-    /// </summary>
+    /// <summary>Present in both, with different values.</summary>
     Changed
 }
 

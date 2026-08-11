@@ -4,9 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.Api.Controllers;
 
-/// <summary>
-/// Maintains the funding type reference table (Credit, Debit).
-/// </summary>
+/// <summary>Maintains the funding type reference table (Credit, Debit).</summary>
 [Route("api/[controller]")]
 public class FundingTypesController : LookupControllerBase
 {

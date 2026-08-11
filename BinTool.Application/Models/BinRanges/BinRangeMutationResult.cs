@@ -20,9 +20,7 @@ public class BinRangeMutationResult : IMutationResult
     /// <summary>True when the database changed.</summary>
     public bool Succeeded => Outcome == MutationOutcome.Succeeded;
 
-    /// <summary>
-    /// Why the write was refused. Null when it succeeded.
-    /// </summary>
+    /// <summary>Why the write was refused. Null when it succeeded.</summary>
     public string? Error { get; set; }
 
     /// <summary>

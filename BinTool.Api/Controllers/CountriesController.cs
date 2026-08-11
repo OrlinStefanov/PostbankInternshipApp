@@ -30,7 +30,6 @@ public class CountriesController : ControllerBase
 
     /// <summary>Lists countries, ordered by ISO code.</summary>
     /// <param name="includeDeleted">Include soft-deleted rows.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="200">The rows.</response>
     [HttpGet]
     [ProducesResponseType(typeof(List<CountryListItem>), StatusCodes.Status200OK)]

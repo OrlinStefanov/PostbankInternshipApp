@@ -16,9 +16,7 @@ public class AuditQuery
 
     public const int DefaultPageSize = 25;
 
-    /// <summary>
-    /// Only entries stamped at or after this UTC instant are returned.
-    /// </summary>
+    /// <summary>Only entries stamped at or after this UTC instant are returned.</summary>
     public DateTime? From { get; set; }
 
     /// <summary>
@@ -45,13 +43,9 @@ public class AuditQuery
     /// </summary>
     public AuditAction? Action { get; set; }
 
-    /// <summary>
-    /// 1-based page number. Values below 1 are treated as 1.
-    /// </summary>
+    /// <summary>1-based page number. Values below 1 are treated as 1.</summary>
     public int Page { get; set; } = 1;
 
-    /// <summary>
-    /// Rows per page, capped at <see cref="MaxPageSize"/>.
-    /// </summary>
+    /// <summary>Rows per page, capped at <see cref="MaxPageSize"/>.</summary>
     public int PageSize { get; set; } = DefaultPageSize;
 }

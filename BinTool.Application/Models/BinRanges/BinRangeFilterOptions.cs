@@ -28,9 +28,7 @@ public class BinRangeFilterOptions
 /// </summary>
 public class CountryOption
 {
-    /// <summary>
-    /// ISO 3166-1 alpha-2 code, the value to send as <c>countryCode</c>.
-    /// </summary>
+    /// <summary>ISO 3166-1 alpha-2 code, the value to send as <c>countryCode</c>.</summary>
     public string IsoCode { get; set; } = string.Empty;
 
     public string Name { get; set; } = string.Empty;
