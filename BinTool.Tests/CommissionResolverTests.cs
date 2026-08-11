@@ -4,16 +4,11 @@ using FluentAssertions;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// Rule resolution and fee calculation (Epic 5, stories 5.2 and 5.4). Rules are seeded
-/// straight into the shared SQLite database so a test controls the criteria, validity and
-/// rates precisely, then <see cref="CommissionResolver"/> is run against them.
-/// <para>
-/// A null criteria field is a wildcard: the most specific matching rule (fewest wildcards)
-/// wins, only rules valid on the transaction date are considered, and when nothing matches
-/// the configured default is used and the result is flagged as a fallback.
-/// </para>
-/// </summary>
+// Rule resolution and fee calculation (Epic 5, stories 5.2 and 5.4). Rules are seeded straight into
+// the shared SQLite database so a test controls the criteria, validity and rates precisely, then
+// CommissionResolver is run against them. A null criteria field is a wildcard: the most specific
+// matching rule (fewest wildcards) wins, only rules valid on the transaction date are considered,
+// and when nothing matches the configured default is used and the result is flagged as a fallback.
 public class CommissionResolverTests : SqliteTestBase
 {
     private const int DomesticRegionId = 1;
@@ -23,11 +18,6 @@ public class CommissionResolverTests : SqliteTestBase
 
     private CommissionResolver Resolver() => new(Db);
 
-    /// <summary>
-    /// Seeds a rule with one criteria row. A null scheme/product/funding/region is a
-    /// wildcard. Valid from a year before <see cref="OnDate"/> and open-ended unless a
-    /// <paramref name="validTo"/> is given.
-    /// </summary>
     private const int EurCurrencyId = 1;
 
     private CommissionRule SeedRule(
@@ -95,7 +85,6 @@ public class CommissionResolverTests : SqliteTestBase
         Resolver().ResolveAsync(
             VisaId, ConsumerId, CreditId, DomesticRegionId, amount, OnDate, inputCurrencyId);
 
-    /// <summary>Adds a currency with a clean euro rate and returns its id.</summary>
     private int SeedCurrency(string code, decimal rateToEur)
     {
         var currency = new Currency { Code = code, Name = code, RateToEur = rateToEur };

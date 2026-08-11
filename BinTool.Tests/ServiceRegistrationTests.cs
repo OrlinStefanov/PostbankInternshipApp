@@ -9,15 +9,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// Proves the container can actually build what the application asks of it.
-/// <para>
-/// A missing registration compiles perfectly well and only fails when a request arrives, so
-/// nothing else here would catch one. That matters most while services are being split into
-/// repositories: every extraction adds an interface that has to be registered, and forgetting
-/// one is the obvious way to break the app without breaking a test.
-/// </para>
-/// </summary>
+// Proves the container can actually build what the application asks of it. A missing registration
+// compiles perfectly well and only fails when a request arrives, so nothing else here would catch
+// one. That matters most while services are being split into repositories: every extraction adds an
+// interface that has to be registered, and forgetting one is the obvious way to break the app
+// without breaking a test.
 public class ServiceRegistrationTests : IDisposable
 {
     private readonly SqliteConnection _connection;

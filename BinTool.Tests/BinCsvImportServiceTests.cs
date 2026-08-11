@@ -5,9 +5,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// Parsing, validation and reconciliation behaviour of a single import run.
-/// </summary>
 public class BinCsvImportServiceTests : ImportTestBase
 {
     // ---- Insert (new prefix) --------------------------------------------------

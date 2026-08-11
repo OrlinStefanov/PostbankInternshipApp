@@ -9,11 +9,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// An isolated SQLite database wired to real Identity managers, for exercising the role and
-/// user admin services against genuine <see cref="RoleManager{T}"/> / <see cref="UserManager{T}"/>
-/// behaviour rather than mocks. The Admin and Viewer roles arrive from the model's seed data.
-/// </summary>
+// An isolated SQLite database wired to real Identity managers, for exercising the role and user
+// admin services against genuine RoleManager / UserManager behaviour rather than mocks. The Admin and Viewer roles arrive from the model's seed data.
 public abstract class IdentityTestBase : IDisposable
 {
     private readonly SqliteConnection _connection;
@@ -56,7 +53,6 @@ public abstract class IdentityTestBase : IDisposable
         Users = scoped.GetRequiredService<UserManager<ApplicationUser>>();
     }
 
-    /// <summary>An audit log over the same context, so its entries save with the change.</summary>
     protected IAuditLog Audit() => new AuditLog(Db, CurrentUser);
 
     protected async Task<ApplicationUser> CreateUserAsync(string userName, params string[] roles)
@@ -87,7 +83,6 @@ public abstract class IdentityTestBase : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    /// <summary>A settable <see cref="ICurrentUser"/> so a test can act as a particular user.</summary>
     protected sealed class MutableCurrentUser : ICurrentUser
     {
         public string? UserId { get; set; }

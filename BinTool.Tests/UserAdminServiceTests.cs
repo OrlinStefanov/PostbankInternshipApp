@@ -7,10 +7,6 @@ using FluentAssertions;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// Assigning roles to users, and the two rules that protect the god account: the last admin
-/// keeps Admin, and no one strips their own.
-/// </summary>
 public class UserAdminServiceTests : IdentityTestBase
 {
     private UserAdminService NewService() =>

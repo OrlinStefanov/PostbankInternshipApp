@@ -49,7 +49,6 @@ public static class LookupMapper
         _ => kind.ToString()
     };
 
-    /// <summary>What a lookup row of this kind is pointed at by, for the in-use refusal.</summary>
     public static string ReferenceDescription(LookupKind kind) =>
         kind == LookupKind.Region ? "country/countries" : "BIN range(s)";
 }

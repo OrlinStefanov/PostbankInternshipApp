@@ -468,10 +468,8 @@ else
         if (!_showRaw.Add(id)) _showRaw.Remove(id);
     }
 
-    /// <summary>
-    /// The git-diff signs, so the kind of a row survives being printed, read by a screen
-    /// reader, or seen by someone who does not separate red from green.
-    /// </summary>
+    // The git-diff signs, so the kind of a row survives being printed, read by a screen reader, or
+    // seen by someone who does not separate red from green.
     private static string Sign(AuditChangeKind kind) => kind switch
     {
         AuditChangeKind.Added => "+",
@@ -480,10 +478,8 @@ else
         _ => ""
     };
 
-    /// <summary>
-    /// A stored empty string is worth telling apart from an absent value, so it is named
-    /// rather than rendered as the nothing it would otherwise look like.
-    /// </summary>
+    // A stored empty string is worth telling apart from an absent value, so it is named rather than
+    // rendered as the nothing it would otherwise look like.
     private static string Display(string? value) =>
         value is null ? EmptyMarker : value.Length == 0 ? "(empty)" : value;
 
@@ -511,11 +507,8 @@ else
         _ => "secondary"
     };
 
-    /// <summary>
-    /// Re-serialises the stored JSON with indentation. A malformed snapshot is shown as
-    /// it was stored rather than dropped - a viewer that hides broken data is worse than
-    /// one that shows it.
-    /// </summary>
+    // Re-serialises the stored JSON with indentation. A malformed snapshot is shown as it was
+    // stored rather than dropped - a viewer that hides broken data is worse than one that shows it.
     private static string Pretty(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return EmptyMarker;

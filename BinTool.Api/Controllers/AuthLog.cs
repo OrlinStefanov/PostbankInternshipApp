@@ -1,15 +1,10 @@
 namespace BinTool.Api.Controllers;
 
-/// <summary>
-/// The log events sign-in emits.
-/// <para>
-/// <b>What is never logged here:</b> the password, the issued token, or any part of either.
-/// The user name and the outcome are enough to investigate an account, and are the most that
-/// may be written down. A refusal never says which of the two halves was wrong - the log
-/// would then answer the question the 401 deliberately refuses to answer, namely whether an
-/// account exists.
-/// </para>
-/// </summary>
+// The log events sign-in emits. What is never logged here: the password, the issued token, or
+// any part of either. The user name and the outcome are enough to investigate an account, and
+// are the most that may be written down. A refusal never says which of the two halves was wrong -
+// the log would then answer the question the 401 deliberately refuses to answer, namely whether an
+// account exists.
 internal static partial class AuthLog
 {
     [LoggerMessage(EventId = 3001, Level = LogLevel.Information,

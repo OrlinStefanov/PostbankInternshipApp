@@ -245,13 +245,10 @@ public class BinRangeAdminService : IBinRangeAdminService
             names.FundingType!.Value, names.Country!.Value), null);
     }
 
-    /// <summary>
-    /// Cross-checks the declared card scheme against what the prefix's digits say the
-    /// network actually is, and refuses the write when they disagree - unless the caller
-    /// ticks <see cref="BinRangeInput.AcknowledgeSchemeMismatch"/>. The resolved name is
-    /// used rather than the raw input so the message matches how the row would be stored
-    /// (canonical spelling, not "visa").
-    /// </summary>
+    // Cross-checks the declared card scheme against what the prefix's digits say the network
+    // actually is, and refuses the write when they disagree - unless the caller ticks
+    // AcknowledgeSchemeMismatch. The resolved name is used rather than the raw input so the message
+    // matches how the row would be stored (canonical spelling, not "visa").
     private BinRangeMutationResult? SchemeMismatch(
         BinRangeInput input, ResolvedReferences resolved)
     {

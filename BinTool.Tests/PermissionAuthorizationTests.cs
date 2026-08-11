@@ -7,10 +7,6 @@ using Microsoft.Extensions.Options;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// The two pieces that turn a permission key into an enforced rule: the handler (which makes
-/// Admin a superuser) and the on-demand policy provider.
-/// </summary>
 public class PermissionAuthorizationTests
 {
     private static ClaimsPrincipal Principal(string[]? roles = null, string[]? permissions = null)

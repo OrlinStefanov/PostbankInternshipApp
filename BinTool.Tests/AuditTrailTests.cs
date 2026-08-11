@@ -11,11 +11,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// The audit trail: that every change to live BIN data leaves an entry, that the entry
-/// says what the values were as well as what they became, and that nothing which changed
-/// no data leaves one behind.
-/// </summary>
+// The audit trail: that every change to live BIN data leaves an entry, that the entry says what the
+// values were as well as what they became, and that nothing which changed no data leaves one
+// behind.
 public class AuditTrailTests : ImportTestBase
 {
     private const string AdminUserId = "admin-user-id";
@@ -48,10 +46,8 @@ public class AuditTrailTests : ImportTestBase
         AcknowledgeSchemeMismatch = acknowledgeSchemeMismatch
     };
 
-    /// <summary>
-    /// Reads the trail back through a fresh context, so a test only sees what was actually
-    /// committed rather than what is still sitting in the change tracker.
-    /// </summary>
+    // Reads the trail back through a fresh context, so a test only sees what was actually committed
+    // rather than what is still sitting in the change tracker.
     private List<AuditEntry> Entries() =>
         NewContext().AuditEntries.AsNoTracking().OrderBy(e => e.AuditEntryId).ToList();
 

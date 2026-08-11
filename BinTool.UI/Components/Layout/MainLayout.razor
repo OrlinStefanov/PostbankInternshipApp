@@ -54,20 +54,15 @@
     public void Dispose() =>
         Nav.LocationChanged -= OnLocationChanged;
 
-    /// <summary>
-    /// The top bar names the screen you are on. Under static rendering the layout
-    /// is rebuilt on every navigation anyway, but an interactive route would not
-    /// rebuild it, so the change is listened for rather than assumed.
-    /// </summary>
+    // The top bar names the screen you are on. Under static rendering the layout is rebuilt on
+    // every navigation anyway, but an interactive route would not rebuild it, so the change is
+    // listened for rather than assumed.
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) =>
         InvokeAsync(StateHasChanged);
 
-    /// <summary>
-    /// Route-to-label map for the top bar. Deliberately a lookup rather than a
-    /// property on each page: the layout renders before the page does, so there is
-    /// nothing to read off it, and a cascading value would make every page pay for
-    /// a heading only the shell draws.
-    /// </summary>
+    // Route-to-label map for the top bar. Deliberately a lookup rather than a property on each
+    // page: the layout renders before the page does, so there is nothing to read off it, and a
+    // cascading value would make every page pay for a heading only the shell draws.
     private static readonly Dictionary<string, string> PageNames = new(StringComparer.OrdinalIgnoreCase)
     {
         [""] = "Home",
@@ -106,10 +101,8 @@
     private static string Roles(System.Security.Claims.ClaimsPrincipal user) =>
         string.Join(", ", user.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value));
 
-    /// <summary>
-    /// Up to two initials for the avatar. Decorative only - the name is next to it - so a
-    /// name that yields nothing usable just falls back to a dot rather than an empty circle.
-    /// </summary>
+    // Up to two initials for the avatar. Decorative only - the name is next to it - so a name that
+    // yields nothing usable just falls back to a dot rather than an empty circle.
     private static string Initials(System.Security.Claims.ClaimsPrincipal user)
     {
         var letters = DisplayName(user)

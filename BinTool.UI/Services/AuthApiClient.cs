@@ -6,17 +6,11 @@ using BinTool.Application.Models.Auth;
 
 namespace BinTool.UI.Services;
 
-/// <summary>
-/// The result of a sign-in attempt: either the issued token, or the reason it was refused.
-/// </summary>
 public record LoginOutcome(LoginResponse? Response, LoginRejection? Rejection)
 {
     public bool Succeeded => Response is not null;
 }
 
-/// <summary>
-/// Exchanges credentials for an API token. The only client that runs unauthenticated.
-/// </summary>
 public class AuthApiClient
 {
     // The API writes enums as their names (JsonStringEnumConverter), so LoginRejection.Reason
@@ -33,12 +27,9 @@ public class AuthApiClient
         _http = http;
     }
 
-    /// <summary>
-    /// Calls <c>POST /api/Auth/login</c>. On success carries the token; on a 401 carries the
-    /// <see cref="LoginRejection"/> so the caller can tell a lockout apart from a wrong
-    /// password. The API still does not say whether it was the user name or the password
-    /// that was wrong.
-    /// </summary>
+    // Calls "POST /api/Auth/login". On success carries the token; on a 401 carries the
+    // LoginRejection so the caller can tell a lockout apart from a wrong password. The API still
+    // does not say whether it was the user name or the password that was wrong.
     public async Task<LoginOutcome> LoginAsync(
         string userName, string password, CancellationToken cancellationToken = default)
     {

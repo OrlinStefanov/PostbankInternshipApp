@@ -1,8 +1,5 @@
 namespace BinTool.Domain.Entities;
 
-/// <summary>
-/// Types of changes that can be audited
-/// </summary>
 public enum AuditAction
 {
     Created = 1,

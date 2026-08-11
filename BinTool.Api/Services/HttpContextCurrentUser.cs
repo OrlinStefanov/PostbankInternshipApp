@@ -3,9 +3,6 @@ using BinTool.Application.Abstractions;
 
 namespace BinTool.Api.Services;
 
-/// <summary>
-/// Reads the caller's identity off the validated bearer token for the current request.
-/// </summary>
 public class HttpContextCurrentUser : ICurrentUser
 {
     private readonly IHttpContextAccessor _accessor;

@@ -6,16 +6,11 @@ using FluentAssertions;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// Commission rule writes against a real database: the ambiguity guard, the range checks and
-/// the score suggestion, all the way down to SQL.
-/// <para>
-/// The same rules are covered far more cheaply in
-/// <see cref="CommissionRuleAdminServiceUnitTests"/> against a fake repository. These exist to
-/// prove the two agree - that what the service decides in memory survives being written and
-/// read back through Entity Framework.
-/// </para>
-/// </summary>
+// Commission rule writes against a real database: the ambiguity guard, the range checks and the
+// score suggestion, all the way down to SQL. The same rules are covered far more cheaply in
+// CommissionRuleAdminServiceUnitTests against a fake repository. These exist to prove the two agree
+// - that what the service decides in memory survives being written and read back through Entity
+// Framework.
 public class CommissionRuleAdminServiceTests : SqliteTestBase
 {
     private const string AdminUserId = "admin-user-id";

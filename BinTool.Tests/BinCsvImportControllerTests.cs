@@ -9,11 +9,8 @@ using Moq;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// Request handling in the controller: argument guards and the mapping between the
-/// service results and HTTP responses. The import rules themselves are covered by
-/// the service tests.
-/// </summary>
+// Request handling in the controller: argument guards and the mapping between the service results
+// and HTTP responses. The import rules themselves are covered by the service tests.
 public class BinCsvImportControllerTests
 {
     private readonly Mock<IBinCsvImportService> _service = new(MockBehavior.Strict);

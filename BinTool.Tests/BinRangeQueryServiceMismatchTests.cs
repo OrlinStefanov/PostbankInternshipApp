@@ -7,10 +7,6 @@ using FluentAssertions;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// The scheme-mismatch scan behind the Home vulnerabilities badge and the
-/// <c>/vulnerabilities</c> page.
-/// </summary>
 public class BinRangeQueryServiceMismatchTests : SqliteTestBase
 {
     private static readonly DateTime Started = new(2024, 1, 1);

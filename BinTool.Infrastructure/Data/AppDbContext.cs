@@ -4,10 +4,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BinTool.Infrastructure.Data;
 
-/// <summary>
-/// Main database context for the BinTool application
-/// Includes identity management and domain entities
-/// </summary>
 public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
@@ -16,87 +12,44 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
 
     #region DbSets - Lookup Tables
 
-    /// <summary>
-    /// Card payment schemes (Visa, Mastercard, etc.)
-    /// </summary>
     public DbSet<CardScheme> CardSchemes { get; set; }
 
-    /// <summary>
-    /// Card product types (Consumer, Commercial, Prepaid)
-    /// </summary>
     public DbSet<ProductType> ProductTypes { get; set; }
 
-    /// <summary>
-    /// Card funding types (Credit, Debit)
-    /// </summary>
     public DbSet<FundingType> FundingTypes { get; set; }
 
-    /// <summary>
-    /// Geographic regions for fee determination
-    /// </summary>
     public DbSet<Region> Regions { get; set; }
 
-    /// <summary>
-    /// Currencies and their euro conversion rates
-    /// </summary>
     public DbSet<Currency> Currencies { get; set; }
 
     #endregion
 
     #region DbSets - Core Domain
 
-    /// <summary>
-    /// Countries with region assignment
-    /// </summary>
     public DbSet<Country> Countries { get; set; }
 
-    /// <summary>
-    /// Bank Identification Number (BIN) ranges
-    /// </summary>
     public DbSet<BinRange> BinRanges { get; set; }
 
     #endregion
 
     #region DbSets - Commission Rules
 
-    /// <summary>
-    /// Commission rules for fee calculation
-    /// </summary>
     public DbSet<CommissionRule> CommissionRules { get; set; }
 
-    /// <summary>
-    /// Criteria for commission rules (which cards they apply to)
-    /// </summary>
     public DbSet<RuleCriteria> RuleCriteria { get; set; }
 
-    /// <summary>
-    /// Designates default commission rule
-    /// </summary>
     public DbSet<DefaultRule> DefaultRules { get; set; }
 
     #endregion
 
     #region DbSets - Import & Audit
 
-    /// <summary>
-    /// Audit trail of all configuration changes
-    /// </summary>
     public DbSet<AuditEntry> AuditEntries { get; set; }
 
-    /// <summary>
-    /// History of bulk import operations
-    /// </summary>
     public DbSet<ImportHistory> ImportHistories { get; set; }
 
-    /// <summary>
-    /// Rows rejected during import
-    /// </summary>
     public DbSet<RejectedImportRow> RejectedImportRows { get; set; }
 
-    /// <summary>
-    /// Import rows whose prefix already exists with different values, staged for
-    /// a user decision (update or discard)
-    /// </summary>
     public DbSet<PendingBinConflict> PendingBinConflicts { get; set; }
 
     #endregion
@@ -124,10 +77,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         SeedReferenceData(modelBuilder);
     }
 
-    /// <summary>
-    /// Configures the custom columns added on top of the Identity schema.
-    /// Table names stay the Identity defaults (AspNetUsers, AspNetRoles, ...).
-    /// </summary>
     private static void ConfigureIdentity(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ApplicationUser>(entity =>
@@ -640,10 +589,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         });
     }
 
-    /// <summary>
-    /// Fixed timestamp for seeded rows. Using DateTime.UtcNow here would make the
-    /// model non-deterministic and EF would report a pending model change on every build.
-    /// </summary>
     private static readonly DateTime SeedTimestamp = new(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     private static void SeedReferenceData(ModelBuilder modelBuilder)

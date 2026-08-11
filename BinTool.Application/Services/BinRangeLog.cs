@@ -2,11 +2,9 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-/// <summary>
-/// A BIN prefix is the first six to eight digits of a card number and identifies the issuer,
-/// not the cardholder - it is reference data and safe to log. A full card number never is,
-/// and nothing here handles one.
-/// </summary>
+// A BIN prefix is the first six to eight digits of a card number and identifies the issuer, not the
+// cardholder - it is reference data and safe to log. A full card number never is, and nothing here
+// handles one.
 internal static partial class BinRangeLog
 {
     [LoggerMessage(EventId = 2301, Level = LogLevel.Information,

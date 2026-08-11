@@ -7,11 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.UI.Services;
 
-/// <summary>
-/// Thin typed client for the four Name+Description reference endpoints. One kind is
-/// mapped to one route segment on each call, so the caller works in <see cref="LookupKind"/>
-/// rather than in strings.
-/// </summary>
+// Thin typed client for the four Name+Description reference endpoints. One kind is mapped to one
+// route segment on each call, so the caller works in LookupKind rather than in strings.
 public class ReferenceDataApiClient
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
@@ -65,10 +62,6 @@ public class ReferenceDataApiClient
         LookupKind kind, int id, CancellationToken cancellationToken = default) =>
         SendAsync(HttpMethod.Post, $"api/{Route(kind)}/{id}/restore", body: null, cancellationToken);
 
-    /// <summary>
-    /// One write, one read. Refusals arrive with a mutation-result body and the caller
-    /// reads <c>Status</c> and shows <c>Error</c>; only a transport failure throws.
-    /// </summary>
     private async Task<LookupMutationResult> SendAsync(
         HttpMethod method, string url, LookupInput? body, CancellationToken cancellationToken)
     {
@@ -132,9 +125,6 @@ public class ReferenceDataApiClient
         return $"The request failed ({(int)response.StatusCode} {response.ReasonPhrase}).";
     }
 
-    /// <summary>
-    /// The route segment on the API matches the controller name (Pascal-plural).
-    /// </summary>
     public static string Route(LookupKind kind) => kind switch
     {
         LookupKind.CardScheme => "CardSchemes",

@@ -312,10 +312,8 @@ public class BinRangesController : ControllerBase
         return Respond(result);
     }
 
-    /// <summary>
-    /// Maps a refusal onto the status code that says the same thing. Every write returns
-    /// the same body either way, so a client reads one shape rather than two.
-    /// </summary>
+    // Maps a refusal onto the status code that says the same thing. Every write returns the same
+    // body either way, so a client reads one shape rather than two.
     private IActionResult Respond(BinRangeMutationResult result) => result.Status switch
     {
         BinRangeMutationStatus.NotFound => NotFound(result),

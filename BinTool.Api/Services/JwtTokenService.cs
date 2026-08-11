@@ -11,10 +11,6 @@ namespace BinTool.Api.Services;
 
 public interface IJwtTokenService
 {
-    /// <summary>
-    /// Issues a signed access token for the user, carrying their id, name, roles and the
-    /// permissions those roles add up to.
-    /// </summary>
     (string Token, DateTime ExpiresAtUtc) CreateToken(
         ApplicationUser user, IEnumerable<string> roles, IEnumerable<string> permissions);
 }

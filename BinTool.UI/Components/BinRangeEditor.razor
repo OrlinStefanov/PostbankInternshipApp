@@ -230,21 +230,12 @@
 <div class="modal-backdrop show"></div>
 
 @code {
-    /// <summary>
-    /// The reference values to choose from, loaded once by the page.
-    /// </summary>
     [Parameter, EditorRequired]
     public BinRangeFilterOptions Options { get; set; } = new();
 
-    /// <summary>
-    /// The range being edited, or null to add a new one.
-    /// </summary>
     [Parameter]
     public BinRangeListItem? Range { get; set; }
 
-    /// <summary>
-    /// Raised with the API's outcome once the range has been written.
-    /// </summary>
     [Parameter]
     public EventCallback<BinRangeMutationResult> OnSaved { get; set; }
 
@@ -293,11 +284,9 @@
             .FirstOrDefault(c => string.Equals(c.IsoCode, _input.CountryCode, StringComparison.OrdinalIgnoreCase))
             ?.Name ?? string.Empty;
 
-    /// <summary>
-    /// The region is not part of the country list the editor loads, only of a range that was
-    /// fetched. So it can be shown while the country is still the one the range came with,
-    /// and is blanked as soon as the country changes rather than showing the old one's.
-    /// </summary>
+    // The region is not part of the country list the editor loads, only of a range that was
+    // fetched. So it can be shown while the country is still the one the range came with, and is
+    // blanked as soon as the country changes rather than showing the old one's.
     private string? PreviewRegion =>
         Range is not null && string.Equals(Range.CountryCode, _input.CountryCode, StringComparison.OrdinalIgnoreCase)
             ? Range.Region
@@ -315,11 +304,9 @@
         }
     }
 
-    /// <summary>
-    /// What the range's status would be if it were saved as the form currently stands. The
-    /// server works this out from the dates too, so this is a preview of a real outcome and
-    /// not a second opinion about one.
-    /// </summary>
+    // What the range's status would be if it were saved as the form currently stands. The server
+    // works this out from the dates too, so this is a preview of a real outcome and not a second
+    // opinion about one.
     private BinRangeStatus PreviewState
     {
         get
@@ -368,24 +355,18 @@
         DetectScheme();
     }
 
-    /// <summary>
-    /// Reflects each keystroke back onto the model and re-runs the detector, so the hint
-    /// under the scheme select updates while the user is still typing rather than after
-    /// the field loses focus.
-    /// </summary>
+    // Reflects each keystroke back onto the model and re-runs the detector, so the hint under the
+    // scheme select updates while the user is still typing rather than after the field loses focus.
     private void OnPrefixInput(ChangeEventArgs e)
     {
         _input.Prefix = e.Value?.ToString() ?? string.Empty;
         DetectScheme();
     }
 
-    /// <summary>
-    /// Runs the detector against the current prefix and, if the field would otherwise be
-    /// empty or still holds a previous suggestion, pre-fills the scheme select. Never
-    /// overwrites a value the user typed themselves - if they picked "Visa" for a
-    /// Mastercard prefix, the scheme select stays on Visa and the hint calls out the
-    /// disagreement.
-    /// </summary>
+    // Runs the detector against the current prefix and, if the field would otherwise be empty or
+    // still holds a previous suggestion, pre-fills the scheme select. Never overwrites a value the
+    // user typed themselves - if they picked "Visa" for a Mastercard prefix, the scheme select
+    // stays on Visa and the hint calls out the disagreement.
     private void DetectScheme()
     {
         _detected = SchemeDetector.Detect(_input.Prefix ?? string.Empty);
@@ -411,22 +392,18 @@
         }
     }
 
-    /// <summary>
-    /// Submits the form. Clears the acknowledgement flag first so a warning shown on the
-    /// previous attempt cannot silently carry over into a fresh save - the user has to
-    /// click <see cref="SaveAnyway"/> for that to happen.
-    /// </summary>
+    // Submits the form. Clears the acknowledgement flag first so a warning shown on the previous
+    // attempt cannot silently carry over into a fresh save - the user has to click SaveAnyway for
+    // that to happen.
     private Task Save()
     {
         _input.AcknowledgeSchemeMismatch = false;
         return SendAsync();
     }
 
-    /// <summary>
-    /// Second attempt after a scheme mismatch warning: the user has looked at the message
-    /// and chosen to keep the row as declared. The API records the acknowledgement in the
-    /// same call, so nothing else has to remember it.
-    /// </summary>
+    // Second attempt after a scheme mismatch warning: the user has looked at the message and chosen
+    // to keep the row as declared. The API records the acknowledgement in the same call, so nothing
+    // else has to remember it.
     private Task SaveAnyway()
     {
         _input.AcknowledgeSchemeMismatch = true;

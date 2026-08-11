@@ -7,11 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.UI.Services;
 
-/// <summary>
-/// Thin typed client for the country endpoints. Kept separate from
-/// <see cref="ReferenceDataApiClient"/> because country carries an ISO code and a
-/// region assignment - a different input and output shape.
-/// </summary>
+// Thin typed client for the country endpoints. Kept separate from ReferenceDataApiClient because
+// country carries an ISO code and a region assignment - a different input and output shape.
 public class CountryApiClient
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)

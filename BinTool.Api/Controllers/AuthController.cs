@@ -152,11 +152,9 @@ public class AuthController : ControllerBase
         });
     }
 
-    /// <summary>
-    /// Flattens the user's roles into the permissions they grant, read from each role's
-    /// claims. Admin is a superuser, so it is credited with the whole catalog whether or not
-    /// every grant is present - the token then advertises the same access the API enforces.
-    /// </summary>
+    // Flattens the user's roles into the permissions they grant, read from each role's claims.
+    // Admin is a superuser, so it is credited with the whole catalog whether or not every grant is
+    // present - the token then advertises the same access the API enforces.
     private async Task<List<string>> ResolvePermissionsAsync(IEnumerable<string> roleNames)
     {
         var permissions = new HashSet<string>(StringComparer.Ordinal);

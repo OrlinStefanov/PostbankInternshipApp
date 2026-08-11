@@ -4,10 +4,6 @@ using FluentAssertions;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// The prefix-to-network rules used to catch a mislabelled import. Pure logic over the
-/// published IIN ranges, so these run without a database.
-/// </summary>
 public class CardSchemeDetectorTests
 {
     private readonly CardSchemeDetector _detector = new();
@@ -92,12 +88,9 @@ public class CardSchemeDetectorTests
         _detector.Matches(DetectedScheme.Visa, "  ").Should().BeFalse();
     }
 
-    /// <summary>
-    /// The name shown to whoever reviews a staged mismatch. Null for
-    /// <see cref="DetectedScheme.Unknown"/> is load-bearing: the import service picks its
-    /// wording from it, so a detected scheme with no name would report the opposite of
-    /// what was found.
-    /// </summary>
+    // The name shown to whoever reviews a staged mismatch. Null for Unknown is load-bearing: the
+    // import service picks its wording from it, so a detected scheme with no name would report the
+    // opposite of what was found.
     [Theory]
     [InlineData(DetectedScheme.Visa, "Visa")]
     [InlineData(DetectedScheme.Mastercard, "Mastercard")]

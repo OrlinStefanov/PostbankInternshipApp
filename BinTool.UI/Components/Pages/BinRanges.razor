@@ -572,10 +572,6 @@ else
         }
     }
 
-    /// <summary>
-    /// Any filter change resets to page 1: staying on page 7 of a narrower result set
-    /// would show an empty table.
-    /// </summary>
     private async Task ReloadFromFirstPage()
     {
         _currentPage = 1;
@@ -650,11 +646,9 @@ else
         _editing = null;
     }
 
-    /// <summary>
-    /// Opens the read-only details for one range, re-fetching it by id so a deleted range
-    /// can be looked at in full before deciding whether to restore it, and so the values
-    /// shown are the stored ones rather than a possibly stale list row.
-    /// </summary>
+    // Opens the read-only details for one range, re-fetching it by id so a deleted range can be
+    // looked at in full before deciding whether to restore it, and so the values shown are the
+    // stored ones rather than a possibly stale list row.
     private async Task View(BinRangeListItem item)
     {
         _viewing = item;
@@ -688,11 +682,8 @@ else
         await Run(() => Api.RestoreAsync(item.BinRangeId));
     }
 
-    /// <summary>
-    /// Reloads rather than patching the row in place: a change can move a range out of the
-    /// current filter or page, and a listing that disagrees with the database is worse than
-    /// an extra call.
-    /// </summary>
+    // Reloads rather than patching the row in place: a change can move a range out of the current
+    // filter or page, and a listing that disagrees with the database is worse than an extra call.
     private async Task OnSaved(BinRangeMutationResult result)
     {
         CloseEditor();
@@ -722,10 +713,6 @@ else
 
     private Task Restore(BinRangeListItem item) => Run(() => Api.RestoreAsync(item.BinRangeId));
 
-    /// <summary>
-    /// Runs one write, reports it, and reloads. Refusals arrive as an ordinary result, so
-    /// only a transport failure reaches the catch.
-    /// </summary>
     private async Task Run(Func<Task<BinRangeMutationResult>> action)
     {
         _busy = true;
@@ -761,15 +748,10 @@ else
 
     private static string Date(DateTime value) => value.ToString("yyyy-MM-dd");
 
-    /// <summary>
-    /// "system" is the placeholder recorded when nobody was signed in, not a user name.
-    /// </summary>
+    // "system" is the placeholder recorded when nobody was signed in, not a user name.
     private static bool IsSystem(string? user) =>
         string.Equals(user, "system", StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>
-    /// Shown on hover, so the last change is available without a column of its own.
-    /// </summary>
     private static string LastChanged(BinRangeListItem item)
     {
         var who = IsSystem(item.UpdatedBy) ? "no signed-in user" : item.UpdatedBy ?? "unknown";

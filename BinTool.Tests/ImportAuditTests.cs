@@ -5,10 +5,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// Who an import records itself as. Before authentication was wired in every row was
-/// stamped "system"; these pin the real identity in place.
-/// </summary>
 public class ImportAuditTests : ImportTestBase
 {
     private const string UserId = "user-1";
@@ -20,9 +16,6 @@ public class ImportAuditTests : ImportTestBase
         public string Name { get; init; } = ICurrentUser.SystemName;
     }
 
-    /// <summary>
-    /// ImportHistory.ImportedByUserId is a real foreign key, so the account has to exist.
-    /// </summary>
     private void SignIn(string userName)
     {
         Db.Users.Add(new ApplicationUser

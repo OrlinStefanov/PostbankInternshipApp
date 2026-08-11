@@ -1,8 +1,5 @@
 namespace BinTool.Domain.Common;
 
-/// <summary>
-/// A closed date interval where the end is optional and an absent end means "open-ended".
-/// </summary>
 public readonly record struct DateRange(DateTime From, DateTime? To)
 {
     public DateTime EffectiveTo => To ?? DateTime.MaxValue;

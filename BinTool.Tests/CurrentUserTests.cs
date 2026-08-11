@@ -6,9 +6,6 @@ using Microsoft.AspNetCore.Http;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// What gets stamped on audit fields for a given caller.
-/// </summary>
 public class CurrentUserTests
 {
     private static HttpContextCurrentUser For(ClaimsPrincipal? user)

@@ -37,10 +37,8 @@
         return file.Exists ? $"{path}?v={file.LastModified.UtcTicks}" : path;
     }
 
-    /// <summary>
-    /// The scoped-CSS bundle is generated at build time rather than served out of wwwroot,
-    /// so it is stamped with the build itself - which is exactly when its contents change.
-    /// </summary>
+    // The scoped-CSS bundle is generated at build time rather than served out of wwwroot, so it is
+    // stamped with the build itself - which is exactly when its contents change.
     private string ScopedStyles
     {
         get

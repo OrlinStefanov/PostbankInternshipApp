@@ -5,11 +5,9 @@ using FluentAssertions;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// Filtering, ordering and paging of the audit log browse endpoint. Audit rows are
-/// seeded straight into the database rather than produced through a writer, so a test
-/// can control the timestamps and user assignments precisely.
-/// </summary>
+// Filtering, ordering and paging of the audit log browse endpoint. Audit rows are seeded straight
+// into the database rather than produced through a writer, so a test can control the timestamps and
+// user assignments precisely.
 public class AuditQueryServiceTests : SqliteTestBase
 {
     private const string AdminId = "admin-user-id";

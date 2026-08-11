@@ -8,17 +8,12 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-/// <summary>
-/// Maintains commission rules. Every write follows the same beats - validate, resolve the
-/// key ids to names, refuse a conflict, snapshot what is about to change, apply, audit in the
-/// same unit of work, save - and this class does no more than run them in that order. The
-/// steps themselves belong to the repository, the mapper, the validator and the domain.
-/// <para>
-/// A rule carries exactly one criteria row. The schema permits many, but a rule keyed on a
-/// single scheme/product/funding/region combination is what the domain calls for, so the
-/// invariant is held here.
-/// </para>
-/// </summary>
+// Maintains commission rules. Every write follows the same beats - validate, resolve the key ids to
+// names, refuse a conflict, snapshot what is about to change, apply, audit in the same unit of
+// work, save - and this class does no more than run them in that order. The steps themselves belong
+// to the repository, the mapper, the validator and the domain. A rule carries exactly one criteria
+// row. The schema permits many, but a rule keyed on a single scheme/product/funding/region
+// combination is what the domain calls for, so the invariant is held here.
 public class CommissionRuleAdminService : ICommissionRuleAdminService
 {
     private readonly ICommissionRuleRepository _rules;
@@ -307,11 +302,9 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
 
     // ---- The shared write preamble ---------------------------------------------
 
-    /// <summary>
-    /// Everything a create and an update both have to establish before they may proceed:
-    /// the input is well formed, its key ids resolve to live reference rows, and saving it
-    /// would leave resolution unambiguous. Returns the resolved names, or the refusal.
-    /// </summary>
+    // Everything a create and an update both have to establish before they may proceed: the input
+    // is well formed, its key ids resolve to live reference rows, and saving it would leave
+    // resolution unambiguous. Returns the resolved names, or the refusal.
     private async Task<(ReferenceNames Names, CommissionRuleMutationResult? Refused)> PrepareAsync(
         CommissionRuleInput input, int excludeRuleId, CancellationToken cancellationToken)
     {
@@ -333,11 +326,9 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         return (names, null);
     }
 
-    /// <summary>
-    /// Confirms each supplied key id belongs to a live reference row. A null id is a wildcard
-    /// and resolves to no name, so a name that comes back null for an id that was supplied is
-    /// the one that went missing. All of them are reported at once.
-    /// </summary>
+    // Confirms each supplied key id belongs to a live reference row. A null id is a wildcard and
+    // resolves to no name, so a name that comes back null for an id that was supplied is the one
+    // that went missing. All of them are reported at once.
     private async Task<(ReferenceNames Names, CommissionRuleMutationResult? Failure)> ResolveKeyAsync(
         CommissionRuleInput input, CancellationToken cancellationToken)
     {
@@ -378,11 +369,9 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         return (names, null);
     }
 
-    /// <summary>
-    /// Refuses a second rule with an identical key covering the same days. Two rules that
-    /// say different things about exactly the same cards at the same time are duplicate
-    /// tariffs regardless of how they are ranked.
-    /// </summary>
+    // Refuses a second rule with an identical key covering the same days. Two rules that say
+    // different things about exactly the same cards at the same time are duplicate tariffs
+    // regardless of how they are ranked.
     private async Task<CommissionRuleMutationResult?> FindKeyOverlapAsync(
         CommissionRuleInput input, int excludeRuleId, CancellationToken cancellationToken)
     {
@@ -397,12 +386,9 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
             other.Id, other.Name);
     }
 
-    /// <summary>
-    /// Refuses a rule that would tie with another one on every tiebreak resolution has. The
-    /// database narrows to rules sharing the priority and touching the window; the rest -
-    /// equal score, keys that can match the same card - is decided here, because it is a
-    /// domain rule and reads as one.
-    /// </summary>
+    // Refuses a rule that would tie with another one on every tiebreak resolution has. The database
+    // narrows to rules sharing the priority and touching the window; the rest - equal score, keys
+    // that can match the same card - is decided here, because it is a domain rule and reads as one.
     private async Task<CommissionRuleMutationResult?> FindAmbiguityAsync(
         CommissionRuleInput input, int excludeRuleId, CancellationToken cancellationToken)
     {
@@ -442,10 +428,6 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         return new DefaultRuleSnapshot(ruleId, name);
     }
 
-    /// <summary>
-    /// Re-reads the saved rule, so a caller gets it exactly as the listing would show it -
-    /// names resolved, status derived, default flag set.
-    /// </summary>
     private async Task<CommissionRuleMutationResult> SucceededAsync(
         CommissionRuleMutationStatus status, int id, CancellationToken cancellationToken)
     {
@@ -453,11 +435,9 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         return CommissionRuleMutationResult.Success(status, item!);
     }
 
-    /// <summary>
-    /// Logs a refusal on its way out. Every refused write goes through here, so the log
-    /// cannot drift out of step with what the caller was told - the reason logged is the
-    /// same string the user reads.
-    /// </summary>
+    // Logs a refusal on its way out. Every refused write goes through here, so the log cannot drift
+    // out of step with what the caller was told - the reason logged is the same string the user
+    // reads.
     private CommissionRuleMutationResult Refused(CommissionRuleMutationResult result, int ruleId)
     {
         var reason = result.Error ?? string.Empty;

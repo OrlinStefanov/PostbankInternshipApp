@@ -2,17 +2,13 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-/// <summary>
-/// The log events commission-rule administration emits, declared once so every call site
-/// spells the same event the same way. The generator turns each of these into a strongly
-/// typed method with no boxing and no string formatting unless the level is enabled, which
-/// is the whole reason for writing them out rather than calling <c>LogInformation</c> inline.
-/// <para>
-/// The message templates are the contract: <c>{RuleId}</c> and the rest arrive at the sink
-/// as named fields, so a log search can ask "everything about rule 42" rather than grepping
-/// prose. Interpolated strings would collapse them back into text and are never used here.
-/// </para>
-/// </summary>
+// The log events commission-rule administration emits, declared once so every call site spells the
+// same event the same way. The generator turns each of these into a strongly typed method with no
+// boxing and no string formatting unless the level is enabled, which is the whole reason for
+// writing them out rather than calling "LogInformation" inline. The message templates are the
+// contract: "{RuleId}" and the rest arrive at the sink as named fields, so a log search can ask
+// "everything about rule 42" rather than grepping prose. Interpolated strings would collapse them
+// back into text and are never used here.
 internal static partial class CommissionRuleLog
 {
     // 1000-1099: successful writes.

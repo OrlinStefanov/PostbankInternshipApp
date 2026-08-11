@@ -7,15 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.UI.Services;
 
-/// <summary>
-/// Thin typed client over the BinTool API's classification endpoint. Runs on the Blazor
-/// server, so calls are server-to-server (no CORS involved).
-/// </summary>
 public class BinLookupApiClient
 {
-    /// <summary>
-    /// The API writes enums as their names, which the default options will not read back.
-    /// </summary>
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         Converters = { new JsonStringEnumConverter() }
@@ -30,10 +23,8 @@ public class BinLookupApiClient
         _tokens = tokens;
     }
 
-    /// <summary>
-    /// Attaches the signed-in user's token. Safe to set on the instance: a typed client
-    /// gets its own <c>HttpClient</c>, so this never leaks across users.
-    /// </summary>
+    // Attaches the signed-in user's token. Safe to set on the instance: a typed client gets its own
+    // "HttpClient", so this never leaks across users.
     private async Task AuthorizeAsync()
     {
         var token = await _tokens.GetTokenAsync();
@@ -43,11 +34,9 @@ public class BinLookupApiClient
             : new AuthenticationHeaderValue("Bearer", token);
     }
 
-    /// <summary>
-    /// Classifies a BIN via <c>POST /api/Bin/classify</c>, optionally pricing an amount. A
-    /// "no match" is a normal 200 answer with <c>Matched = false</c>; only a rejected input
-    /// (400) or a transport failure throws, with a message the page can show.
-    /// </summary>
+    // Classifies a BIN via "POST /api/Bin/classify", optionally pricing an amount. A "no match" is
+    // a normal 200 answer with "Matched = false"; only a rejected input (400) or a transport
+    // failure throws, with a message the page can show.
     public async Task<BinClassificationResult> ClassifyAsync(
         BinClassificationRequest request, CancellationToken cancellationToken = default)
     {
@@ -67,9 +56,6 @@ public class BinLookupApiClient
         throw new InvalidOperationException(await DescribeAsync(response, cancellationToken));
     }
 
-    /// <summary>
-    /// Turns a response the client did not expect into one sentence a user can act on.
-    /// </summary>
     private static async Task<string> DescribeAsync(
         HttpResponseMessage response, CancellationToken cancellationToken)
     {

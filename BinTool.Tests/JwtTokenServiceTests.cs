@@ -11,10 +11,6 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// What ends up inside an issued token, and that it is actually signed with the
-/// configured key.
-/// </summary>
 public class JwtTokenServiceTests
 {
     private const string Key = "test-signing-key-that-is-long-enough-for-hmac";

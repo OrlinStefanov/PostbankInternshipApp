@@ -5,12 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// An import row whose declared card scheme contradicts the network its prefix belongs
-/// to (or whose prefix belongs to no known network) is not trusted: it is staged as a
-/// scheme-mismatch conflict for a human to accept or reject, rather than landing in the
-/// BIN data as declared.
-/// </summary>
+// An import row whose declared card scheme contradicts the network its prefix belongs to (or whose
+// prefix belongs to no known network) is not trusted: it is staged as a scheme-mismatch conflict
+// for a human to accept or reject, rather than landing in the BIN data as declared.
 public class SchemeMismatchImportTests : ImportTestBase
 {
     // A Mastercard-range prefix (52…) the file wrongly labels as Visa.

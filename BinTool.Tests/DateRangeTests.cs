@@ -3,10 +3,8 @@ using FluentAssertions;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// The validity-window arithmetic every rule check leans on. No database and no fixtures -
-/// the whole point of moving this into a value object was that it could be tested like this.
-/// </summary>
+// The validity-window arithmetic every rule check leans on. No database and no fixtures - the whole
+// point of moving this into a value object was that it could be tested like this.
 public class DateRangeTests
 {
     private static DateTime D(int day) => new(2025, 6, day);

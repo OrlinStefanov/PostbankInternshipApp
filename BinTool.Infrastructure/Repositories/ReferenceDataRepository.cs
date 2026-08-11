@@ -3,10 +3,8 @@ using BinTool.Infrastructure.Data;
 
 namespace BinTool.Infrastructure.Repositories;
 
-/// <summary>
-/// Reads the canonical names behind reference ids. Only live rows are considered, so
-/// soft-deleted reference data cannot be assigned to a new rule.
-/// </summary>
+// Reads the canonical names behind reference ids. Only live rows are considered, so soft-deleted
+// reference data cannot be assigned to a new rule.
 public class ReferenceDataRepository : IReferenceDataRepository
 {
     private readonly AppDbContext _db;

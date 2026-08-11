@@ -7,10 +7,6 @@ using Moq;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// The controller's contract: what it forwards to the service and what it returns.
-/// The filtering and paging rules are covered by the service tests.
-/// </summary>
 public class BinRangesControllerTests
 {
     private readonly Mock<IBinRangeQueryService> _service = new(MockBehavior.Strict);

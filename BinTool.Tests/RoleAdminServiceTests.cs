@@ -8,9 +8,6 @@ using FluentAssertions;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// Creating, editing and deleting roles - and the guardrails that keep the Admin role a god.
-/// </summary>
 public class RoleAdminServiceTests : IdentityTestBase
 {
     private RoleAdminService NewService() =>

@@ -135,10 +135,6 @@ public class RolesController : ControllerBase
         return Respond(await _service.DeleteAsync(id, cancellationToken));
     }
 
-    /// <summary>
-    /// Maps a refusal onto the status code that says the same thing, so every write returns one
-    /// body shape whether it succeeded or not.
-    /// </summary>
     private IActionResult Respond(RoleMutationResult result) => result.Status switch
     {
         RoleMutationStatus.NotFound => NotFound(result),

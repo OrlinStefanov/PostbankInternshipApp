@@ -4,9 +4,6 @@ using FluentAssertions;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// Prefix matching, validity filtering and input handling for BIN classification.
-/// </summary>
 public class BinClassificationServiceTests : SqliteTestBase
 {
     private static readonly DateTime Active = new(2024, 1, 1);

@@ -2,26 +2,21 @@ using BinTool.Domain.Common;
 
 namespace BinTool.Tests.Fakes;
 
-/// <summary>
-/// A commission rule store held in a list. Enough of the real repository's behaviour to run
-/// the service against - ids handed out on add, soft-deleted rules skipped, the same
-/// inclusive date-overlap arithmetic - and none of the database.
-/// </summary>
+// A commission rule store held in a list. Enough of the real repository's behaviour to run the
+// service against - ids handed out on add, soft-deleted rules skipped, the same inclusive
+// date-overlap arithmetic - and none of the database.
 public sealed class FakeCommissionRuleRepository : ICommissionRuleRepository
 {
     private readonly List<CommissionRule> _rules = new();
     private DefaultRule? _default;
     private int _nextRuleId = 1;
 
-    /// <summary>How many times the service asked for the changes to be written.</summary>
     public int SaveCount { get; private set; }
 
-    /// <summary>How many transactions the service opened, and how many it committed.</summary>
     public int TransactionsStarted { get; private set; }
 
     public int TransactionsCommitted { get; private set; }
 
-    /// <summary>Puts a rule in the store directly, as if it had always been there.</summary>
     public CommissionRule Seed(
         string name,
         int priority = 0,
@@ -132,7 +127,6 @@ public sealed class FakeCommissionRuleRepository : ICommissionRuleRepository
         return Task.FromResult<ITransaction>(new FakeTransaction(this));
     }
 
-    /// <summary>Live rules other than the excluded one whose validity touches the window.</summary>
     private IEnumerable<CommissionRule> Candidates(DateRange window, int excludeRuleId) =>
         _rules.Where(r =>
             !r.IsDeleted

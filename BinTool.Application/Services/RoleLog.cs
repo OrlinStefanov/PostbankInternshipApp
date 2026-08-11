@@ -2,12 +2,10 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-/// <summary>
-/// Role changes are access-control changes, so they are logged at Information even though
-/// they are rare - who could do what, and when it changed, is the first thing anyone asks
-/// after an incident. The permission keys themselves stay in the audit trail; the log
-/// carries how many there are, which is enough to notice a role that suddenly grew.
-/// </summary>
+// Role changes are access-control changes, so they are logged at Information even though they are
+// rare - who could do what, and when it changed, is the first thing anyone asks after an incident.
+// The permission keys themselves stay in the audit trail; the log carries how many there are, which
+// is enough to notice a role that suddenly grew.
 internal static partial class RoleLog
 {
     [LoggerMessage(EventId = 1801, Level = LogLevel.Information,

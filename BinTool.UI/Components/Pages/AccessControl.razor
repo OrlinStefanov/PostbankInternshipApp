@@ -549,11 +549,9 @@ else
         else _userSelectedRoles.Remove(roleName);
     }
 
-    /// <summary>
-    /// The Admin checkbox is locked when unchecking it would break a guardrail the server also
-    /// enforces: you can't remove your own Admin, and you can't remove the last admin. Shown as
-    /// a disabled, already-checked box so the reason is visible rather than a surprise on save.
-    /// </summary>
+    // The Admin checkbox is locked when unchecking it would break a guardrail the server also
+    // enforces: you can't remove your own Admin, and you can't remove the last admin. Shown as a
+    // disabled, already-checked box so the reason is visible rather than a surprise on save.
     private bool IsAdminLockedForUser(RoleListItem role)
     {
         if (_editingUser is null || !role.IsProtected) return false;

@@ -29,7 +29,6 @@ public static class RoleMapper
         Permissions = role.Permissions.ToList()
     };
 
-    /// <summary>What the audit trail records for a role: names and keys a person can read.</summary>
     public static object ToSnapshot(RoleRecord role) => new
     {
         RoleId = role.Id,

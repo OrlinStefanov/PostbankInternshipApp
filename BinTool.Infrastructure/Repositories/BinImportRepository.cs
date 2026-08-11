@@ -4,11 +4,9 @@ namespace BinTool.Infrastructure.Repositories;
 
 public class BinImportRepository : IBinImportRepository
 {
-    /// <summary>
-    /// Lookups are batched so a large file does not build a single enormous IN (...) clause,
-    /// which is slow to plan and can exceed the provider's parameter limit (SQLite caps host
-    /// parameters per statement).
-    /// </summary>
+    // Lookups are batched so a large file does not build a single enormous IN (...) clause, which
+    // is slow to plan and can exceed the provider's parameter limit (SQLite caps host parameters
+    // per statement).
     private const int BatchSize = 500;
 
     private readonly AppDbContext _db;

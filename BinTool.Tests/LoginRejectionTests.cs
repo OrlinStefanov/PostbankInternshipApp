@@ -3,15 +3,10 @@ using FluentAssertions;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// The wording of a rejected sign-in.
-/// <para>
-/// Lockout is the reason a correct password can start being refused, and the response is
-/// forbidden from saying which account it happened to. If the message stops mentioning
-/// lockout, the only remaining clue is the server log - and the person signing in
-/// concludes their password is wrong and keeps retrying a lock that only time clears.
-/// </para>
-/// </summary>
+// The wording of a rejected sign-in. Lockout is the reason a correct password can start being
+// refused, and the response is forbidden from saying which account it happened to. If the message
+// stops mentioning lockout, the only remaining clue is the server log - and the person signing in
+// concludes their password is wrong and keeps retrying a lock that only time clears.
 public class LoginRejectionTests
 {
     [Fact]

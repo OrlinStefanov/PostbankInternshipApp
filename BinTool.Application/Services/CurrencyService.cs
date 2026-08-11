@@ -8,11 +8,9 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-/// <summary>
-/// Maintains the currency table and the euro rates commission is priced in. Every write runs
-/// the same beats - validate, refuse a clash, snapshot, apply, audit in the same unit of
-/// work, save - and this class does no more than run them in that order.
-/// </summary>
+// Maintains the currency table and the euro rates commission is priced in. Every write runs the
+// same beats - validate, refuse a clash, snapshot, apply, audit in the same unit of work, save -
+// and this class does no more than run them in that order.
 public class CurrencyService : ICurrencyService
 {
     private readonly ICurrencyRepository _currencies;

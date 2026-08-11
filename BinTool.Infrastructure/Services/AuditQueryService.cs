@@ -9,10 +9,6 @@ namespace BinTool.Infrastructure.Services;
 
 public class AuditQueryService : IAuditQueryService
 {
-    /// <summary>
-    /// Recorded on rows written with no user signed in - a background job, or a change
-    /// that reached the audit path before authentication existed.
-    /// </summary>
     private const string SystemUser = "system";
 
     private static readonly IReadOnlyList<string> EntityTypes = new[]

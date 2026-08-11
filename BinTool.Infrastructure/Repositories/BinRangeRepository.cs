@@ -147,10 +147,8 @@ public class BinRangeRepository : IBinRangeRepository
     public async Task<ITransaction> BeginTransactionAsync(CancellationToken cancellationToken = default) =>
         new EfTransaction(await _db.Database.BeginTransactionAsync(cancellationToken));
 
-    /// <summary>
-    /// Narrows by whichever filters were supplied. Status is a where clause per case rather
-    /// than a filter over the projection, so paging and the total both run in the database.
-    /// </summary>
+    // Narrows by whichever filters were supplied. Status is a where clause per case rather than a
+    // filter over the projection, so paging and the total both run in the database.
     private static IQueryable<BinRange> ApplyFilters(
         IQueryable<BinRange> rows, BinRangeQuery query, DateTime today)
     {

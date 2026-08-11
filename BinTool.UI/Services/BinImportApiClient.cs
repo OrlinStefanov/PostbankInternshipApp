@@ -6,10 +6,6 @@ using BinTool.Application.Models.Import;
 
 namespace BinTool.UI.Services;
 
-/// <summary>
-/// Thin typed client over the BinTool API's CSV import endpoints. Runs on the
-/// Blazor server, so calls are server-to-server (no CORS involved).
-/// </summary>
 public class BinImportApiClient
 {
     private readonly HttpClient _http;
@@ -21,10 +17,8 @@ public class BinImportApiClient
         _tokens = tokens;
     }
 
-    /// <summary>
-    /// Attaches the signed-in user's token. Safe to set on the instance: a typed client
-    /// gets its own <c>HttpClient</c>, so this never leaks across users.
-    /// </summary>
+    // Attaches the signed-in user's token. Safe to set on the instance: a typed client gets its own
+    // "HttpClient", so this never leaks across users.
     private async Task AuthorizeAsync()
     {
         var token = await _tokens.GetTokenAsync();
@@ -34,9 +28,6 @@ public class BinImportApiClient
             : new AuthenticationHeaderValue("Bearer", token);
     }
 
-    /// <summary>
-    /// Uploads a CSV to <c>POST /api/BinCsvImport/import</c>.
-    /// </summary>
     public async Task<BinImportResult> ImportAsync(
         Stream content, string fileName, CancellationToken cancellationToken = default)
     {
@@ -55,10 +46,6 @@ public class BinImportApiClient
         return (await response.Content.ReadFromJsonAsync<BinImportResult>(cancellationToken))!;
     }
 
-    /// <summary>
-    /// Fetches the conflicts still awaiting a decision from
-    /// <c>GET /api/BinCsvImport/conflicts</c>. Used to restore state after a reload.
-    /// </summary>
     public async Task<List<BinConflict>> GetConflictsAsync(CancellationToken cancellationToken = default)
     {
         await AuthorizeAsync();
@@ -67,9 +54,6 @@ public class BinImportApiClient
             "api/BinCsvImport/conflicts", cancellationToken) ?? new List<BinConflict>();
     }
 
-    /// <summary>
-    /// Applies per-conflict decisions via <c>POST /api/BinCsvImport/resolve-conflicts</c>.
-    /// </summary>
     public async Task<ConflictResolutionResult> ResolveConflictsAsync(
         IEnumerable<ConflictResolution> resolutions, CancellationToken cancellationToken = default)
     {
@@ -82,9 +66,6 @@ public class BinImportApiClient
         return (await response.Content.ReadFromJsonAsync<ConflictResolutionResult>(cancellationToken))!;
     }
 
-    /// <summary>
-    /// Fetches one page of past imports from <c>GET /api/BinCsvImport/history</c>.
-    /// </summary>
     public async Task<PagedResult<ImportHistoryItem>> GetHistoryAsync(
         ImportHistoryQuery query, CancellationToken cancellationToken = default)
     {
@@ -96,10 +77,8 @@ public class BinImportApiClient
         return result ?? new PagedResult<ImportHistoryItem>();
     }
 
-    /// <summary>
-    /// Only the filters that are set are sent, so an empty filter is never mistaken for a
-    /// filter on an empty string.
-    /// </summary>
+    // Only the filters that are set are sent, so an empty filter is never mistaken for a filter on
+    // an empty string.
     private static string BuildQueryString(ImportHistoryQuery query)
     {
         var parts = new List<string>

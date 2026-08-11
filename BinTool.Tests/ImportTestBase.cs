@@ -8,10 +8,6 @@ using BinTool.Tests.Fakes;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// Fixture for the import tests: the shared SQLite database from <see cref="SqliteTestBase"/>
-/// plus helpers for feeding CSV content through the service.
-/// </summary>
 public abstract class ImportTestBase : SqliteTestBase
 {
     protected const string Header =
@@ -19,13 +15,8 @@ public abstract class ImportTestBase : SqliteTestBase
 
     protected readonly BinCsvImportService Service;
 
-    /// <summary>What the import logged, for the tests that assert on the run summary.</summary>
     protected readonly RecordingLogger<BinCsvImportService> ImportLogger = new();
 
-    /// <summary>
-    /// The identity the import records on audit fields. Swap it in a test to assert what
-    /// gets stamped; defaults to the out-of-request "system" identity.
-    /// </summary>
     protected ICurrentUser CurrentUser = new SystemCurrentUser();
 
     protected ImportTestBase()
@@ -50,9 +41,6 @@ public abstract class ImportTestBase : SqliteTestBase
         public string Name => _resolve().Name;
     }
 
-    /// <summary>
-    /// Builds a CSV from the standard header plus the given data rows and imports it.
-    /// </summary>
     protected Task<BinImportResult> Run(params string[] dataRows) =>
         RunWithHeader(Header, dataRows);
 
@@ -65,10 +53,6 @@ public abstract class ImportTestBase : SqliteTestBase
         return RunRaw(content.ToString());
     }
 
-    /// <summary>
-    /// Imports the exact string given, so a test can control line endings, encoding
-    /// preamble and spacing precisely.
-    /// </summary>
     protected Task<BinImportResult> RunRaw(string csv, string fileName = "test.csv") =>
         RunBytes(Encoding.UTF8.GetBytes(csv), fileName);
 

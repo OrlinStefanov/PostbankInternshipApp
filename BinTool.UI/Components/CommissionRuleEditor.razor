@@ -199,31 +199,24 @@
 <div class="modal-backdrop show"></div>
 
 @code {
-    /// <summary>Live card schemes to choose from, loaded once by the page.</summary>
     [Parameter, EditorRequired]
     public IReadOnlyList<LookupListItem> Schemes { get; set; } = Array.Empty<LookupListItem>();
 
-    /// <summary>Live product types to choose from.</summary>
     [Parameter, EditorRequired]
     public IReadOnlyList<LookupListItem> Products { get; set; } = Array.Empty<LookupListItem>();
 
-    /// <summary>Live funding types to choose from.</summary>
     [Parameter, EditorRequired]
     public IReadOnlyList<LookupListItem> FundingTypes { get; set; } = Array.Empty<LookupListItem>();
 
-    /// <summary>Live regions to choose from.</summary>
     [Parameter, EditorRequired]
     public IReadOnlyList<LookupListItem> Regions { get; set; } = Array.Empty<LookupListItem>();
 
-    /// <summary>Live currencies to price the rule in.</summary>
     [Parameter, EditorRequired]
     public IReadOnlyList<CurrencyListItem> Currencies { get; set; } = Array.Empty<CurrencyListItem>();
 
-    /// <summary>The rule being edited, or null to add a new one.</summary>
     [Parameter]
     public CommissionRuleListItem? Rule { get; set; }
 
-    /// <summary>Raised with the API's outcome once the rule has been written.</summary>
     [Parameter]
     public EventCallback<CommissionRuleMutationResult> OnSaved { get; set; }
 
@@ -244,7 +237,7 @@
 
     private string Title => Rule is null ? "Add commission rule" : $"Edit commission rule — {Rule.RuleName}";
 
-    /// <summary>Euro when it is offered, otherwise the first currency in the list, otherwise id 1.</summary>
+    // Euro when it is offered, otherwise the first currency in the list, otherwise id 1.
     private int DefaultCurrencyId()
     {
         var euro = Currencies.FirstOrDefault(c => c.Code == "EUR");

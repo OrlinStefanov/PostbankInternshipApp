@@ -1,8 +1,5 @@
 namespace BinTool.Domain.Common;
 
-/// <summary>
-/// The bounds an admin's ranking numbers have to stay inside.
-/// </summary>
 public static class CommissionRuleLimits
 {
     public const int MinPriority = 0;

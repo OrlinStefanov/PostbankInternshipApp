@@ -3,11 +3,9 @@ using FluentAssertions;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// Pairing of an audit entry's before/after snapshots. Snapshots are written as literal
-/// JSON here rather than serialised from an entity, because what the diff has to cope with
-/// is whatever was stored at the time - including shapes no current entity produces.
-/// </summary>
+// Pairing of an audit entry's before/after snapshots. Snapshots are written as literal JSON here
+// rather than serialised from an entity, because what the diff has to cope with is whatever was
+// stored at the time - including shapes no current entity produces.
 public class AuditDiffTests
 {
     private static AuditFieldChange Field(IReadOnlyList<AuditFieldChange> changes, string name) =>

@@ -9,15 +9,8 @@ using BinTool.Application.Models.BinRanges;
 
 namespace BinTool.UI.Services;
 
-/// <summary>
-/// Thin typed client over the BinTool API's audit endpoints. Runs on the Blazor server,
-/// so calls are server-to-server (no CORS involved).
-/// </summary>
 public class AuditApiClient
 {
-    /// <summary>
-    /// The API writes enums as their names, which the default options will not read back.
-    /// </summary>
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         Converters = { new JsonStringEnumConverter() }
@@ -41,9 +34,6 @@ public class AuditApiClient
             : new AuthenticationHeaderValue("Bearer", token);
     }
 
-    /// <summary>
-    /// Fetches one page of audit entries from <c>GET /api/Audit</c>.
-    /// </summary>
     public async Task<PagedResult<AuditLogItem>> SearchAsync(
         AuditQuery query, CancellationToken cancellationToken = default)
     {
@@ -55,9 +45,6 @@ public class AuditApiClient
         return result ?? new PagedResult<AuditLogItem>();
     }
 
-    /// <summary>
-    /// Fetches the entity-type filter values from <c>GET /api/Audit/entity-types</c>.
-    /// </summary>
     public async Task<IReadOnlyList<string>> GetEntityTypesAsync(
         CancellationToken cancellationToken = default)
     {
@@ -69,10 +56,8 @@ public class AuditApiClient
         return result ?? new List<string>();
     }
 
-    /// <summary>
-    /// Only the filters that are set are sent, so the URL stays readable and an empty
-    /// filter is never mistaken for a filter on an empty string.
-    /// </summary>
+    // Only the filters that are set are sent, so the URL stays readable and an empty filter is
+    // never mistaken for a filter on an empty string.
     private static string BuildQueryString(AuditQuery query)
     {
         var parts = new List<string>

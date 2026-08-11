@@ -9,17 +9,13 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Infrastructure.Data;
 
-/// <summary>
-/// Applies pending migrations and seeds the Identity data that cannot be
-/// expressed with HasData (users need a hashed password).
-/// </summary>
+// Applies pending migrations and seeds the Identity data that cannot be expressed with HasData
+// (users need a hashed password).
 public static class DbInitializer
 {
-    /// <summary>
-    /// The demo accounts created on an empty database so the application can be signed
-    /// into straight after a clone. Each can be overridden from configuration, and the
-    /// whole step is skipped when <c>Seed:DemoUsers</c> is false.
-    /// </summary>
+    // The demo accounts created on an empty database so the application can be signed into straight
+    // after a clone. Each can be overridden from configuration, and the whole step is skipped when
+    // "Seed:DemoUsers" is false.
     private static readonly SeedUser[] DemoUsers =
     {
         new("admin", "admin@bintool.local", "Admin@123", "System Administrator", AppRoles.Admin),
@@ -50,11 +46,9 @@ public static class DbInitializer
         await SeedUsersAsync(provider, logger);
     }
 
-    /// <summary>
-    /// The permissions the built-in roles start with. Applied every startup and idempotent, so
-    /// existing databases pick up new catalog entries too: Admin is credited with the whole
-    /// catalog (it is a superuser and its grants are kept complete), Viewer with reading.
-    /// </summary>
+    // The permissions the built-in roles start with. Applied every startup and idempotent, so
+    // existing databases pick up new catalog entries too: Admin is credited with the whole catalog
+    // (it is a superuser and its grants are kept complete), Viewer with reading.
     private static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> RolePermissions =
         new Dictionary<string, IReadOnlyList<string>>
         {
@@ -67,10 +61,6 @@ public static class DbInitializer
             }
         };
 
-    /// <summary>
-    /// Grants each built-in role its baseline permissions, adding only the ones it is missing.
-    /// Permissions are stored as role claims, so this needs no schema of its own.
-    /// </summary>
     private static async Task SeedRolePermissionsAsync(
         RoleManager<ApplicationRole> roleManager, ILogger logger)
     {
@@ -97,10 +87,8 @@ public static class DbInitializer
         }
     }
 
-    /// <summary>
-    /// Creates the demo accounts on an empty database. Existing accounts are left alone,
-    /// so a changed password is never reset by a restart.
-    /// </summary>
+    // Creates the demo accounts on an empty database. Existing accounts are left alone, so a
+    // changed password is never reset by a restart.
     private static async Task SeedUsersAsync(IServiceProvider provider, ILogger logger)
     {
         var configuration = provider.GetRequiredService<IConfiguration>();

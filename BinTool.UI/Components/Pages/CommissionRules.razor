@@ -376,11 +376,9 @@ else if (!_loading)
         _editing = null;
     }
 
-    /// <summary>
-    /// Reloads rather than patching the row in place: a change can move a rule between the
-    /// active, scheduled and expired buckets, and a listing that disagrees with the database
-    /// is worse than an extra call.
-    /// </summary>
+    // Reloads rather than patching the row in place: a change can move a rule between the active,
+    // scheduled and expired buckets, and a listing that disagrees with the database is worse than
+    // an extra call.
     private async Task OnSaved(CommissionRuleMutationResult result)
     {
         CloseEditor();
@@ -417,10 +415,6 @@ else if (!_loading)
     private Task ClearDefault() =>
         Run(() => Api.ClearDefaultAsync(), "Cleared the fallback default. An unmatched lookup now returns no commission.");
 
-    /// <summary>
-    /// Runs one write, reports it, and reloads. Refusals arrive as an ordinary result, so
-    /// only a transport failure reaches the catch.
-    /// </summary>
     private async Task Run(Func<Task<CommissionRuleMutationResult>> action, string success)
     {
         _busy = true;
@@ -458,10 +452,6 @@ else if (!_loading)
 
     private static string Date(DateTime value) => value.ToString("yyyy-MM-dd");
 
-    /// <summary>
-    /// Money and rates are shown with a dot decimal separator regardless of the server's
-    /// locale, so the listing matches what the editor accepts and what the API returns.
-    /// </summary>
     private static string Num(decimal value) => value.ToString("0.####", CultureInfo.InvariantCulture);
 
     private static string Rate(CommissionRuleListItem rule) =>

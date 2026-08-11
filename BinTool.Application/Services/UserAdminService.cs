@@ -7,11 +7,9 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-/// <summary>
-/// Lists users and sets their roles. Guards the god account two ways: nobody strips their own
-/// Admin role, and the last admin keeps it - either would leave the system with no one able
-/// to grant it back.
-/// </summary>
+// Lists users and sets their roles. Guards the god account two ways: nobody strips their own Admin
+// role, and the last admin keeps it - either would leave the system with no one able to grant it
+// back.
 public class UserAdminService : IUserAdminService
 {
     private readonly IUserRepository _users;

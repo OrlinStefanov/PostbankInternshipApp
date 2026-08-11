@@ -6,11 +6,9 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// The service's own decisions, against a fake repository. No database, no schema, no seeded
-/// reference data - which is the point: what is being tested here is the rule the service
-/// applies, and a rule that needs SQLite to be observed was never really separable from it.
-/// </summary>
+// The service's own decisions, against a fake repository. No database, no schema, no seeded
+// reference data - which is the point: what is being tested here is the rule the service applies,
+// and a rule that needs SQLite to be observed was never really separable from it.
 public class CommissionRuleAdminServiceUnitTests
 {
     private const int Visa = 1, Mastercard = 2;

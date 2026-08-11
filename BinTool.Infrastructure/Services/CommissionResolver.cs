@@ -4,16 +4,12 @@ using BinTool.Infrastructure.Data;
 
 namespace BinTool.Infrastructure.Services;
 
-/// <summary>
-/// Selects the applicable commission rule and works out the fee. Selection is deterministic:
-/// among the rules that match the card and are valid on the date, the one with the highest
-/// Priority wins; ties are broken by PriorityScore, then ValidFrom (newer wins), then row id.
-/// When nothing matches, the configured default is used and the result is flagged as a
-/// fallback.
-/// </summary>
+// Selects the applicable commission rule and works out the fee. Selection is deterministic: among
+// the rules that match the card and are valid on the date, the one with the highest Priority wins;
+// ties are broken by PriorityScore, then ValidFrom (newer wins), then row id. When nothing matches,
+// the configured default is used and the result is flagged as a fallback.
 public class CommissionResolver : ICommissionResolver
 {
-    /// <summary>The base currency every euro rate is expressed against.</summary>
     private const string BaseCurrencyCode = "EUR";
 
     private readonly AppDbContext _db;
@@ -84,11 +80,9 @@ public class CommissionResolver : ICommissionResolver
         return Calculate(fallback, amount, inputCurrency, isFallback: true);
     }
 
-    /// <summary>
-    /// Loads the currency the amount was quoted in. A null id, or an id that no longer
-    /// resolves to a live currency, is treated as the euro base currency so a price is still
-    /// produced rather than silently dropped.
-    /// </summary>
+    // Loads the currency the amount was quoted in. A null id, or an id that no longer resolves to a
+    // live currency, is treated as the euro base currency so a price is still produced rather than
+    // silently dropped.
     private async Task<Currency> ResolveInputCurrencyAsync(
         int? inputCurrencyId, CancellationToken cancellationToken)
     {
@@ -107,11 +101,9 @@ public class CommissionResolver : ICommissionResolver
         return euro ?? new Currency { Code = BaseCurrencyCode, Name = "Euro", RateToEur = 1m };
     }
 
-    /// <summary>
-    /// Converts the amount into the rule's currency, then: percentage part (rounded to 4dp) +
-    /// fixed amount, raised to the minimum fee, final fee rounded to 2dp. Banker's rounding
-    /// throughout. Every native figure is also converted to euro at the rule's rate.
-    /// </summary>
+    // Converts the amount into the rule's currency, then: percentage part (rounded to 4dp) + fixed
+    // amount, raised to the minimum fee, final fee rounded to 2dp. Banker's rounding throughout.
+    // Every native figure is also converted to euro at the rule's rate.
     private static CommissionCalculation Calculate(
         CommissionRule rule, decimal inputAmount, Currency inputCurrency, bool isFallback)
     {

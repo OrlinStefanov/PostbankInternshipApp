@@ -5,25 +5,19 @@ using BinTool.Domain.Common;
 
 namespace BinTool.Application.Mapping;
 
-/// <summary>
-/// The one place a stored <see cref="CommissionRule"/> becomes something a caller sees, and
-/// a caller's input becomes a stored rule. Nothing here decides anything - the lifecycle and
-/// scoring rules it leans on live on the entity in <see cref="CommissionRuleExtensions"/> and
-/// <see cref="RuleCriteriaKey"/>; this only translates between shapes.
-/// </summary>
+// The one place a stored CommissionRule becomes something a caller sees, and a caller's input
+// becomes a stored rule. Nothing here decides anything - the lifecycle and scoring rules it leans
+// on live on the entity in CommissionRuleExtensions and RuleCriteriaKey; this only translates
+// between shapes.
 public static class CommissionRuleMapper
 {
-    /// <summary>The rule's key as supplied by a caller.</summary>
     public static RuleCriteriaKey Key(this CommissionRuleInput input) =>
         new(input.CardSchemeId, input.ProductTypeId, input.FundingTypeId, input.RegionId);
 
-    /// <summary>The rule's validity window as supplied by a caller, whole days.</summary>
     public static DateRange Validity(this CommissionRuleInput input) =>
         DateRange.OfDays(input.ValidFrom, input.ValidTo);
 
-    /// <summary>
-    /// The score that will be stored: the admin's if they set one, otherwise the suggestion.
-    /// </summary>
+    // The score that will be stored: the admin's if they set one, otherwise the suggestion.
     public static int EffectivePriorityScore(this CommissionRuleInput input) =>
         input.PriorityScore ?? input.Key().SuggestedPriorityScore;
 
@@ -66,10 +60,6 @@ public static class CommissionRuleMapper
         };
     }
 
-    /// <summary>
-    /// Names the lifecycle the entity reports. The questions are the entity's; only the
-    /// enum they are reported as belongs to this layer.
-    /// </summary>
     public static CommissionRuleStatus StatusOf(CommissionRule rule, DateTime today)
     {
         if (rule.IsDeleted) return CommissionRuleStatus.Deleted;
@@ -80,7 +70,6 @@ public static class CommissionRuleMapper
         return CommissionRuleStatus.Active;
     }
 
-    /// <summary>Reads a stored rule as an audit snapshot, for the "before" side of a change.</summary>
     public static CommissionRuleSnapshot ToSnapshot(CommissionRule rule)
     {
         var criteria = rule.RuleCriteria.FirstOrDefault();
@@ -103,11 +92,9 @@ public static class CommissionRuleMapper
             rule.IsDeleted);
     }
 
-    /// <summary>
-    /// Builds the "after" snapshot from the values about to be written, using the canonical
-    /// reference names already resolved - so it describes the row being saved without having
-    /// to read it back first.
-    /// </summary>
+    // Builds the "after" snapshot from the values about to be written, using the canonical
+    // reference names already resolved - so it describes the row being saved without having to read
+    // it back first.
     public static CommissionRuleSnapshot ToSnapshot(
         CommissionRuleInput input, ReferenceNames names, bool isDeleted) =>
         new(input.RuleName.Trim(),
@@ -126,10 +113,6 @@ public static class CommissionRuleMapper
             input.IsActive,
             isDeleted);
 
-    /// <summary>
-    /// Writes the scalar values onto a rule. Everything a caller can set goes through here,
-    /// so no field is silently left behind when the input model grows.
-    /// </summary>
     public static void Apply(
         CommissionRule rule, CommissionRuleInput input, string user, DateTime now)
     {
@@ -146,7 +129,6 @@ public static class CommissionRuleMapper
         rule.UpdatedBy = user;
     }
 
-    /// <summary>Writes the key and the score onto a rule's single criteria row.</summary>
     public static void ApplyCriteria(RuleCriteria criteria, CommissionRuleInput input)
     {
         criteria.CardSchemeId = input.CardSchemeId;

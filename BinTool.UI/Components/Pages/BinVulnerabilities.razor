@@ -250,11 +250,8 @@ else if (_page.TotalCount > 0)
         _editing = null;
     }
 
-    /// <summary>
-    /// After a save, re-scan rather than patching the row in place: fixing a range's scheme
-    /// should make it drop off this list, and confirming that with a fresh scan is worth
-    /// one extra request.
-    /// </summary>
+    // After a save, re-scan rather than patching the row in place: fixing a range's scheme should
+    // make it drop off this list, and confirming that with a fresh scan is worth one extra request.
     private async Task OnSaved(BinRangeMutationResult result)
     {
         CloseEditor();

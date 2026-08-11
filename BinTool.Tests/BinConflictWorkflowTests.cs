@@ -9,15 +9,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// The conflict lifecycle after an import: reading back what is still pending and
-/// applying the user's update/discard decisions.
-/// </summary>
 public class BinConflictWorkflowTests : ImportTestBase
 {
-    /// <summary>
-    /// Imports a row that collides with a seeded record, returning the staged conflict.
-    /// </summary>
     private async Task<BinConflict> StageConflict(
         string prefix = "400001", string scheme = "Mastercard", string funding = "Debit")
     {

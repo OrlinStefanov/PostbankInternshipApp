@@ -296,11 +296,9 @@
     private bool _busy;
     private string? _error;
 
-    /// <summary>
-    /// The codes offered in the amount selector. Euro is offered even when the list could not
-    /// be loaded - a role that cannot read currencies can still price in euro, rather than
-    /// facing a selector with nothing in it and no way to submit an amount.
-    /// </summary>
+    // The codes offered in the amount selector. Euro is offered even when the list could not be
+    // loaded - a role that cannot read currencies can still price in euro, rather than facing a
+    // selector with nothing in it and no way to submit an amount.
     private IEnumerable<string> CurrencyCodes =>
         _currencies.Count > 0 ? _currencies.Select(c => c.Code) : new[] { "EUR" };
 
@@ -349,24 +347,19 @@
         }
     }
 
-    /// <summary>
-    /// The line printed under the number on the card: funding first, because "debit or
-    /// credit" is the thing a payment flow branches on before anything else.
-    /// </summary>
+    // The line printed under the number on the card: funding first, because "debit or credit" is
+    // the thing a payment flow branches on before anything else.
     private string Tagline =>
         string.Join(" · ", new[] { _result?.FundingType, _result?.ProductType }
             .Where(v => !string.IsNullOrWhiteSpace(v)));
 
     // ---- The working -----------------------------------------------------------
 
-    /// <summary>One line of the fee arithmetic: the sum itself, and what it is doing.</summary>
     private sealed record FeeStep(string Expression, string Note);
 
-    /// <summary>
-    /// The fee restated as the steps that produced it. Nothing here is recalculated from the
-    /// rule - every figure is one the server returned, so the lines agree with the values
-    /// listed above them even where the server rounded partway through.
-    /// </summary>
+    // The fee restated as the steps that produced it. Nothing here is recalculated from the rule -
+    // every figure is one the server returned, so the lines agree with the values listed above them
+    // even where the server rounded partway through.
     private static IReadOnlyList<FeeStep> Working(CommissionCalculation c)
     {
         var steps = new List<FeeStep>();
@@ -416,27 +409,16 @@
 
     // ---- Formatting ------------------------------------------------------------
 
-    /// <summary>
-    /// Money and rates are shown with a dot decimal separator regardless of the server's
-    /// locale, so the panel matches what was typed and what the API returned.
-    /// </summary>
     private static string Num(decimal value) => value.ToString("0.####", CultureInfo.InvariantCulture);
 
-    /// <summary>
-    /// A bare figure in the working, always to at least two decimals so the sums line up,
-    /// but not truncated to two - a rate that carries more precision has to show it or the
-    /// arithmetic on the line would look wrong.
-    /// </summary>
+    // A bare figure in the working, always to at least two decimals so the sums line up, but not
+    // truncated to two - a rate that carries more precision has to show it or the arithmetic on the
+    // line would look wrong.
     private static string Dec(decimal value) => value.ToString("0.00##", CultureInfo.InvariantCulture);
 
-    /// <summary>A money amount with its currency code, e.g. "0.97 BGN".</summary>
     private static string Money(decimal value, string code) =>
         $"{value.ToString("0.00", CultureInfo.InvariantCulture)} {code}";
 
-    /// <summary>
-    /// A money amount in its own currency, plus the euro equivalent when it is not already
-    /// euro, e.g. "0.97 BGN ≈ 0.50 EUR".
-    /// </summary>
     private static string MoneyDual(decimal value, string code, decimal eur) =>
         IsEuro(code) ? Money(value, code) : $"{Money(value, code)} ≈ {Money(eur, "EUR")}";
 

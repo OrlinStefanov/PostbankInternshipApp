@@ -9,11 +9,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.UI.Services;
 
-/// <summary>
-/// Typed client over the API's roles and users endpoints. Runs on the Blazor server, so calls
-/// are server-to-server. Writes do not throw on a refusal - the API answers 400/404/409 with the
-/// same result body, and the caller reads its <c>Error</c>.
-/// </summary>
+// Typed client over the API's roles and users endpoints. Runs on the Blazor server, so calls are
+// server-to-server. Writes do not throw on a refusal - the API answers 400/404/409 with the same
+// result body, and the caller reads its "Error".
 public class AccessControlApiClient
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
@@ -105,11 +103,9 @@ public class AccessControlApiClient
             r => r.Succeeded || r.Error is not null,
             error => failure(UserRolesStatus.Invalid, error), cancellationToken);
 
-    /// <summary>
-    /// Runs one write and reads the result. A refusal the API produces (its own body with a
-    /// 400/404/409) is read as-is; anything else - a validation problem raised before the action
-    /// ran, an unauthorized call, a proxy error page - is turned into a failure the UI can show.
-    /// </summary>
+    // Runs one write and reads the result. A refusal the API produces (its own body with a
+    // 400/404/409) is read as-is; anything else - a validation problem raised before the action
+    // ran, an unauthorized call, a proxy error page - is turned into a failure the UI can show.
     private async Task<TResult> SendAsync<TResult>(
         HttpMethod method, string url, object? body,
         Func<TResult, bool> looksLikeResult, Func<string, TResult> onOther,
@@ -141,7 +137,6 @@ public class AccessControlApiClient
         return onOther(await DescribeAsync(response, cancellationToken));
     }
 
-    /// <summary>Turns a response the client did not expect into one sentence a user can act on.</summary>
     private static async Task<string> DescribeAsync(
         HttpResponseMessage response, CancellationToken cancellationToken)
     {

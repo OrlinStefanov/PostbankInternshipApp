@@ -3,11 +3,9 @@ using BinTool.Application.Models.BinRanges;
 
 namespace BinTool.Application.Services;
 
-/// <summary>
-/// Browsing BIN ranges, and the scheme-mismatch report. The database narrows and pages; what
-/// is decided here is the detector's opinion, which is a judgement about the data rather
-/// than something a query can express.
-/// </summary>
+// Browsing BIN ranges, and the scheme-mismatch report. The database narrows and pages; what is
+// decided here is the detector's opinion, which is a judgement about the data rather than something
+// a query can express.
 public class BinRangeQueryService : IBinRangeQueryService
 {
     private readonly IBinRangeRepository _ranges;
@@ -79,11 +77,9 @@ public class BinRangeQueryService : IBinRangeQueryService
     public async Task<int> CountSchemeMismatchesAsync(CancellationToken cancellationToken = default) =>
         (await FindMismatchesAsync(cancellationToken)).Count;
 
-    /// <summary>
-    /// Every live range whose stored scheme contradicts the detector. A prefix the detector
-    /// cannot place is not a mismatch - it is an absence of an opinion, and reporting it as
-    /// a fault would bury the real ones.
-    /// </summary>
+    // Every live range whose stored scheme contradicts the detector. A prefix the detector cannot
+    // place is not a mismatch - it is an absence of an opinion, and reporting it as a fault would
+    // bury the real ones.
     private async Task<List<Mismatch>> FindMismatchesAsync(CancellationToken cancellationToken)
     {
         var rows = await _ranges.ListLivePrefixSchemesAsync(cancellationToken);
@@ -100,10 +96,6 @@ public class BinRangeQueryService : IBinRangeQueryService
         return mismatches;
     }
 
-    /// <summary>
-    /// The name of the scheme the digits say this prefix belongs to, when that contradicts
-    /// the stored one. Null when they agree, or when the detector has no opinion.
-    /// </summary>
     private string? MismatchedSchemeName(string prefix, string storedScheme)
     {
         var detected = _detector.Detect(prefix);

@@ -13,10 +13,6 @@ public class BinCsvImportService : IBinCsvImportService
 {
     private const string DateFormat = "yyyy-MM-dd";
 
-    /// <summary>
-    /// Read buffer for the CSV stream. Larger than the 1 KB default so bulk files
-    /// need far fewer underlying reads.
-    /// </summary>
     private const int StreamBufferSize = 64 * 1024;
 
     private static readonly string[] RequiredColumns =
@@ -24,10 +20,6 @@ public class BinCsvImportService : IBinCsvImportService
         "Prefix", "CardScheme", "ProductType", "FundingType", "CountryCode", "ValidFrom"
     };
 
-    /// <summary>
-    /// A short row must not abort the whole import: with no MissingFieldFound handler
-    /// CsvHelper returns null for absent fields, which validation then rejects per row.
-    /// </summary>
     private static readonly CsvConfiguration CsvSettings = new(CultureInfo.InvariantCulture)
     {
         MissingFieldFound = null
@@ -501,10 +493,6 @@ public class BinCsvImportService : IBinCsvImportService
             result.UpdatedCount + result.DiscardedCount, _currentUser.Name,
             result.UpdatedCount, result.DiscardedCount);
 
-    /// <summary>
-    /// Adds resolved-conflict outcomes back onto the originating imports: updates bump
-    /// <c>UpdatedRows</c>, target-less inserts bump <c>ImportedRows</c>.
-    /// </summary>
     private async Task ApplyHistoryDeltasAsync(
         Dictionary<int, int> updatesByHistory,
         Dictionary<int, int> insertsByHistory,
@@ -593,15 +581,10 @@ public class BinCsvImportService : IBinCsvImportService
         return conflicts;
     }
 
-    /// <summary>
-    /// Writes the audit trail for everything an import changed.
-    /// <para>
-    /// Only the rows that touched live BIN data are recorded. A rejected row changed
-    /// nothing and is already kept, with its reason, on the import history; an unchanged
-    /// row by definition changed nothing; and a staged conflict has not been decided yet,
-    /// so it is audited if and when someone applies it.
-    /// </para>
-    /// </summary>
+    // Writes the audit trail for everything an import changed. Only the rows that touched live BIN
+    // data are recorded. A rejected row changed nothing and is already kept, with its reason, on
+    // the import history; an unchanged row by definition changed nothing; and a staged conflict has
+    // not been decided yet, so it is audited if and when someone applies it.
     private void RecordImportedRanges(
         List<(BinRange Entity, ResolvedRow Values)> inserted,
         Dictionary<int, ResolvedRow> revivals,
@@ -623,10 +606,8 @@ public class BinCsvImportService : IBinCsvImportService
         }
     }
 
-    /// <summary>
-    /// Describes a stored range for the audit trail, resolving its lookup ids through the
-    /// snapshot the import already loaded rather than going back to the database per row.
-    /// </summary>
+    // Describes a stored range for the audit trail, resolving its lookup ids through the snapshot
+    // the import already loaded rather than going back to the database per row.
     private static BinRangeSnapshot Snapshot(BinRange range, Lookups lookups) => new(
         range.Prefix,
         lookups.CardSchemeName(range.CardSchemeId),
@@ -647,10 +628,6 @@ public class BinCsvImportService : IBinCsvImportService
         row.ValidTo is null ? null : BinRangeSnapshot.Date(row.ValidTo.Value),
         isDeleted);
 
-    /// <summary>
-    /// Structural validation only. Returns the first rule that fails so the message
-    /// stays specific. Lookup existence is checked separately against the database.
-    /// </summary>
     private static bool TryValidateRow(
         string? prefix, string? cardScheme, string? productType, string? fundingType,
         string? countryCode, string? validFrom, string? validTo,
@@ -706,10 +683,6 @@ public class BinCsvImportService : IBinCsvImportService
         return true;
     }
 
-    /// <summary>
-    /// Hand-rolled character scans. LINQ's <c>All</c> would allocate an enumerator for
-    /// every field of every row; these run allocation-free on the parse hot path.
-    /// </summary>
     private static bool IsAllDigits(string value)
     {
         foreach (var c in value)
@@ -730,11 +703,9 @@ public class BinCsvImportService : IBinCsvImportService
         return true;
     }
 
-    /// <summary>
-    /// Compares an incoming row against the existing record, returning a diff entry
-    /// for every field that differs (formatted for display). An empty list means the
-    /// records are identical and the row can be skipped.
-    /// </summary>
+    // Compares an incoming row against the existing record, returning a diff entry for every field
+    // that differs (formatted for display). An empty list means the records are identical and the
+    // row can be skipped.
     private static List<BinFieldDiff> Diff(BinRange current, ResolvedRow incoming, Lookups lookups)
     {
         var diffs = new List<BinFieldDiff>();
@@ -790,11 +761,8 @@ public class BinCsvImportService : IBinCsvImportService
         return diffs;
     }
 
-    /// <summary>
-    /// Builds a staged conflict from an import row, linked to its originating import.
-    /// The caller sets <see cref="PendingBinConflict.TargetBinRangeId"/> (an existing
-    /// row to overwrite, or null to insert on apply).
-    /// </summary>
+    // Builds a staged conflict from an import row, linked to its originating import. The caller
+    // sets TargetBinRangeId (an existing row to overwrite, or null to insert on apply).
     private static PendingBinConflict NewConflict(
         ResolvedRow v, string raw, ImportHistory history, DateTime now, ConflictType type) => new()
     {
@@ -813,11 +781,8 @@ public class BinCsvImportService : IBinCsvImportService
         ImportHistory = history
     };
 
-    /// <summary>
-    /// A one-line explanation of why a row's declared scheme was not trusted: either it
-    /// names a different network than the prefix belongs to, or the prefix matches no
-    /// known network at all.
-    /// </summary>
+    // A one-line explanation of why a row's declared scheme was not trusted: either it names a
+    // different network than the prefix belongs to, or the prefix matches no known network at all.
     private string MismatchMessage(string prefix, DetectedScheme detected, string? declared)
     {
         var declaredName = string.IsNullOrWhiteSpace(declared) ? "an unknown scheme" : declared;
@@ -828,13 +793,10 @@ public class BinCsvImportService : IBinCsvImportService
             : $"Prefix {prefix} is a {detectedName} range, but the file declares {declaredName}.";
     }
 
-    /// <summary>
-    /// Non-null when the target row already sitting in the database holds a scheme the
-    /// detector disagrees with - the case where a reviewer needs to be told the stored
-    /// row is wrong for its prefix, even if the incoming row is not changing it. Silent
-    /// when there is no target, the detector does not know the prefix, or the stored
-    /// scheme is already the right one.
-    /// </summary>
+    // Non-null when the target row already sitting in the database holds a scheme the detector
+    // disagrees with - the case where a reviewer needs to be told the stored row is wrong for its
+    // prefix, even if the incoming row is not changing it. Silent when there is no target, the
+    // detector does not know the prefix, or the stored scheme is already the right one.
     private string? StoredSchemeAdvisory(BinRange? target, DetectedScheme detected, Lookups lookups)
     {
         if (target is null) return null;
@@ -875,10 +837,6 @@ public class BinCsvImportService : IBinCsvImportService
 
     private sealed record Candidate(int RowNumber, string Raw, ResolvedRow Values);
 
-    /// <summary>
-    /// Column positions in the file being read, resolved once from the header.
-    /// <see cref="ValidTo"/> is -1 when the optional column is absent.
-    /// </summary>
     private readonly struct FieldIndexes
     {
         public int Prefix { get; private init; }
@@ -901,26 +859,19 @@ public class BinCsvImportService : IBinCsvImportService
         };
     }
 
-    /// <summary>
-    /// A structurally-valid row before its lookup names are resolved to ids. A struct
-    /// so the parse loop does not allocate one object per row.
-    /// </summary>
+    // A structurally-valid row before its lookup names are resolved to ids. A struct so the parse
+    // loop does not allocate one object per row.
     private readonly record struct ParsedRow(
         string Prefix, string CardScheme, string ProductType, string FundingType,
         string CountryCode, DateTime ValidFrom, DateTime? ValidTo);
 
-    /// <summary>
-    /// A validated import row with its lookup names resolved to database ids.
-    /// </summary>
     private sealed record ResolvedRow(
         string Prefix, int CardSchemeId, int ProductTypeId, int FundingTypeId, int CountryId,
         DateTime ValidFrom, DateTime? ValidTo);
 
-    /// <summary>
-    /// The reference tables as loaded, plus the resolution rule: an incoming row's four
-    /// names either all resolve to live ids or the row is rejected naming the first one
-    /// that did not. Loading is storage and lives in the repository; deciding is not.
-    /// </summary>
+    // The reference tables as loaded, plus the resolution rule: an incoming row's four names either
+    // all resolve to live ids or the row is rejected naming the first one that did not. Loading is
+    // storage and lives in the repository; deciding is not.
     private sealed class Lookups
     {
         private readonly ReferenceTables _tables;

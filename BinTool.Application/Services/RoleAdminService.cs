@@ -7,11 +7,9 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-/// <summary>
-/// Roles and the permissions they grant. The Admin role is protected: it cannot be renamed,
-/// deleted, or have its permissions changed, because a role that can revoke its own access
-/// is a role that can lock everyone out of the system.
-/// </summary>
+// Roles and the permissions they grant. The Admin role is protected: it cannot be renamed, deleted,
+// or have its permissions changed, because a role that can revoke its own access is a role that can
+// lock everyone out of the system.
 public class RoleAdminService : IRoleAdminService
 {
     private readonly IRoleRepository _roles;

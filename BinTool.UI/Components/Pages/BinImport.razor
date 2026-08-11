@@ -363,10 +363,6 @@ else
     private int DecidedCount => _decisions.Values.Count(v => v.HasValue);
     private bool AllDecided => _decisions.Count > 0 && _decisions.Values.All(v => v.HasValue);
 
-    /// <summary>
-    /// Mirrors the server's import status so the badge reflects the same outcome
-    /// without widening the API contract.
-    /// </summary>
     private string Status => _result switch
     {
         null => "—",
@@ -391,9 +387,6 @@ else
         }
     }
 
-    /// <summary>
-    /// Pulls the current pending conflicts from the API and resets the decision map.
-    /// </summary>
     private async Task LoadConflicts()
     {
         _conflicts = await Api.GetConflictsAsync();

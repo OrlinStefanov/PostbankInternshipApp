@@ -8,9 +8,6 @@ using FluentAssertions;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// Filtering, derived status and paging for the BIN range browse endpoint.
-/// </summary>
 public class BinRangeQueryServiceTests : SqliteTestBase
 {
     private static readonly DateTime Started = new(2024, 1, 1);

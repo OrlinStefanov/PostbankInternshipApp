@@ -8,10 +8,8 @@ namespace BinTool.Infrastructure.Services;
 
 public class AuditLog : IAuditLog
 {
-    /// <summary>
-    /// Nulls are kept rather than dropped: in a before/after comparison "this field was
-    /// empty" and "this field was not recorded" have to stay tellable apart.
-    /// </summary>
+    // Nulls are kept rather than dropped: in a before/after comparison "this field was empty" and
+    // "this field was not recorded" have to stay tellable apart.
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,

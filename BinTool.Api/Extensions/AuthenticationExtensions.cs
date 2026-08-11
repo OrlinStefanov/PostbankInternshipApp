@@ -7,11 +7,9 @@ namespace BinTool.Api.Extensions;
 
 public static class AuthenticationExtensions
 {
-    /// <summary>
-    /// Configures bearer-token authentication. Identity brings cookie schemes with it, so
-    /// the defaults are set explicitly to JWT - otherwise an unauthenticated API call would
-    /// be answered with a redirect to a login page that does not exist here.
-    /// </summary>
+    // Configures bearer-token authentication. Identity brings cookie schemes with it, so the
+    // defaults are set explicitly to JWT - otherwise an unauthenticated API call would be answered
+    // with a redirect to a login page that does not exist here.
     public static IServiceCollection AddJwtAuthentication(
         this IServiceCollection services, IConfiguration configuration)
     {

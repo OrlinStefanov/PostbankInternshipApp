@@ -7,15 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// The API's access rules, asserted from the attributes themselves.
-/// <para>
-/// Authorization is easy to remove by accident and produces no failure when it goes
-/// missing - the endpoint simply starts answering everyone. These tests fail instead.
-/// Since the switch to permission-based authorization, the rule is a policy name (a
-/// permission key), not a role.
-/// </para>
-/// </summary>
+// The API's access rules, asserted from the attributes themselves. Authorization is easy to remove
+// by accident and produces no failure when it goes missing - the endpoint simply starts answering
+// everyone. These tests fail instead. Since the switch to permission-based authorization, the rule
+// is a policy name (a permission key), not a role.
 public class ApiAuthorizationTests
 {
     private static AuthorizeAttribute? Authorize(Type controller) =>
@@ -43,11 +38,9 @@ public class ApiAuthorizationTests
         Authorize(typeof(UsersController))!.Policy.Should().Be(Permissions.RolesManage);
     }
 
-    /// <summary>
-    /// BinRanges keeps a bare class-level rule - authenticated, no policy - so each action
-    /// states its own permission. Reads take the read permission; a missing one would hand an
-    /// unprivileged caller live BIN data.
-    /// </summary>
+    // BinRanges keeps a bare class-level rule - authenticated, no policy - so each action states
+    // its own permission. Reads take the read permission; a missing one would hand an unprivileged
+    // caller live BIN data.
     [Fact]
     public void The_bin_ranges_controller_requires_authentication_but_no_single_policy()
     {
@@ -96,12 +89,10 @@ public class ApiAuthorizationTests
         Authorize(controller)!.Policy.Should().Be(Permissions.ReferenceDataManage);
     }
 
-    /// <summary>
-    /// Currencies are the one reference-data table whose reads are split off: pricing a lookup
-    /// needs the list, and a viewer holds no administration permission. A class-level manage
-    /// policy would put it out of their reach, and would not be overridden by the per-action
-    /// one - authorize attributes stack.
-    /// </summary>
+    // Currencies are the one reference-data table whose reads are split off: pricing a lookup needs
+    // the list, and a viewer holds no administration permission. A class-level manage policy would
+    // put it out of their reach, and would not be overridden by the per-action one - authorize
+    // attributes stack.
     [Fact]
     public void The_currencies_controller_requires_authentication_but_no_single_policy()
     {

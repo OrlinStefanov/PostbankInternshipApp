@@ -9,12 +9,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// How <see cref="AuthController.Login"/> treats passwords and lockouts against a real
-/// <see cref="Microsoft.AspNetCore.Identity.UserManager{T}"/>: the password is checked before
-/// the lock, so the account's owner is never shut out by their own typos, and a lockout is
-/// reported distinctly from a wrong password.
-/// </summary>
+// How Login treats passwords and lockouts against a real <see
+// cref="Microsoft.AspNetCore.Identity.UserManager{T}"/>: the password is checked before the lock,
+// so the account's owner is never shut out by their own typos, and a lockout is reported distinctly
+// from a wrong password.
 public class AuthControllerTests : IdentityTestBase
 {
     private AuthController CreateController() =>

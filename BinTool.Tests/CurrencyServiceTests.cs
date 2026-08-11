@@ -10,10 +10,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// Currency admin: the code/name/rate rows and the euro rates commission is priced and
-/// displayed in. Euro (id 1) and the lev (id 2) are seeded by the shared database.
-/// </summary>
 public class CurrencyServiceTests : SqliteTestBase
 {
     private const string AdminUserId = "admin-user-id";

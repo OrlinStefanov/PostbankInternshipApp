@@ -3,11 +3,9 @@ using BinTool.Infrastructure.Data;
 
 namespace BinTool.Infrastructure.Repositories;
 
-/// <summary>
-/// Entity Framework storage for commission rules. Everything about how a rule is fetched -
-/// which navigations come with it, whether it is tracked, how a date window becomes SQL -
-/// is decided here and nowhere else.
-/// </summary>
+// Entity Framework storage for commission rules. Everything about how a rule is fetched - which
+// navigations come with it, whether it is tracked, how a date window becomes SQL - is decided here
+// and nowhere else.
 public class CommissionRuleRepository : ICommissionRuleRepository
 {
     private readonly AppDbContext _db;
@@ -92,17 +90,13 @@ public class CommissionRuleRepository : ICommissionRuleRepository
         CancellationToken cancellationToken = default) =>
         new EfTransaction(await _db.Database.BeginTransactionAsync(cancellationToken));
 
-    /// <summary>Rules that still count, excluding one by id - zero excludes nothing.</summary>
     private IQueryable<CommissionRule> Live(int excludeRuleId) =>
         _db.CommissionRules.Where(r => !r.IsDeleted && r.CommissionRuleId != excludeRuleId);
 
-    /// <summary>
-    /// Narrows to rules whose validity touches the window, both ends inclusive and an
-    /// open-ended rule treated as running forever. The one place this predicate is written:
-    /// it has to translate to SQL, so <see cref="DateRange.Overlaps"/> cannot be called
-    /// inside the expression - but the two ends still arrive as a DateRange, and every
-    /// caller gets the same comparison.
-    /// </summary>
+    // Narrows to rules whose validity touches the window, both ends inclusive and an open-ended
+    // rule treated as running forever. The one place this predicate is written: it has to translate
+    // to SQL, so Overlaps cannot be called inside the expression - but the two ends still arrive as
+    // a DateRange, and every caller gets the same comparison.
     private static IQueryable<CommissionRule> Overlapping(
         IQueryable<CommissionRule> query, DateRange window)
     {
@@ -112,7 +106,6 @@ public class CommissionRuleRepository : ICommissionRuleRepository
         return query.Where(r => r.ValidFrom <= to && from <= (r.ValidTo ?? DateTime.MaxValue));
     }
 
-    /// <summary>Loads a rule with its criteria and the reference names those ids resolve to.</summary>
     private static IQueryable<CommissionRule> WithReferences(IQueryable<CommissionRule> query) =>
         query
             .Include(r => r.Currency)

@@ -8,9 +8,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// Adding, editing, deleting and restoring one BIN range by hand.
-/// </summary>
 public class BinRangeAdminServiceTests : SqliteTestBase
 {
     private static readonly DateTime Started = new(2024, 1, 1);

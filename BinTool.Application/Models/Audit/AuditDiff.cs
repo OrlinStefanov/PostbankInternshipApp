@@ -81,11 +81,9 @@ public static class AuditDiff
         return changes;
     }
 
-    /// <summary>
-    /// Reads one snapshot's top-level properties in the order they were written. An absent
-    /// snapshot flattens to nothing; one that is malformed, or that holds something other
-    /// than an object, returns null to say it cannot take part in a diff.
-    /// </summary>
+    // Reads one snapshot's top-level properties in the order they were written. An absent snapshot
+    // flattens to nothing; one that is malformed, or that holds something other than an object,
+    // returns null to say it cannot take part in a diff.
     private static List<KeyValuePair<string, string?>>? Flatten(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return new List<KeyValuePair<string, string?>>();
@@ -111,11 +109,9 @@ public static class AuditDiff
         }
     }
 
-    /// <summary>
-    /// Renders a JSON value as the text shown in the diff. Nested objects and arrays keep
-    /// their compact JSON: it both displays acceptably and compares correctly, whereas
-    /// flattening them into more fields would invent names the snapshot never recorded.
-    /// </summary>
+    // Renders a JSON value as the text shown in the diff. Nested objects and arrays keep their
+    // compact JSON: it both displays acceptably and compares correctly, whereas flattening them
+    // into more fields would invent names the snapshot never recorded.
     private static string? Format(JsonElement value) => value.ValueKind switch
     {
         JsonValueKind.Null or JsonValueKind.Undefined => null,

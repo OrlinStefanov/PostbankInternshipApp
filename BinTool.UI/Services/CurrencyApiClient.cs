@@ -9,10 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.UI.Services;
 
-/// <summary>
-/// Thin typed client over the BinTool API's currency endpoints. Runs on the Blazor server,
-/// so calls are server-to-server (no CORS involved).
-/// </summary>
 public class CurrencyApiClient
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
@@ -38,7 +34,6 @@ public class CurrencyApiClient
             : new AuthenticationHeaderValue("Bearer", token);
     }
 
-    /// <summary>Lists currencies from <c>GET /api/Currencies</c>.</summary>
     public async Task<List<CurrencyListItem>> SearchAsync(
         bool includeDeleted = false, CancellationToken cancellationToken = default)
     {

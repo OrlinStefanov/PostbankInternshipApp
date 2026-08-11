@@ -8,10 +8,6 @@ public static class BinRangeMapper
 {
     public static string NormalizedPrefix(this BinRangeInput input) => input.Prefix.Trim();
 
-    /// <summary>
-    /// Writes the supplied values onto a range. Everything a caller can set goes through
-    /// here, so no field is silently left behind when the input model grows.
-    /// </summary>
     public static void Apply(
         BinRange range, BinRangeInput input, ResolvedReferences resolved, string user, DateTime now)
     {
@@ -29,11 +25,9 @@ public static class BinRangeMapper
         range.UpdatedBy = user;
     }
 
-    /// <summary>
-    /// The after-snapshot, built from the values about to be written and the canonical
-    /// names resolving already produced - so it describes the row being saved without
-    /// having to read it back first.
-    /// </summary>
+    // The after-snapshot, built from the values about to be written and the canonical names
+    // resolving already produced - so it describes the row being saved without having to read it
+    // back first.
     public static BinRangeSnapshot ToSnapshot(
         BinRangeInput input, ResolvedReferences resolved, bool isDeleted) =>
         new(input.NormalizedPrefix(),
@@ -53,7 +47,6 @@ public static class BinRangeMapper
     }
 }
 
-/// <summary>The four references, all of them present. Produced only once every id resolved.</summary>
 public readonly record struct ResolvedReferences(
     NamedReference CardScheme,
     NamedReference ProductType,

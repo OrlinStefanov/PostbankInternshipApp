@@ -2,10 +2,8 @@ using BinTool.Domain.Common;
 
 namespace BinTool.Tests.Fakes;
 
-/// <summary>
-/// Resolves reference ids from a set of known ones. Anything not registered comes back as a
-/// null name, which is how the real repository reports an id that does not exist.
-/// </summary>
+// Resolves reference ids from a set of known ones. Anything not registered comes back as a null
+// name, which is how the real repository reports an id that does not exist.
 public sealed class FakeReferenceDataRepository : IReferenceDataRepository
 {
     private readonly Dictionary<int, string> _currencies = new() { [1] = "EUR" };

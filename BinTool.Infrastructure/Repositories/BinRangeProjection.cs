@@ -4,18 +4,12 @@ using BinTool.Application.Models.BinRanges;
 
 namespace BinTool.Infrastructure.Repositories;
 
-/// <summary>
-/// The one place a stored <see cref="BinRange"/> becomes a <see cref="BinRangeListItem"/>.
-/// <para>
-/// Shared between browsing and the single-range writes so the two cannot drift - most of
-/// all the status, which is derived here rather than stored and so has to be computed the
-/// same way everywhere. Being an expression, it translates to SQL instead of pulling rows
-/// into memory first.
-/// </para>
-/// </summary>
+// The one place a stored BinRange becomes a BinRangeListItem. Shared between browsing and the
+// single-range writes so the two cannot drift - most of all the status, which is derived here
+// rather than stored and so has to be computed the same way everywhere. Being an expression, it
+// translates to SQL instead of pulling rows into memory first.
 internal static class BinRangeProjection
 {
-    /// <param name="today">The date the status is derived against, in UTC.</param>
     public static Expression<Func<BinRange, BinRangeListItem>> ToListItem(DateTime today) =>
         b => new BinRangeListItem
         {

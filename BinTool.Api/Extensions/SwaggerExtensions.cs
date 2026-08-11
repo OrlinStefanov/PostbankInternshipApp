@@ -9,7 +9,6 @@ public static class SwaggerExtensions
 {
     private const string DocumentName = "v1";
 
-    /// <summary>Embedded resource holding the prose shown at the top of Swagger UI.</summary>
     private const string DescriptionResource = "BinTool.Api.Documentation.ApiDescription.md";
 
     public static IServiceCollection AddSwaggerDocumentation(this IServiceCollection services)
@@ -34,10 +33,6 @@ public static class SwaggerExtensions
         return services;
     }
 
-    /// <summary>
-    /// Reads the API overview from the embedded markdown file. Prose belongs in a document,
-    /// not in a hundred lines of string concatenation inside a startup class.
-    /// </summary>
     private static string ReadDescription()
     {
         using var stream = Assembly.GetExecutingAssembly()
@@ -49,10 +44,6 @@ public static class SwaggerExtensions
         return reader.ReadToEnd();
     }
 
-    /// <summary>
-    /// Surfaces the doc comments from the controllers and the shared import models, so the
-    /// endpoint and schema descriptions in Swagger come from the code that defines them.
-    /// </summary>
     private static void IncludeXmlComments(Swashbuckle.AspNetCore.SwaggerGen.SwaggerGenOptions options)
     {
         foreach (var assembly in new[]
@@ -69,9 +60,6 @@ public static class SwaggerExtensions
         }
     }
 
-    /// <summary>
-    /// Lets Swagger UI's Authorize button send the token from <c>POST /api/Auth/login</c>.
-    /// </summary>
     private static void AddBearerSecurity(Swashbuckle.AspNetCore.SwaggerGen.SwaggerGenOptions options)
     {
         options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme

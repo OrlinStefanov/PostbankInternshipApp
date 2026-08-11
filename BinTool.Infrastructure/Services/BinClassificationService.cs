@@ -7,20 +7,14 @@ namespace BinTool.Infrastructure.Services;
 
 public class BinClassificationService : IBinClassificationService
 {
-    /// <summary>
-    /// Shortest stored prefix, so anything shorter cannot be classified at all.
-    /// </summary>
+    // Shortest stored prefix, so anything shorter cannot be classified at all.
     private const int MinPrefixLength = 6;
 
-    /// <summary>
-    /// Longest stored prefix. Also the point at which the input is truncated: the tool
-    /// never needs more of a card number than this, so it never holds more.
-    /// </summary>
+    // Longest stored prefix. Also the point at which the input is truncated: the tool never needs
+    // more of a card number than this, so it never holds more.
     private const int MaxPrefixLength = 8;
 
-    /// <summary>
-    /// Longest PAN under ISO/IEC 7812. Anything longer is not a card number.
-    /// </summary>
+    // Longest PAN under ISO/IEC 7812. Anything longer is not a card number.
     private const int MaxInputLength = 19;
 
     private readonly AppDbContext _db;
@@ -119,11 +113,9 @@ public class BinClassificationService : IBinClassificationService
         return result;
     }
 
-    /// <summary>
-    /// Maps a supplied ISO-4217 code to a live currency id, so the resolver can convert the
-    /// amount into the rule's currency. An unknown or blank code resolves to null, which the
-    /// resolver reads as the euro base currency.
-    /// </summary>
+    // Maps a supplied ISO-4217 code to a live currency id, so the resolver can convert the amount
+    // into the rule's currency. An unknown or blank code resolves to null, which the resolver reads
+    // as the euro base currency.
     private async Task<int?> ResolveCurrencyIdAsync(
         string? code, CancellationToken cancellationToken)
     {
@@ -137,10 +129,6 @@ public class BinClassificationService : IBinClassificationService
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    /// <summary>
-    /// The matched range's projected fields, including the key ids the commission resolver
-    /// needs. Kept private - the API surface only ever sees <see cref="BinClassificationResult"/>.
-    /// </summary>
     private sealed class MatchedRange
     {
         public string Prefix { get; init; } = string.Empty;
@@ -158,10 +146,6 @@ public class BinClassificationService : IBinClassificationService
         public DateTime? ValidTo { get; init; }
     }
 
-    /// <summary>
-    /// Validates the input and reduces it to the lookup key. Truncation happens here,
-    /// before the value reaches the query, so no code downstream can see a full PAN.
-    /// </summary>
     private static string Normalize(string bin)
     {
         if (string.IsNullOrWhiteSpace(bin))
@@ -195,9 +179,6 @@ public class BinClassificationService : IBinClassificationService
         return trimmed.Length > MaxPrefixLength ? trimmed[..MaxPrefixLength] : trimmed;
     }
 
-    /// <summary>
-    /// Every stored prefix length the key could match, from 6 digits up to its own length.
-    /// </summary>
     private static string[] Candidates(string lookupKey)
     {
         var candidates = new string[lookupKey.Length - MinPrefixLength + 1];

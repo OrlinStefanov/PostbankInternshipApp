@@ -5,10 +5,6 @@ namespace BinTool.Api.Extensions;
 
 public static class PersistenceExtensions
 {
-    /// <summary>
-    /// Registers the database context. The fallback connection string keeps a developer
-    /// clone runnable with no configuration; anything else supplies its own.
-    /// </summary>
     public static IServiceCollection AddPersistence(
         this IServiceCollection services, IConfiguration configuration)
     {

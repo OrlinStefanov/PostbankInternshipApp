@@ -5,11 +5,9 @@ namespace BinTool.Application.Authorization;
 
 public static class PermissionAuthorizationExtensions
 {
-    /// <summary>
-    /// Registers permission-based authorization: the on-demand <see cref="PermissionPolicyProvider"/>
-    /// and the <see cref="PermissionAuthorizationHandler"/> that treats Admin as a superuser.
-    /// Called by both the API and the UI so the two enforce permissions identically.
-    /// </summary>
+    // Registers permission-based authorization: the on-demand PermissionPolicyProvider and the
+    // PermissionAuthorizationHandler that treats Admin as a superuser. Called by both the API and
+    // the UI so the two enforce permissions identically.
     public static IServiceCollection AddPermissionAuthorization(this IServiceCollection services)
     {
         services.AddAuthorizationCore();

@@ -8,12 +8,9 @@ using FluentAssertions;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// Country CRUD: the parallel of <see cref="LookupAdminServiceTests"/> for the country
-/// reference table, plus the rules that are unique to Country - ISO code uppercasing,
-/// region resolution, and the referential-integrity refusal for a country still named
-/// by live BIN ranges.
-/// </summary>
+// Country CRUD: the parallel of LookupAdminServiceTests for the country reference table, plus the
+// rules that are unique to Country - ISO code uppercasing, region resolution, and the
+// referential-integrity refusal for a country still named by live BIN ranges.
 public class CountryAdminServiceTests : SqliteTestBase
 {
     private const string AdminUserId = "admin-user-id";

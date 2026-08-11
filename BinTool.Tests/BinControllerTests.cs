@@ -8,11 +8,9 @@ using Moq;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// The controller's contract: what it passes to the service, what it returns, and the
-/// request validation that [ApiController] turns into a 400 before the action runs.
-/// The matching rules themselves are covered by the service tests.
-/// </summary>
+// The controller's contract: what it passes to the service, what it returns, and the request
+// validation that [ApiController] turns into a 400 before the action runs. The matching rules
+// themselves are covered by the service tests.
 public class BinControllerTests
 {
     private readonly Mock<IBinClassificationService> _service = new(MockBehavior.Strict);

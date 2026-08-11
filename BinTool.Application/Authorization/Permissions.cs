@@ -1,22 +1,15 @@
 namespace BinTool.Application.Authorization;
 
-/// <summary>
-/// One privilege a role can be granted. The <see cref="Key"/> is what is stored (as a role
-/// claim and, once a user signs in, as a claim on their token) and what the authorization
-/// policies check; the rest is for showing the privilege to a person composing a role.
-/// </summary>
+// One privilege a role can be granted. The Key is what is stored (as a role claim and, once a user
+// signs in, as a claim on their token) and what the authorization policies check; the rest is for
+// showing the privilege to a person composing a role.
 public sealed record PermissionInfo(string Key, string Name, string Description, string Group);
 
-/// <summary>
-/// The fixed catalog of privileges. Each key maps to real enforcement on an endpoint, so the
-/// set is defined in code - what an admin composes freely is which of these a role holds, and
-/// which roles a user holds.
-/// <para>
-/// Adding a privilege is: add a constant and a <see cref="PermissionInfo"/> here, and put the
-/// key on an endpoint. Seeding grants the Admin role every key, so Admin picks it up
-/// automatically, and the role editor renders it from <see cref="All"/> with no further work.
-/// </para>
-/// </summary>
+// The fixed catalog of privileges. Each key maps to real enforcement on an endpoint, so the set is
+// defined in code - what an admin composes freely is which of these a role holds, and which roles a
+// user holds. Adding a privilege is: add a constant and a PermissionInfo here, and put the key on
+// an endpoint. Seeding grants the Admin role every key, so Admin picks it up automatically, and the
+// role editor renders it from All with no further work.
 public static class Permissions
 {
     public const string BinClassify = "bin.classify";
@@ -30,7 +23,6 @@ public static class Permissions
     public const string CommissionRulesRead = "commissionrules.read";
     public const string CommissionRulesWrite = "commissionrules.write";
 
-    /// <summary>Headings the role editor groups the privileges under.</summary>
     public static class Groups
     {
         public const string Classification = "Classification";
@@ -39,7 +31,6 @@ public static class Permissions
         public const string CommissionRules = "Commission rules";
     }
 
-    /// <summary>Every privilege, in the order a role editor should present them.</summary>
     public static readonly IReadOnlyList<PermissionInfo> All = new[]
     {
         new PermissionInfo(BinClassify, "Classify BINs",
@@ -64,12 +55,9 @@ public static class Permissions
             "Add, edit, deactivate, restore and set the default commission rule.", Groups.CommissionRules)
     };
 
-    /// <summary>The keys alone, for seeding the Admin role with the whole catalog.</summary>
     public static readonly IReadOnlyList<string> AllKeys = All.Select(p => p.Key).ToArray();
 
     private static readonly HashSet<string> KeySet = new(AllKeys, StringComparer.Ordinal);
 
-    /// <summary>Whether a string is one of the catalog keys - used by the policy provider to
-    /// tell a permission policy name apart from any other policy.</summary>
     public static bool IsPermission(string key) => KeySet.Contains(key);
 }

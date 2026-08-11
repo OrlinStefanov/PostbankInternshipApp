@@ -9,10 +9,6 @@ namespace BinTool.Infrastructure.Services;
 
 public class ImportHistoryQueryService : IImportHistoryQueryService
 {
-    /// <summary>
-    /// Shown when an import was recorded with no user signed in - the same marker the audit
-    /// listing uses.
-    /// </summary>
     private const string SystemUser = "system";
 
     private readonly AppDbContext _db;

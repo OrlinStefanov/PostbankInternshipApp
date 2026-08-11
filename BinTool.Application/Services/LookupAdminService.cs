@@ -7,11 +7,9 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-/// <summary>
-/// The four Name+Description reference tables - card scheme, product type, funding type and
-/// region - share a shape, so one service serves all four. The <see cref="LookupKind"/> only
-/// picks the table and the audit entity-type constant; every rule below is identical.
-/// </summary>
+// The four Name+Description reference tables - card scheme, product type, funding type and region -
+// share a shape, so one service serves all four. The LookupKind only picks the table and the audit
+// entity-type constant; every rule below is identical.
 public class LookupAdminService : ILookupAdminService
 {
     private readonly ILookupRepository _lookups;

@@ -9,11 +9,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// Reference-data admin for the four Name+Description tables. Because the four kinds
-/// share their shape the tests run as a <see cref="TheoryAttribute"/> over
-/// <see cref="LookupKind"/> - a rule that holds for one kind must hold for every kind.
-/// </summary>
+// Reference-data admin for the four Name+Description tables. Because the four kinds share their
+// shape the tests run as a TheoryAttribute over LookupKind - a rule that holds for one kind must
+// hold for every kind.
 public class LookupAdminServiceTests : SqliteTestBase
 {
     private const string AdminUserId = "admin-user-id";

@@ -92,30 +92,24 @@
 @code {
     private const string Blank = "—";
 
-    /// <summary>What the card stands for, printed small above the chip.</summary>
     [Parameter]
     public string Kind { get; set; } = "BIN range";
 
-    /// <summary>Drives the livery as well as the brand mark; matched loosely on the name.</summary>
     [Parameter]
     public string? Scheme { get; set; }
 
     [Parameter]
     public string? StatusLabel { get; set; }
 
-    /// <summary>One of the tone names - success, info, warning, secondary.</summary>
     [Parameter]
     public string StatusTone { get; set; } = "secondary";
 
-    /// <summary>The digits that are actually known; the rest of the PAN is filled in.</summary>
     [Parameter]
     public string? Prefix { get; set; }
 
-    /// <summary>Small print under the number, e.g. what the remaining digits mean.</summary>
     [Parameter]
     public string? NumberNote { get; set; }
 
-    /// <summary>An accented line under the number, e.g. "Debit · Commercial".</summary>
     [Parameter]
     public string? Tagline { get; set; }
 
@@ -140,17 +134,9 @@
     [Parameter]
     public string? FundingType { get; set; }
 
-    /// <summary>
-    /// Extra <c>dt</c>/<c>dd</c> pairs for the back, each wrapped in its own div. Appended
-    /// after Country and Region and before the validity line.
-    /// </summary>
     [Parameter]
     public RenderFragment? ExtraDetails { get; set; }
 
-    /// <summary>
-    /// Whether to draw the flip / reset strip. Turned off where the surrounding panel
-    /// already carries its own controls.
-    /// </summary>
     [Parameter]
     public bool ShowControls { get; set; } = true;
 
@@ -192,10 +178,6 @@
         }
     }
 
-    /// <summary>
-    /// Squares the card up again: the flip is this component's state, the free rotation is
-    /// the module's, so both have to be told.
-    /// </summary>
     private async Task Reset()
     {
         _flipped = false;
@@ -232,11 +214,9 @@
         }
     }
 
-    /// <summary>
-    /// Which livery the card wears. Matched loosely on the scheme's display name, since that
-    /// is reference data an administrator can rename; anything unrecognised gets the neutral
-    /// treatment rather than being forced into a brand it may not be.
-    /// </summary>
+    // Which livery the card wears. Matched loosely on the scheme's display name, since that is
+    // reference data an administrator can rename; anything unrecognised gets the neutral treatment
+    // rather than being forced into a brand it may not be.
     private static string Skin(string? scheme)
     {
         var name = scheme?.ToLowerInvariant() ?? string.Empty;
@@ -251,10 +231,8 @@
         return "generic";
     }
 
-    /// <summary>
-    /// Lays the prefix out as a card number: the digits that are actually known, then filler
-    /// for the ones that vary from card to card, grouped in fours the way a card prints them.
-    /// </summary>
+    // Lays the prefix out as a card number: the digits that are actually known, then filler for the
+    // ones that vary from card to card, grouped in fours the way a card prints them.
     private static string Pan(string? prefix)
     {
         const int PanLength = 16;
@@ -271,10 +249,6 @@
 
     private static string Or(string? value) => string.IsNullOrWhiteSpace(value) ? Blank : value;
 
-    /// <summary>
-    /// Joins two values with a separator, dropping the separator when only one is set - the
-    /// editor's preview is looked at while half the form is still empty.
-    /// </summary>
     private static string Pair(string? left, string? right)
     {
         var parts = new[] { left, right }.Where(p => !string.IsNullOrWhiteSpace(p)).ToArray();

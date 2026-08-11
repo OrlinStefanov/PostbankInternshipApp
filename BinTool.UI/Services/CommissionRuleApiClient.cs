@@ -8,15 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.UI.Services;
 
-/// <summary>
-/// Thin typed client over the BinTool API's commission-rule endpoints. Runs on the Blazor
-/// server, so calls are server-to-server (no CORS involved).
-/// </summary>
 public class CommissionRuleApiClient
 {
-    /// <summary>
-    /// The API writes enums as their names, which the default options will not read back.
-    /// </summary>
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         Converters = { new JsonStringEnumConverter() }
@@ -31,10 +24,8 @@ public class CommissionRuleApiClient
         _tokens = tokens;
     }
 
-    /// <summary>
-    /// Attaches the signed-in user's token. Safe to set on the instance: a typed client
-    /// gets its own <c>HttpClient</c>, so this never leaks across users.
-    /// </summary>
+    // Attaches the signed-in user's token. Safe to set on the instance: a typed client gets its own
+    // "HttpClient", so this never leaks across users.
     private async Task AuthorizeAsync()
     {
         var token = await _tokens.GetTokenAsync();
@@ -44,11 +35,6 @@ public class CommissionRuleApiClient
             : new AuthenticationHeaderValue("Bearer", token);
     }
 
-    /// <summary>
-    /// Lists commission rules from <c>GET /api/CommissionRules</c>. Expired rules are hidden
-    /// unless <paramref name="includeExpired"/> is set; deleted ones unless
-    /// <paramref name="includeDeleted"/> is set.
-    /// </summary>
     public async Task<List<CommissionRuleListItem>> SearchAsync(
         bool includeDeleted = false,
         bool includeExpired = false,
@@ -65,10 +51,6 @@ public class CommissionRuleApiClient
         return result ?? new List<CommissionRuleListItem>();
     }
 
-    /// <summary>
-    /// Fetches one rule by id from <c>GET /api/CommissionRules/{id}</c>, deleted ones
-    /// included. Returns null if no rule has that id.
-    /// </summary>
     public async Task<CommissionRuleListItem?> GetAsync(
         int id, CancellationToken cancellationToken = default)
     {
@@ -84,41 +66,33 @@ public class CommissionRuleApiClient
             .ReadFromJsonAsync<CommissionRuleListItem>(Json, cancellationToken);
     }
 
-    /// <summary>Adds a rule via <c>POST /api/CommissionRules</c>.</summary>
     public Task<CommissionRuleMutationResult> CreateAsync(
         CommissionRuleInput input, CancellationToken cancellationToken = default) =>
         SendAsync(HttpMethod.Post, "api/CommissionRules", input, cancellationToken);
 
-    /// <summary>Overwrites a rule via <c>PUT /api/CommissionRules/{id}</c>.</summary>
     public Task<CommissionRuleMutationResult> UpdateAsync(
         int id, CommissionRuleInput input, CancellationToken cancellationToken = default) =>
         SendAsync(HttpMethod.Put, $"api/CommissionRules/{id}", input, cancellationToken);
 
-    /// <summary>Soft-deletes a rule via <c>DELETE /api/CommissionRules/{id}</c>.</summary>
     public Task<CommissionRuleMutationResult> DeleteAsync(
         int id, CancellationToken cancellationToken = default) =>
         SendAsync(HttpMethod.Delete, $"api/CommissionRules/{id}", null, cancellationToken);
 
-    /// <summary>Restores a soft-deleted rule via <c>POST /api/CommissionRules/{id}/restore</c>.</summary>
     public Task<CommissionRuleMutationResult> RestoreAsync(
         int id, CancellationToken cancellationToken = default) =>
         SendAsync(HttpMethod.Post, $"api/CommissionRules/{id}/restore", null, cancellationToken);
 
-    /// <summary>Makes a rule the fallback default via <c>POST /api/CommissionRules/{id}/default</c>.</summary>
     public Task<CommissionRuleMutationResult> SetDefaultAsync(
         int id, CancellationToken cancellationToken = default) =>
         SendAsync(HttpMethod.Post, $"api/CommissionRules/{id}/default", null, cancellationToken);
 
-    /// <summary>Clears the configured default via <c>DELETE /api/CommissionRules/default</c>.</summary>
     public Task<CommissionRuleMutationResult> ClearDefaultAsync(
         CancellationToken cancellationToken = default) =>
         SendAsync(HttpMethod.Delete, "api/CommissionRules/default", null, cancellationToken);
 
-    /// <summary>
-    /// Runs one write and reads the outcome. A refusal is a normal answer here - the API
-    /// returns the same body with a 400, 404 or 409 - so the status code is not thrown on;
-    /// the caller reads <c>Status</c> and shows <c>Error</c>.
-    /// </summary>
+    // Runs one write and reads the outcome. A refusal is a normal answer here - the API returns the
+    // same body with a 400, 404 or 409 - so the status code is not thrown on; the caller reads
+    // "Status" and shows "Error".
     private async Task<CommissionRuleMutationResult> SendAsync(
         HttpMethod method, string url, CommissionRuleInput? body, CancellationToken cancellationToken)
     {
@@ -159,9 +133,6 @@ public class CommissionRuleApiClient
         }
     }
 
-    /// <summary>
-    /// Turns a response the client did not expect into one sentence a user can act on.
-    /// </summary>
     private static async Task<string> DescribeAsync(
         HttpResponseMessage response, CancellationToken cancellationToken)
     {

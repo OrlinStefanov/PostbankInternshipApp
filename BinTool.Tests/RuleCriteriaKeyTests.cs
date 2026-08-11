@@ -3,10 +3,6 @@ using FluentAssertions;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// The rule key: what it suggests as a score, what it matches, and - the part that used to
-/// be buried inside a database query - when two keys can describe the same card.
-/// </summary>
 public class RuleCriteriaKeyTests
 {
     private const int Visa = 1, Mastercard = 2;

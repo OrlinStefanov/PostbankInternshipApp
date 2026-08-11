@@ -1,50 +1,24 @@
 namespace BinTool.Domain.Entities;
 
-/// <summary>
-/// Bank Identification Number (BIN) range record
-/// </summary>
 public class BinRange
 {
     public int BinRangeId { get; set; }
 
-    /// <summary>
-    /// BIN prefix (6 to 8 digits)
-    /// </summary>
     public string Prefix { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Length of the BIN prefix
-    /// </summary>
     public int PrefixLength { get; set; }
 
-    /// <summary>
-    /// Card scheme for this BIN range
-    /// </summary>
     public int CardSchemeId { get; set; }
 
-    /// <summary>
-    /// Product type for this BIN range
-    /// </summary>
     public int ProductTypeId { get; set; }
 
-    /// <summary>
-    /// Funding type for this BIN range
-    /// </summary>
     public int FundingTypeId { get; set; }
 
-    /// <summary>
-    /// Issuing country
-    /// </summary>
     public int CountryId { get; set; }
 
-    /// <summary>
-    /// Valid from date (inclusive)
-    /// </summary>
+    // Both ends inclusive; a null ValidTo runs forever. DateRange holds the arithmetic.
     public DateTime ValidFrom { get; set; }
 
-    /// <summary>
-    /// Valid until date (inclusive, nullable for open-ended)
-    /// </summary>
     public DateTime? ValidTo { get; set; }
 
     #region Audit Fields

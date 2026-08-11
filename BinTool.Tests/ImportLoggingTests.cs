@@ -3,12 +3,10 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Tests;
 
-/// <summary>
-/// What an import run leaves in the log. A 1000-row file cannot log per row without drowning
-/// everything else, so what is asserted here is that the run is traceable as a run: one scope
-/// carrying the run id, a summary carrying the counts as fields, and a warning when the run
-/// left work behind.
-/// </summary>
+// What an import run leaves in the log. A 1000-row file cannot log per row without drowning
+// everything else, so what is asserted here is that the run is traceable as a run: one scope
+// carrying the run id, a summary carrying the counts as fields, and a warning when the run left
+// work behind.
 public class ImportLoggingTests : ImportTestBase
 {
     [Fact]
