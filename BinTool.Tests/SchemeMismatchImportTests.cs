@@ -212,7 +212,8 @@ public class SchemeMismatchImportTests : ImportTestBase
         await using var fresh = NewContext();
         var freshService = new Application.Services.BinCsvImportService(
             new Infrastructure.Repositories.BinImportRepository(fresh), CurrentUser,
-            new Infrastructure.Services.AuditLog(fresh, CurrentUser),
+            new Application.Services.AuditLog(
+                new Infrastructure.Repositories.AuditRepository(fresh), CurrentUser),
             new Domain.Services.CardSchemeDetector(),
             new RecordingLogger<Application.Services.BinCsvImportService>());
 

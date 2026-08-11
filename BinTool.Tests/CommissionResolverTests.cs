@@ -1,5 +1,5 @@
+using BinTool.Application.Services;
 using BinTool.Domain.Entities;
-using BinTool.Infrastructure.Services;
 using FluentAssertions;
 
 namespace BinTool.Tests;
@@ -16,7 +16,8 @@ public class CommissionResolverTests : SqliteTestBase
     // A date every "valid" seeded rule below covers.
     private static readonly DateTime OnDate = new(2025, 6, 1);
 
-    private CommissionResolver Resolver() => new(Db);
+    private CommissionResolver Resolver() =>
+        new(new CommissionRuleRepository(Db), new CurrencyRepository(Db));
 
     private const int EurCurrencyId = 1;
 

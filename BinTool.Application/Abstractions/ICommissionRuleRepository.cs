@@ -51,6 +51,23 @@ public interface ICommissionRuleRepository
         int priority, DateRange window, int excludeRuleId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Every live rule whose criteria match the card and whose validity covers the day, with
+    /// its criteria and currency loaded. A null criteria field is a wildcard and matches
+    /// anything. The set is small by design, so the ranking between them is settled by the
+    /// caller rather than pushed into an ORDER BY that would hide the tiebreak.
+    /// </summary>
+    Task<IReadOnlyList<CommissionRule>> FindMatchingAsync(
+        int cardSchemeId, int productTypeId, int fundingTypeId, int regionId, DateTime onDate,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The rule serving as fallback, with its criteria and currency loaded. Null when no
+    /// default is configured, and also when the configured one has since been deleted - a
+    /// default pointing at a deleted rule is no default at all.
+    /// </summary>
+    Task<CommissionRule?> GetLiveDefaultRuleAsync(CancellationToken cancellationToken = default);
+
     void Add(CommissionRule rule);
 
     /// <summary>The id of the rule currently serving as fallback default, if any.</summary>

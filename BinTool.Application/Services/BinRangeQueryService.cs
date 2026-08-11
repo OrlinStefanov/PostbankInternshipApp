@@ -30,7 +30,7 @@ public class BinRangeQueryService : IBinRangeQueryService
         // by MaxPageSize, so this is at most a couple of hundred Detect() calls.
         foreach (var item in result.Items)
         {
-            item.DetectedScheme = MismatchedSchemeName(item.Prefix, item.CardScheme);
+            item.DetectedScheme = _detector.MismatchedName(item.Prefix, item.CardScheme);
         }
 
         return result;
@@ -87,23 +87,13 @@ public class BinRangeQueryService : IBinRangeQueryService
         var mismatches = new List<Mismatch>();
         foreach (var row in rows)
         {
-            if (MismatchedSchemeName(row.Prefix, row.SchemeName) is { } detectedName)
+            if (_detector.MismatchedName(row.Prefix, row.SchemeName) is { } detectedName)
             {
                 mismatches.Add(new Mismatch(row.Id, row.Prefix, detectedName));
             }
         }
 
         return mismatches;
-    }
-
-    private string? MismatchedSchemeName(string prefix, string storedScheme)
-    {
-        var detected = _detector.Detect(prefix);
-
-        var detectedName = _detector.DisplayName(detected);
-        if (detectedName is null) return null;
-
-        return _detector.Matches(detected, storedScheme) ? null : detectedName;
     }
 
     private static (int Page, int PageSize) Paging(int page, int pageSize) =>

@@ -63,6 +63,34 @@ public class CommissionRuleRepository : ICommissionRuleRepository
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<CommissionRule>> FindMatchingAsync(
+        int cardSchemeId, int productTypeId, int fundingTypeId, int regionId, DateTime onDate,
+        CancellationToken cancellationToken = default) =>
+        await _db.CommissionRules.AsNoTracking()
+            .Include(r => r.RuleCriteria)
+            .Include(r => r.Currency)
+            .Where(r => !r.IsDeleted && r.IsActive)
+            .Where(r => r.ValidFrom <= onDate && (r.ValidTo == null || r.ValidTo >= onDate))
+            .Where(r => r.RuleCriteria.Any(c =>
+                (c.CardSchemeId == null || c.CardSchemeId == cardSchemeId)
+                && (c.ProductTypeId == null || c.ProductTypeId == productTypeId)
+                && (c.FundingTypeId == null || c.FundingTypeId == fundingTypeId)
+                && (c.RegionId == null || c.RegionId == regionId)))
+            .ToListAsync(cancellationToken);
+
+    public async Task<CommissionRule?> GetLiveDefaultRuleAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var defaultRuleId = await GetDefaultRuleIdAsync(cancellationToken);
+        if (defaultRuleId is not { } ruleId) return null;
+
+        return await _db.CommissionRules.AsNoTracking()
+            .Include(r => r.RuleCriteria)
+            .Include(r => r.Currency)
+            .FirstOrDefaultAsync(
+                r => r.CommissionRuleId == ruleId && !r.IsDeleted, cancellationToken);
+    }
+
     public void Add(CommissionRule rule) => _db.CommissionRules.Add(rule);
 
     public Task<int?> GetDefaultRuleIdAsync(CancellationToken cancellationToken = default) =>

@@ -3,4 +3,5 @@
 global using BinTool.Application.Abstractions;
 global using BinTool.Domain.Entities;
 global using BinTool.Domain.Services;
+global using BinTool.Infrastructure.Repositories;
 global using BinTool.Tests.Fakes;

@@ -3,7 +3,6 @@ using BinTool.Application.Models.ReferenceData;
 using BinTool.Application.Services;
 using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Repositories;
-using BinTool.Infrastructure.Services;
 using FluentAssertions;
 
 namespace BinTool.Tests;
@@ -23,7 +22,7 @@ public class CountryAdminServiceTests : SqliteTestBase
 
         var user = new TestCurrentUser(AdminUserId, "admin");
         _service = new CountryAdminService(
-            new CountryRepository(Db), user, new AuditLog(Db, user),
+            new CountryRepository(Db), user, new AuditLog(new AuditRepository(Db), user),
             new RecordingLogger<CountryAdminService>());
     }
 

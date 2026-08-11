@@ -1,3 +1,4 @@
+using BinTool.Domain.Common;
 using BinTool.Infrastructure.Data;
 
 namespace BinTool.Infrastructure.Repositories;
@@ -35,6 +36,28 @@ public class CurrencyRepository : ICurrencyRepository
 
         return _db.Currencies.FirstOrDefaultAsync(c => c.Code == upper, cancellationToken);
     }
+
+    public Task<Currency?> GetLiveAsync(int id, CancellationToken cancellationToken = default) =>
+        _db.Currencies.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.CurrencyId == id && !c.IsDeleted, cancellationToken);
+
+    public async Task<int?> FindLiveIdByCodeAsync(
+        string? code, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return null;
+
+        var upper = code.Trim().ToUpperInvariant();
+
+        return await _db.Currencies.AsNoTracking()
+            .Where(c => !c.IsDeleted && c.Code == upper)
+            .Select(c => (int?)c.CurrencyId)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public Task<Currency?> GetBaseCurrencyAsync(CancellationToken cancellationToken = default) =>
+        _db.Currencies.AsNoTracking()
+            .FirstOrDefaultAsync(
+                c => c.Code == DomainConstants.BaseCurrencyCode && !c.IsDeleted, cancellationToken);
 
     public Task<int> CountRulesUsingAsync(int currencyId, CancellationToken cancellationToken = default) =>
         _db.CommissionRules.AsNoTracking()

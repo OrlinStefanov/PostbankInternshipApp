@@ -1,5 +1,5 @@
 using BinTool.Application.Abstractions;
-using BinTool.Infrastructure.Services;
+using BinTool.Application.Services;
 using FluentAssertions;
 
 namespace BinTool.Tests;
@@ -13,7 +13,10 @@ public class BinClassificationServiceTests : SqliteTestBase
     public BinClassificationServiceTests()
     {
         _service = new BinClassificationService(
-            Db, new CommissionResolver(Db), new CardSchemeDetector());
+            new BinRangeRepository(Db),
+            new CurrencyRepository(Db),
+            new CommissionResolver(new CommissionRuleRepository(Db), new CurrencyRepository(Db)),
+            new CardSchemeDetector());
     }
 
     // ---- Matching --------------------------------------------------------------

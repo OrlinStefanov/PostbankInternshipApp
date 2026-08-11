@@ -1,31 +1,22 @@
-using BinTool.Application.Abstractions;
 using BinTool.Application.Models.BinRanges;
 using BinTool.Application.Models.Import;
-using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 
-namespace BinTool.Infrastructure.Services;
+namespace BinTool.Infrastructure.Repositories;
 
-public class ImportHistoryQueryService : IImportHistoryQueryService
+public class ImportHistoryRepository : IImportHistoryRepository
 {
-    private const string SystemUser = "system";
-
     private readonly AppDbContext _db;
 
-    public ImportHistoryQueryService(AppDbContext db)
+    public ImportHistoryRepository(AppDbContext db)
     {
         _db = db;
     }
 
     public async Task<PagedResult<ImportHistoryItem>> SearchAsync(
-        ImportHistoryQuery query, CancellationToken cancellationToken = default)
+        ImportHistoryQuery query, int page, int pageSize,
+        CancellationToken cancellationToken = default)
     {
-        var page = Math.Max(1, query.Page);
-        var pageSize = Math.Clamp(
-            query.PageSize <= 0 ? ImportHistoryQuery.DefaultPageSize : query.PageSize,
-            1, ImportHistoryQuery.MaxPageSize);
-
         var rows = ApplyFilters(_db.ImportHistories.AsNoTracking(), query);
 
         var totalCount = await rows.CountAsync(cancellationToken);
@@ -46,7 +37,7 @@ public class ImportHistoryQueryService : IImportHistoryQueryService
                 UpdatedRows = h.UpdatedRows,
                 RejectedRows = h.RejectedRows,
                 Status = h.Status,
-                UserName = h.ImportedByUser != null ? h.ImportedByUser.UserName! : SystemUser
+                UserName = h.ImportedByUser != null ? h.ImportedByUser.UserName! : ICurrentUser.SystemName
             })
             .ToListAsync(cancellationToken);
 

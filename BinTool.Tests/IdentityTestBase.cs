@@ -1,7 +1,7 @@
 using BinTool.Application.Abstractions;
+using BinTool.Application.Services;
 using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Data;
-using BinTool.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -53,7 +53,7 @@ public abstract class IdentityTestBase : IDisposable
         Users = scoped.GetRequiredService<UserManager<ApplicationUser>>();
     }
 
-    protected IAuditLog Audit() => new AuditLog(Db, CurrentUser);
+    protected IAuditLog Audit() => new AuditLog(new AuditRepository(Db), CurrentUser);
 
     protected async Task<ApplicationUser> CreateUserAsync(string userName, params string[] roles)
     {

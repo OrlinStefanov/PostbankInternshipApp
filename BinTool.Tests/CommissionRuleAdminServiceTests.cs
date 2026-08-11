@@ -1,7 +1,6 @@
 using BinTool.Application.Models.Commission;
 using BinTool.Application.Services;
 using BinTool.Infrastructure.Repositories;
-using BinTool.Infrastructure.Services;
 using FluentAssertions;
 
 namespace BinTool.Tests;
@@ -24,7 +23,7 @@ public class CommissionRuleAdminServiceTests : SqliteTestBase
             new CommissionRuleRepository(Db),
             new ReferenceDataRepository(Db),
             currentUser,
-            new AuditLog(Db, currentUser),
+            new AuditLog(new AuditRepository(Db), currentUser),
             new RecordingLogger<CommissionRuleAdminService>());
     }
 

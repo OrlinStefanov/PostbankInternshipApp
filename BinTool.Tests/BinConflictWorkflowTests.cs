@@ -3,7 +3,6 @@ using BinTool.Application.Models.Import;
 using BinTool.Application.Services;
 using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Repositories;
-using BinTool.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 
@@ -55,7 +54,7 @@ public class BinConflictWorkflowTests : ImportTestBase
 
         await using var fresh = NewContext();
         var freshService = new BinCsvImportService(
-            new BinImportRepository(fresh), CurrentUser, new AuditLog(fresh, CurrentUser),
+            new BinImportRepository(fresh), CurrentUser, new AuditLog(new AuditRepository(fresh), CurrentUser),
             new CardSchemeDetector(), new RecordingLogger<BinCsvImportService>());
 
         var conflicts = await freshService.GetPendingConflictsAsync();

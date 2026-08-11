@@ -1,45 +1,23 @@
-using BinTool.Application.Abstractions;
 using BinTool.Application.Models.Audit;
 using BinTool.Application.Models.BinRanges;
-using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 
-namespace BinTool.Infrastructure.Services;
+namespace BinTool.Infrastructure.Repositories;
 
-public class AuditQueryService : IAuditQueryService
+public class AuditRepository : IAuditRepository
 {
-    private const string SystemUser = "system";
-
-    private static readonly IReadOnlyList<string> EntityTypes = new[]
-    {
-        AuditEntityTypes.BinRange,
-        AuditEntityTypes.CardScheme,
-        AuditEntityTypes.ProductType,
-        AuditEntityTypes.FundingType,
-        AuditEntityTypes.Region,
-        AuditEntityTypes.Country,
-        AuditEntityTypes.CommissionRule,
-        AuditEntityTypes.DefaultRule,
-        AuditEntityTypes.Role,
-        AuditEntityTypes.UserRole
-    };
-
     private readonly AppDbContext _db;
 
-    public AuditQueryService(AppDbContext db)
+    public AuditRepository(AppDbContext db)
     {
         _db = db;
     }
 
-    public async Task<PagedResult<AuditLogItem>> SearchAsync(
-        AuditQuery query, CancellationToken cancellationToken = default)
-    {
-        var page = Math.Max(1, query.Page);
-        var pageSize = Math.Clamp(
-            query.PageSize <= 0 ? AuditQuery.DefaultPageSize : query.PageSize,
-            1, AuditQuery.MaxPageSize);
+    public void Add(AuditEntry entry) => _db.AuditEntries.Add(entry);
 
+    public async Task<PagedResult<AuditLogItem>> SearchAsync(
+        AuditQuery query, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
         var rows = ApplyFilters(_db.AuditEntries.AsNoTracking(), query);
 
         var totalCount = await rows.CountAsync(cancellationToken);
@@ -58,7 +36,7 @@ public class AuditQueryService : IAuditQueryService
                 Action = a.Action,
                 EntityType = a.EntityType,
                 EntityId = a.EntityId,
-                UserName = a.PerformedByUser != null ? a.PerformedByUser.UserName! : SystemUser,
+                UserName = a.PerformedByUser != null ? a.PerformedByUser.UserName! : ICurrentUser.SystemName,
                 OldValues = a.OldValues,
                 NewValues = a.NewValues
             })
@@ -72,8 +50,6 @@ public class AuditQueryService : IAuditQueryService
             TotalCount = totalCount
         };
     }
-
-    public IReadOnlyList<string> GetEntityTypes() => EntityTypes;
 
     private static IQueryable<AuditEntry> ApplyFilters(
         IQueryable<AuditEntry> rows, AuditQuery query)
@@ -100,7 +76,7 @@ public class AuditQueryService : IAuditQueryService
         {
             // "system" is the marker recorded when nobody was signed in, not a real user,
             // so filtering to it returns rows with a null user reference.
-            if (userName == SystemUser)
+            if (userName == ICurrentUser.SystemName)
             {
                 rows = rows.Where(a => a.PerformedByUserId == null);
             }

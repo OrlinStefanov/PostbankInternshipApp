@@ -19,6 +19,22 @@ public interface ICurrencyRepository
     /// </summary>
     Task<Currency?> FindByCodeAsync(string code, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// A live currency by id, for pricing. Separate from <see cref="GetAsync"/>, which also
+    /// returns soft-deleted rows so administration can show and revive them - a fee must
+    /// never be quoted in a currency that has been withdrawn.
+    /// </summary>
+    Task<Currency?> GetLiveAsync(int id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The id of the live currency with this ISO-4217 code, or null when the code is blank
+    /// or names nothing. Callers read null as "price in the euro base".
+    /// </summary>
+    Task<int?> FindLiveIdByCodeAsync(string? code, CancellationToken cancellationToken = default);
+
+    /// <summary>The live euro row, the base every rate is expressed against.</summary>
+    Task<Currency?> GetBaseCurrencyAsync(CancellationToken cancellationToken = default);
+
     /// <summary>How many live commission rules are still priced in this currency.</summary>
     Task<int> CountRulesUsingAsync(int currencyId, CancellationToken cancellationToken = default);
 

@@ -3,7 +3,6 @@ using BinTool.Application.Abstractions;
 using BinTool.Application.Models.Import;
 using BinTool.Application.Services;
 using BinTool.Infrastructure.Repositories;
-using BinTool.Infrastructure.Services;
 using BinTool.Tests.Fakes;
 
 namespace BinTool.Tests;
@@ -26,7 +25,7 @@ public abstract class ImportTestBase : SqliteTestBase
         var currentUser = new DeferredCurrentUser(() => CurrentUser);
 
         Service = new BinCsvImportService(
-            new BinImportRepository(Db), currentUser, new AuditLog(Db, currentUser),
+            new BinImportRepository(Db), currentUser, new AuditLog(new AuditRepository(Db), currentUser),
             new CardSchemeDetector(), ImportLogger);
     }
 

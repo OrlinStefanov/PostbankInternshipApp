@@ -47,7 +47,7 @@ public class CurrentUserTests
     [Fact]
     public void Work_outside_a_request_is_recorded_as_system()
     {
-        var current = new BinTool.Infrastructure.Services.SystemCurrentUser();
+        var current = new BinTool.Application.Services.SystemCurrentUser();
 
         current.UserId.Should().BeNull();
         current.Name.Should().Be("system");

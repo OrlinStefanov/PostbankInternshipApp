@@ -139,6 +139,31 @@ public class BinRangeRepository : IBinRangeRepository
                 .FirstOrDefaultAsync(cancellationToken));
     }
 
+    public Task<MatchedRange?> FindLongestMatchAsync(
+        IReadOnlyCollection<string> candidatePrefixes, DateTime onDate,
+        CancellationToken cancellationToken = default) =>
+        _db.BinRanges.AsNoTracking()
+            .Where(b => !b.IsDeleted
+                        && candidatePrefixes.Contains(b.Prefix)
+                        && b.ValidFrom <= onDate
+                        && (b.ValidTo == null || b.ValidTo >= onDate))
+            .OrderByDescending(b => b.PrefixLength)
+            .Select(b => new MatchedRange(
+                b.Prefix,
+                b.CardSchemeId,
+                b.CardScheme!.Name,
+                b.ProductTypeId,
+                b.ProductType!.Name,
+                b.FundingTypeId,
+                b.FundingType!.Name,
+                b.Country!.IsoCode,
+                b.Country.Name,
+                b.Country.RegionId,
+                b.Country.Region!.Name,
+                b.ValidFrom,
+                b.ValidTo))
+            .FirstOrDefaultAsync(cancellationToken);
+
     public void Add(BinRange range) => _db.BinRanges.Add(range);
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>

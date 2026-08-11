@@ -74,6 +74,8 @@ public class ServiceRegistrationTests : IDisposable
         typeof(IUserRepository),
         typeof(IBinRangeRepository),
         typeof(IBinImportRepository),
+        typeof(IAuditRepository),
+        typeof(IImportHistoryRepository),
         typeof(IRoleAdminService),
         typeof(IUserAdminService)
     };

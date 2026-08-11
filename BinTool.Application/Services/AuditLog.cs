@@ -2,9 +2,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using BinTool.Application.Abstractions;
 using BinTool.Domain.Entities;
-using BinTool.Infrastructure.Data;
 
-namespace BinTool.Infrastructure.Services;
+namespace BinTool.Application.Services;
 
 public class AuditLog : IAuditLog
 {
@@ -16,12 +15,12 @@ public class AuditLog : IAuditLog
         WriteIndented = false
     };
 
-    private readonly AppDbContext _db;
+    private readonly IAuditRepository _audit;
     private readonly ICurrentUser _currentUser;
 
-    public AuditLog(AppDbContext db, ICurrentUser currentUser)
+    public AuditLog(IAuditRepository audit, ICurrentUser currentUser)
     {
-        _db = db;
+        _audit = audit;
         _currentUser = currentUser;
     }
 
@@ -29,7 +28,7 @@ public class AuditLog : IAuditLog
         AuditAction action, string entityType, int entityId,
         object? oldValues, object? newValues)
     {
-        _db.AuditEntries.Add(new AuditEntry
+        _audit.Add(new AuditEntry
         {
             EntityType = entityType,
             EntityId = entityId,

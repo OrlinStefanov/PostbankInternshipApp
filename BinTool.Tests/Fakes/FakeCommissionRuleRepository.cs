@@ -92,6 +92,25 @@ public sealed class FakeCommissionRuleRepository : ICommissionRuleRepository
         Task.FromResult<IReadOnlyList<CommissionRule>>(
             Candidates(window, excludeRuleId).Where(r => r.Priority == priority).ToList());
 
+    public Task<IReadOnlyList<CommissionRule>> FindMatchingAsync(
+        int cardSchemeId, int productTypeId, int fundingTypeId, int regionId, DateTime onDate,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<CommissionRule>>(
+            _rules.Where(r =>
+                !r.IsDeleted
+                && r.IsActive
+                && r.Validity().Contains(onDate)
+                && r.RuleCriteria.Any(c =>
+                    (c.CardSchemeId is null || c.CardSchemeId == cardSchemeId)
+                    && (c.ProductTypeId is null || c.ProductTypeId == productTypeId)
+                    && (c.FundingTypeId is null || c.FundingTypeId == fundingTypeId)
+                    && (c.RegionId is null || c.RegionId == regionId)))
+                .ToList());
+
+    public Task<CommissionRule?> GetLiveDefaultRuleAsync(
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(_default is null ? null : Find(_default.CommissionRuleId) is { IsDeleted: false } rule ? rule : null);
+
     public void Add(CommissionRule rule)
     {
         rule.CommissionRuleId = _nextRuleId++;

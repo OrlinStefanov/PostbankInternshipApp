@@ -4,7 +4,6 @@ using BinTool.Application.Models.ReferenceData;
 using BinTool.Application.Services;
 using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Repositories;
-using BinTool.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,7 +22,7 @@ public class CurrencyServiceTests : SqliteTestBase
         SeedUser(AdminUserId, "admin");
         _user = new TestCurrentUser(AdminUserId, "admin");
         _service = new CurrencyService(
-            new CurrencyRepository(Db), _user, new AuditLog(Db, _user),
+            new CurrencyRepository(Db), _user, new AuditLog(new AuditRepository(Db), _user),
             new RecordingLogger<CurrencyService>());
     }
 

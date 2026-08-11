@@ -1,6 +1,6 @@
 using BinTool.Application.Models.Audit;
+using BinTool.Application.Services;
 using BinTool.Domain.Entities;
-using BinTool.Infrastructure.Services;
 using FluentAssertions;
 
 namespace BinTool.Tests;
@@ -22,7 +22,7 @@ public class AuditQueryServiceTests : SqliteTestBase
         SeedUser(AdminId, "admin");
         SeedUser(ViewerId, "viewer");
 
-        _service = new AuditQueryService(Db);
+        _service = new AuditQueryService(new AuditRepository(Db));
     }
 
     private AuditEntry Seed(

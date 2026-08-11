@@ -1,8 +1,9 @@
+using BinTool.Application.Abstractions;
 using BinTool.Application.Models.Commission;
 using BinTool.Domain.Common;
-using BinTool.Infrastructure.Data;
+using BinTool.Domain.Entities;
 
-namespace BinTool.Infrastructure.Services;
+namespace BinTool.Application.Services;
 
 // Selects the applicable commission rule and works out the fee. Selection is deterministic: among
 // the rules that match the card and are valid on the date, the one with the highest Priority wins;
@@ -10,13 +11,13 @@ namespace BinTool.Infrastructure.Services;
 // the configured default is used and the result is flagged as a fallback.
 public class CommissionResolver : ICommissionResolver
 {
-    private const string BaseCurrencyCode = "EUR";
+    private readonly ICommissionRuleRepository _rules;
+    private readonly ICurrencyRepository _currencies;
 
-    private readonly AppDbContext _db;
-
-    public CommissionResolver(AppDbContext db)
+    public CommissionResolver(ICommissionRuleRepository rules, ICurrencyRepository currencies)
     {
-        _db = db;
+        _rules = rules;
+        _currencies = currencies;
     }
 
     public async Task<CommissionCalculation?> ResolveAsync(
@@ -35,21 +36,11 @@ public class CommissionResolver : ICommissionResolver
         // currency even when the two differ. Falls back to the euro base currency.
         var inputCurrency = await ResolveInputCurrencyAsync(inputCurrencyId, cancellationToken);
 
-        // Every live rule that matches the card's attributes (a null criteria field is a
-        // wildcard) and is valid on the day. The set is small, so the Priority / PriorityScore
-        // tiebreak is settled in memory where it reads clearly.
-        var matches = await _db.CommissionRules.AsNoTracking()
-            .Include(r => r.RuleCriteria)
-            .Include(r => r.Currency)
-            .Where(r => !r.IsDeleted && r.IsActive)
-            .Where(r => r.ValidFrom <= day && (r.ValidTo == null || r.ValidTo >= day))
-            .Where(r => r.RuleCriteria.Any(c =>
-                (c.CardSchemeId == null || c.CardSchemeId == cardSchemeId)
-                && (c.ProductTypeId == null || c.ProductTypeId == productTypeId)
-                && (c.FundingTypeId == null || c.FundingTypeId == fundingTypeId)
-                && (c.RegionId == null || c.RegionId == regionId)))
-            .ToListAsync(cancellationToken);
+        var matches = await _rules.FindMatchingAsync(
+            cardSchemeId, productTypeId, fundingTypeId, regionId, day, cancellationToken);
 
+        // The matching set is small, so the tiebreak is settled here where it reads as the
+        // ranking it is rather than as an ORDER BY four clauses long.
         var winner = matches
             .OrderByDescending(r => r.Priority)          // the admin's ranking
             .ThenByDescending(r => r.PriorityScore())    // the stored score
@@ -62,22 +53,12 @@ public class CommissionResolver : ICommissionResolver
             return Calculate(winner, amount, inputCurrency, isFallback: false);
         }
 
-        // No rule matched. Fall back to the configured default, if one is set.
-        var defaultRuleId = await _db.DefaultRules.AsNoTracking()
-            .Select(d => (int?)d.CommissionRuleId)
-            .FirstOrDefaultAsync(cancellationToken);
+        // No rule matched. Fall back to the configured default, if one is set and still live.
+        var fallback = await _rules.GetLiveDefaultRuleAsync(cancellationToken);
 
-        if (defaultRuleId is not { } ruleId) return null;
-
-        var fallback = await _db.CommissionRules.AsNoTracking()
-            .Include(r => r.RuleCriteria)
-            .Include(r => r.Currency)
-            .FirstOrDefaultAsync(r => r.CommissionRuleId == ruleId, cancellationToken);
-
-        // A default that points at a soft-deleted rule is treated as no default at all.
-        if (fallback is null || fallback.IsDeleted) return null;
-
-        return Calculate(fallback, amount, inputCurrency, isFallback: true);
+        return fallback is null
+            ? null
+            : Calculate(fallback, amount, inputCurrency, isFallback: true);
     }
 
     // Loads the currency the amount was quoted in. A null id, or an id that no longer resolves to a
@@ -88,18 +69,19 @@ public class CommissionResolver : ICommissionResolver
     {
         if (inputCurrencyId is { } id)
         {
-            var chosen = await _db.Currencies.AsNoTracking()
-                .FirstOrDefaultAsync(c => c.CurrencyId == id && !c.IsDeleted, cancellationToken);
+            var chosen = await _currencies.GetLiveAsync(id, cancellationToken);
             if (chosen is not null) return chosen;
         }
 
-        var euro = await _db.Currencies.AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Code == BaseCurrencyCode && !c.IsDeleted, cancellationToken);
+        var euro = await _currencies.GetBaseCurrencyAsync(cancellationToken);
 
         // No euro row configured at all: fall back to a synthetic 1:1 base so pricing never
         // fails outright over reference data. Should not happen once the seed has run.
-        return euro ?? new Currency { Code = BaseCurrencyCode, Name = "Euro", RateToEur = 1m };
+        return euro ?? BaseCurrency();
     }
+
+    private static Currency BaseCurrency() =>
+        new() { Code = DomainConstants.BaseCurrencyCode, Name = "Euro", RateToEur = 1m };
 
     // Converts the amount into the rule's currency, then: percentage part (rounded to 4dp) + fixed
     // amount, raised to the minimum fee, final fee rounded to 2dp. Banker's rounding throughout.
@@ -107,8 +89,7 @@ public class CommissionResolver : ICommissionResolver
     private static CommissionCalculation Calculate(
         CommissionRule rule, decimal inputAmount, Currency inputCurrency, bool isFallback)
     {
-        var ruleCurrency = rule.Currency
-            ?? new Currency { Code = BaseCurrencyCode, Name = "Euro", RateToEur = 1m };
+        var ruleCurrency = rule.Currency ?? BaseCurrency();
 
         // Convert the entered amount into the rule's currency, pivoting through euro:
         // eur = amount * inputRate; then amount_in_rule = eur / ruleRate.

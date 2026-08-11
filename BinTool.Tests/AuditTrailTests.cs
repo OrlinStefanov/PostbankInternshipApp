@@ -5,7 +5,6 @@ using BinTool.Application.Models.BinRanges;
 using BinTool.Application.Services;
 using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Repositories;
-using BinTool.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,7 +26,7 @@ public class AuditTrailTests : ImportTestBase
 
         CurrentUser = new TestUser(AdminUserId, "admin");
         _admin = new BinRangeAdminService(
-            new BinRangeRepository(Db), CurrentUser, new AuditLog(Db, CurrentUser),
+            new BinRangeRepository(Db), CurrentUser, new AuditLog(new AuditRepository(Db), CurrentUser),
             new CardSchemeDetector(), new RecordingLogger<BinRangeAdminService>());
     }
 

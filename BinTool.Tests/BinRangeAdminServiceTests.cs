@@ -2,7 +2,6 @@ using BinTool.Application.Abstractions;
 using BinTool.Application.Models.BinRanges;
 using BinTool.Application.Services;
 using BinTool.Infrastructure.Repositories;
-using BinTool.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,7 +22,7 @@ public class BinRangeAdminServiceTests : SqliteTestBase
 
         var currentUser = new TestUser(AdminUserId, "admin");
         _service = new BinRangeAdminService(
-            new BinRangeRepository(Db), currentUser, new AuditLog(Db, currentUser),
+            new BinRangeRepository(Db), currentUser, new AuditLog(new AuditRepository(Db), currentUser),
             new CardSchemeDetector(), new RecordingLogger<BinRangeAdminService>());
     }
 
@@ -324,7 +323,11 @@ public class BinRangeAdminServiceTests : SqliteTestBase
 
         var context = NewContext();
         var classification = await new BinClassificationService(
-                context, new CommissionResolver(context), new CardSchemeDetector())
+                new BinRangeRepository(context),
+                new CurrencyRepository(context),
+                new CommissionResolver(
+                    new CommissionRuleRepository(context), new CurrencyRepository(context)),
+                new CardSchemeDetector())
             .ClassifyAsync("4000011234567");
 
         classification.Matched.Should().BeFalse();

@@ -1,5 +1,5 @@
 using BinTool.Application.Abstractions;
-using BinTool.Infrastructure.Services;
+using BinTool.Application.Services;
 using FluentAssertions;
 
 namespace BinTool.Tests;
