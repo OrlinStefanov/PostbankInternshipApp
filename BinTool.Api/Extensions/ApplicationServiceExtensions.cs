@@ -40,6 +40,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICurrencyRepository, CurrencyRepository>();
         services.AddScoped<ICountryRepository, CountryRepository>();
         services.AddScoped<ILookupRepository, LookupRepository>();
+        services.AddScoped<IRoleRepository, RoleRepository>();
 
         services.AddScoped<IRoleAdminService, RoleAdminService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
