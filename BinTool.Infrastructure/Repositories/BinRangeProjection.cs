@@ -2,7 +2,7 @@ using System.Linq.Expressions;
 using BinTool.Domain.Entities;
 using BinTool.Application.Models.BinRanges;
 
-namespace BinTool.Infrastructure.Services;
+namespace BinTool.Infrastructure.Repositories;
 
 /// <summary>
 /// The one place a stored <see cref="BinRange"/> becomes a <see cref="BinRangeListItem"/>.

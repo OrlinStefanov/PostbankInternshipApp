@@ -1,5 +1,7 @@
 using BinTool.Application.Models.BinRanges;
 using BinTool.Application.Abstractions;
+using BinTool.Application.Services;
+using BinTool.Infrastructure.Repositories;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
 
@@ -17,7 +19,7 @@ public class BinRangeQueryServiceMismatchTests : SqliteTestBase
 
     public BinRangeQueryServiceMismatchTests()
     {
-        _service = new BinRangeQueryService(Db, new CardSchemeDetector());
+        _service = new BinRangeQueryService(new BinRangeRepository(Db), new CardSchemeDetector());
     }
 
     [Fact]

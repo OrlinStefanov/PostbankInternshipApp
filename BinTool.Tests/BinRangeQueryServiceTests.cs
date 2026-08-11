@@ -1,6 +1,8 @@
 using BinTool.Domain.Entities;
 using BinTool.Application.Models.BinRanges;
 using BinTool.Application.Abstractions;
+using BinTool.Application.Services;
+using BinTool.Infrastructure.Repositories;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
 
@@ -18,7 +20,7 @@ public class BinRangeQueryServiceTests : SqliteTestBase
 
     public BinRangeQueryServiceTests()
     {
-        _service = new BinRangeQueryService(Db, new CardSchemeDetector());
+        _service = new BinRangeQueryService(new BinRangeRepository(Db), new CardSchemeDetector());
     }
 
     private Task<PagedResult<BinRangeListItem>> Search(BinRangeQuery? query = null) =>

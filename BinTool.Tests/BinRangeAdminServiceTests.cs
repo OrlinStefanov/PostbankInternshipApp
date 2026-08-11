@@ -1,5 +1,7 @@
 using BinTool.Application.Models.BinRanges;
 using BinTool.Application.Abstractions;
+using BinTool.Application.Services;
+using BinTool.Infrastructure.Repositories;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +26,8 @@ public class BinRangeAdminServiceTests : SqliteTestBase
 
         var currentUser = new TestUser(AdminUserId, "admin");
         _service = new BinRangeAdminService(
-            Db, currentUser, new AuditLog(Db, currentUser), new CardSchemeDetector());
+            new BinRangeRepository(Db), currentUser, new AuditLog(Db, currentUser),
+            new CardSchemeDetector(), new RecordingLogger<BinRangeAdminService>());
     }
 
     private static BinRangeInput Input(
