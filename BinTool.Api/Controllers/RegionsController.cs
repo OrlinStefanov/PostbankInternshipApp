@@ -1,5 +1,5 @@
-using BinTool.Application.Models.ReferenceData;
 using BinTool.Application.Abstractions;
+using BinTool.Application.Models.ReferenceData;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.Api.Controllers;

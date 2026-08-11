@@ -1,5 +1,5 @@
-using BinTool.Application.Models.BinRanges;
 using BinTool.Application.Abstractions;
+using BinTool.Application.Models.BinRanges;
 using BinTool.Application.Services;
 using BinTool.Infrastructure.Repositories;
 using BinTool.Infrastructure.Services;
@@ -32,16 +32,16 @@ public class BinRangeAdminServiceTests : SqliteTestBase
         string fundingType = "Credit", string countryCode = "US",
         DateTime? validFrom = null, DateTime? validTo = null,
         bool acknowledgeSchemeMismatch = false) => new()
-    {
-        Prefix = prefix,
-        CardScheme = cardScheme,
-        ProductType = productType,
-        FundingType = fundingType,
-        CountryCode = countryCode,
-        ValidFrom = validFrom ?? Started,
-        ValidTo = validTo,
-        AcknowledgeSchemeMismatch = acknowledgeSchemeMismatch
-    };
+        {
+            Prefix = prefix,
+            CardScheme = cardScheme,
+            ProductType = productType,
+            FundingType = fundingType,
+            CountryCode = countryCode,
+            ValidFrom = validFrom ?? Started,
+            ValidTo = validTo,
+            AcknowledgeSchemeMismatch = acknowledgeSchemeMismatch
+        };
 
     // ---- Create ----------------------------------------------------------------
 

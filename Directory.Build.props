@@ -1,0 +1,11 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Without this the .editorconfig severities only reach the IDE, and a style
+         baseline nobody's build checks is a style baseline that drifts. On means
+         `dotnet build` reports the same IDE#### diagnostics `dotnet format` fixes,
+         so the two can never disagree about what the house style is. -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+</Project>

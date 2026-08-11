@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
-using BinTool.Domain.Entities;
 using BinTool.Application.Models.BinRanges;
+using BinTool.Domain.Entities;
 
 namespace BinTool.Infrastructure.Repositories;
 

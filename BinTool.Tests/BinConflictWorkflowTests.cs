@@ -1,7 +1,7 @@
-using BinTool.Domain.Entities;
-using BinTool.Application.Models.Import;
 using BinTool.Application.Abstractions;
+using BinTool.Application.Models.Import;
 using BinTool.Application.Services;
+using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Repositories;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;

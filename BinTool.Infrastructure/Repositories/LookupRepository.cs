@@ -76,23 +76,23 @@ public class LookupRepository : ILookupRepository
 
     public Task<int> CountLiveReferencesAsync(
         LookupKind kind, int id, CancellationToken cancellationToken = default) => kind switch
-    {
-        LookupKind.CardScheme => _db.BinRanges.AsNoTracking()
-            .CountAsync(b => !b.IsDeleted && b.CardSchemeId == id, cancellationToken),
+        {
+            LookupKind.CardScheme => _db.BinRanges.AsNoTracking()
+                .CountAsync(b => !b.IsDeleted && b.CardSchemeId == id, cancellationToken),
 
-        LookupKind.ProductType => _db.BinRanges.AsNoTracking()
-            .CountAsync(b => !b.IsDeleted && b.ProductTypeId == id, cancellationToken),
+            LookupKind.ProductType => _db.BinRanges.AsNoTracking()
+                .CountAsync(b => !b.IsDeleted && b.ProductTypeId == id, cancellationToken),
 
-        LookupKind.FundingType => _db.BinRanges.AsNoTracking()
-            .CountAsync(b => !b.IsDeleted && b.FundingTypeId == id, cancellationToken),
+            LookupKind.FundingType => _db.BinRanges.AsNoTracking()
+                .CountAsync(b => !b.IsDeleted && b.FundingTypeId == id, cancellationToken),
 
-        // A region reaches BIN ranges through countries rather than directly, so what pins
-        // it down is a live country, not a live range.
-        LookupKind.Region => _db.Countries.AsNoTracking()
-            .CountAsync(c => !c.IsDeleted && c.RegionId == id, cancellationToken),
+            // A region reaches BIN ranges through countries rather than directly, so what pins
+            // it down is a live country, not a live range.
+            LookupKind.Region => _db.Countries.AsNoTracking()
+                .CountAsync(c => !c.IsDeleted && c.RegionId == id, cancellationToken),
 
-        _ => throw Unknown(kind)
-    };
+            _ => throw Unknown(kind)
+        };
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
         _db.SaveChangesAsync(cancellationToken);

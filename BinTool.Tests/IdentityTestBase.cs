@@ -1,5 +1,5 @@
-using BinTool.Domain.Entities;
 using BinTool.Application.Abstractions;
+using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Data;
 using BinTool.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;

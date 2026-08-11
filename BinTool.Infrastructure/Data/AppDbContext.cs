@@ -650,13 +650,23 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         modelBuilder.Entity<Currency>().HasData(
             new Currency
             {
-                CurrencyId = 1, Code = "EUR", Name = "Euro", RateToEur = 1m, IsActive = true,
-                CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp
+                CurrencyId = 1,
+                Code = "EUR",
+                Name = "Euro",
+                RateToEur = 1m,
+                IsActive = true,
+                CreatedAt = SeedTimestamp,
+                UpdatedAt = SeedTimestamp
             },
             new Currency
             {
-                CurrencyId = 2, Code = "BGN", Name = "Bulgarian lev", RateToEur = 0.5112918788m,
-                IsActive = true, CreatedAt = SeedTimestamp, UpdatedAt = SeedTimestamp
+                CurrencyId = 2,
+                Code = "BGN",
+                Name = "Bulgarian lev",
+                RateToEur = 0.5112918788m,
+                IsActive = true,
+                CreatedAt = SeedTimestamp,
+                UpdatedAt = SeedTimestamp
             }
         );
 

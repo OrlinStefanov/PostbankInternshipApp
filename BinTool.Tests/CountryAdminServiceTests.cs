@@ -1,7 +1,7 @@
-using BinTool.Domain.Entities;
-using BinTool.Application.Models.ReferenceData;
 using BinTool.Application.Abstractions;
+using BinTool.Application.Models.ReferenceData;
 using BinTool.Application.Services;
+using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Repositories;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
@@ -85,13 +85,17 @@ public class CountryAdminServiceTests : SqliteTestBase
     {
         var initial = await _service.CreateAsync(new CountryInput
         {
-            IsoCode = "GR", Name = "Greece", RegionId = DomesticRegionId
+            IsoCode = "GR",
+            Name = "Greece",
+            RegionId = DomesticRegionId
         });
         await _service.DeleteAsync(initial.Country!.Id);
 
         var result = await _service.CreateAsync(new CountryInput
         {
-            IsoCode = "GR", Name = "Hellenic Republic", RegionId = InterRegionalRegionId
+            IsoCode = "GR",
+            Name = "Hellenic Republic",
+            RegionId = InterRegionalRegionId
         });
 
         result.Status.Should().Be(LookupMutationStatus.Restored);
@@ -107,12 +111,16 @@ public class CountryAdminServiceTests : SqliteTestBase
     {
         var created = await _service.CreateAsync(new CountryInput
         {
-            IsoCode = "GR", Name = "Greece", RegionId = InterRegionalRegionId
+            IsoCode = "GR",
+            Name = "Greece",
+            RegionId = InterRegionalRegionId
         });
 
         var updated = await _service.UpdateAsync(created.Country!.Id, new CountryInput
         {
-            IsoCode = "GR", Name = "Greece", RegionId = DomesticRegionId
+            IsoCode = "GR",
+            Name = "Greece",
+            RegionId = DomesticRegionId
         });
 
         updated.Country!.RegionName.Should().Be("Domestic");
@@ -131,7 +139,9 @@ public class CountryAdminServiceTests : SqliteTestBase
     {
         var created = await _service.CreateAsync(new CountryInput
         {
-            IsoCode = "GR", Name = "Greece", RegionId = DomesticRegionId
+            IsoCode = "GR",
+            Name = "Greece",
+            RegionId = DomesticRegionId
         });
 
         var deleted = await _service.DeleteAsync(created.Country!.Id);
@@ -157,7 +167,9 @@ public class CountryAdminServiceTests : SqliteTestBase
     {
         var created = await _service.CreateAsync(new CountryInput
         {
-            IsoCode = "GR", Name = "Greece", RegionId = DomesticRegionId
+            IsoCode = "GR",
+            Name = "Greece",
+            RegionId = DomesticRegionId
         });
         await _service.DeleteAsync(created.Country!.Id);
 

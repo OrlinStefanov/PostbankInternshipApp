@@ -1,7 +1,7 @@
+using BinTool.Application.Abstractions;
 using BinTool.Application.Authorization;
 using BinTool.Application.Models.BinRanges;
 using BinTool.Application.Models.Import;
-using BinTool.Application.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

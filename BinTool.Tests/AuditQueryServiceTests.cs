@@ -1,5 +1,5 @@
-using BinTool.Domain.Entities;
 using BinTool.Application.Models.Audit;
+using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
 

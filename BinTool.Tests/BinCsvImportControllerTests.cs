@@ -1,7 +1,7 @@
 using System.Text;
 using BinTool.Api.Controllers;
-using BinTool.Application.Models.Import;
 using BinTool.Application.Abstractions;
+using BinTool.Application.Models.Import;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

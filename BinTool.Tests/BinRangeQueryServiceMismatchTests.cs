@@ -1,5 +1,5 @@
-using BinTool.Application.Models.BinRanges;
 using BinTool.Application.Abstractions;
+using BinTool.Application.Models.BinRanges;
 using BinTool.Application.Services;
 using BinTool.Infrastructure.Repositories;
 using BinTool.Infrastructure.Services;

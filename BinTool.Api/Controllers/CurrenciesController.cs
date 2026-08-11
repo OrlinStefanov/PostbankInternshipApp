@@ -1,7 +1,7 @@
+using BinTool.Application.Abstractions;
 using BinTool.Application.Authorization;
 using BinTool.Application.Models.Currency;
 using BinTool.Application.Models.ReferenceData;
-using BinTool.Application.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

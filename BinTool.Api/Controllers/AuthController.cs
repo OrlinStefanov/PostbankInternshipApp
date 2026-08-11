@@ -1,8 +1,8 @@
 using System.Security.Claims;
 using BinTool.Api.Services;
 using BinTool.Application.Authorization;
-using BinTool.Domain.Entities;
 using BinTool.Application.Models.Auth;
+using BinTool.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;

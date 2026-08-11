@@ -214,7 +214,7 @@ public class CommissionResolverTests : SqliteTestBase
     [Fact]
     public async Task At_equal_priority_the_higher_priority_score_wins()
     {
-        var low = SeedRule("Low score", priority: 5, priorityScore: 1);
+        _ = SeedRule("Low score", priority: 5, priorityScore: 1);
         var high = SeedRule("High score", priority: 5, priorityScore: 3);
 
         var result = await Resolve();

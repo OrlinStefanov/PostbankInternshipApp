@@ -1,7 +1,7 @@
-using BinTool.Domain.Entities;
+using BinTool.Application.Abstractions;
 using BinTool.Application.Models.Audit;
 using BinTool.Application.Models.BinRanges;
-using BinTool.Application.Abstractions;
+using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 

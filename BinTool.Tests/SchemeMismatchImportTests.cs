@@ -1,5 +1,5 @@
-using BinTool.Domain.Entities;
 using BinTool.Application.Models.Import;
+using BinTool.Domain.Entities;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 

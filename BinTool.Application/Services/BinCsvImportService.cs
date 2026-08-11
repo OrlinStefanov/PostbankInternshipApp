@@ -1,8 +1,8 @@
 using System.Globalization;
-using BinTool.Domain.Entities;
+using BinTool.Application.Abstractions;
 using BinTool.Application.Models.Audit;
 using BinTool.Application.Models.Import;
-using BinTool.Application.Abstractions;
+using BinTool.Domain.Entities;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.Extensions.Logging;
@@ -711,52 +711,64 @@ public class BinCsvImportService : IBinCsvImportService
         var diffs = new List<BinFieldDiff>();
 
         if (current.CardSchemeId != incoming.CardSchemeId)
+        {
             diffs.Add(new BinFieldDiff
             {
                 Field = "CardScheme",
                 OldValue = lookups.CardSchemeName(current.CardSchemeId),
                 NewValue = lookups.CardSchemeName(incoming.CardSchemeId)
             });
+        }
 
         if (current.ProductTypeId != incoming.ProductTypeId)
+        {
             diffs.Add(new BinFieldDiff
             {
                 Field = "ProductType",
                 OldValue = lookups.ProductTypeName(current.ProductTypeId),
                 NewValue = lookups.ProductTypeName(incoming.ProductTypeId)
             });
+        }
 
         if (current.FundingTypeId != incoming.FundingTypeId)
+        {
             diffs.Add(new BinFieldDiff
             {
                 Field = "FundingType",
                 OldValue = lookups.FundingTypeName(current.FundingTypeId),
                 NewValue = lookups.FundingTypeName(incoming.FundingTypeId)
             });
+        }
 
         if (current.CountryId != incoming.CountryId)
+        {
             diffs.Add(new BinFieldDiff
             {
                 Field = "CountryCode",
                 OldValue = lookups.CountryCode(current.CountryId),
                 NewValue = lookups.CountryCode(incoming.CountryId)
             });
+        }
 
         if (current.ValidFrom != incoming.ValidFrom)
+        {
             diffs.Add(new BinFieldDiff
             {
                 Field = "ValidFrom",
                 OldValue = current.ValidFrom.ToString(DateFormat, CultureInfo.InvariantCulture),
                 NewValue = incoming.ValidFrom.ToString(DateFormat, CultureInfo.InvariantCulture)
             });
+        }
 
         if (current.ValidTo != incoming.ValidTo)
+        {
             diffs.Add(new BinFieldDiff
             {
                 Field = "ValidTo",
                 OldValue = current.ValidTo?.ToString(DateFormat, CultureInfo.InvariantCulture),
                 NewValue = incoming.ValidTo?.ToString(DateFormat, CultureInfo.InvariantCulture)
             });
+        }
 
         return diffs;
     }
@@ -765,21 +777,21 @@ public class BinCsvImportService : IBinCsvImportService
     // sets TargetBinRangeId (an existing row to overwrite, or null to insert on apply).
     private static PendingBinConflict NewConflict(
         ResolvedRow v, string raw, ImportHistory history, DateTime now, ConflictType type) => new()
-    {
-        ConflictType = type,
-        Prefix = v.Prefix,
-        PrefixLength = v.Prefix.Length,
-        CardSchemeId = v.CardSchemeId,
-        ProductTypeId = v.ProductTypeId,
-        FundingTypeId = v.FundingTypeId,
-        CountryId = v.CountryId,
-        ValidFrom = v.ValidFrom,
-        ValidTo = v.ValidTo,
-        RawData = raw,
-        Status = ConflictStatus.Pending,
-        CreatedAt = now,
-        ImportHistory = history
-    };
+        {
+            ConflictType = type,
+            Prefix = v.Prefix,
+            PrefixLength = v.Prefix.Length,
+            CardSchemeId = v.CardSchemeId,
+            ProductTypeId = v.ProductTypeId,
+            FundingTypeId = v.FundingTypeId,
+            CountryId = v.CountryId,
+            ValidFrom = v.ValidFrom,
+            ValidTo = v.ValidTo,
+            RawData = raw,
+            Status = ConflictStatus.Pending,
+            CreatedAt = now,
+            ImportHistory = history
+        };
 
     // A one-line explanation of why a row's declared scheme was not trusted: either it names a
     // different network than the prefix belongs to, or the prefix matches no known network at all.
@@ -876,7 +888,10 @@ public class BinCsvImportService : IBinCsvImportService
     {
         private readonly ReferenceTables _tables;
 
-        public Lookups(ReferenceTables tables) => _tables = tables;
+        public Lookups(ReferenceTables tables)
+        {
+            _tables = tables;
+        }
 
         public bool TryResolve(in ParsedRow row, out ResolvedRow resolved, out string reason)
         {

@@ -38,22 +38,22 @@ public class CommissionRuleAdminServiceUnitTests
         int currencyId = Eur,
         DateTime? validFrom = null,
         DateTime? validTo = null) => new()
-    {
-        RuleName = name,
-        CardSchemeId = scheme,
-        ProductTypeId = product,
-        FundingTypeId = funding,
-        RegionId = region,
-        CurrencyId = currencyId,
-        Priority = priority,
-        PriorityScore = priorityScore,
-        PercentageRate = 1.0m,
-        FixedAmount = 0.10m,
-        MinimumFee = 0.05m,
-        ValidFrom = validFrom ?? new DateTime(2025, 1, 1),
-        ValidTo = validTo,
-        IsActive = true
-    };
+        {
+            RuleName = name,
+            CardSchemeId = scheme,
+            ProductTypeId = product,
+            FundingTypeId = funding,
+            RegionId = region,
+            CurrencyId = currencyId,
+            Priority = priority,
+            PriorityScore = priorityScore,
+            PercentageRate = 1.0m,
+            FixedAmount = 0.10m,
+            MinimumFee = 0.05m,
+            ValidFrom = validFrom ?? new DateTime(2025, 1, 1),
+            ValidTo = validTo,
+            IsActive = true
+        };
 
     // ---- Ambiguity guard --------------------------------------------------------
 

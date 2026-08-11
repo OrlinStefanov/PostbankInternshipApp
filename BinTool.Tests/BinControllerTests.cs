@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using BinTool.Api.Controllers;
-using BinTool.Application.Models.Classification;
 using BinTool.Application.Abstractions;
+using BinTool.Application.Models.Classification;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Moq;

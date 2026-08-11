@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using BinTool.Domain.Entities;
 using BinTool.Application.Abstractions;
+using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Data;
 
 namespace BinTool.Infrastructure.Services;

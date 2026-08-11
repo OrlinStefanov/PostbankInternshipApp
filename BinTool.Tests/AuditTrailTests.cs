@@ -1,9 +1,9 @@
 using System.Text.Json;
-using BinTool.Domain.Entities;
+using BinTool.Application.Abstractions;
 using BinTool.Application.Models.Audit;
 using BinTool.Application.Models.BinRanges;
-using BinTool.Application.Abstractions;
 using BinTool.Application.Services;
+using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Repositories;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
@@ -35,16 +35,16 @@ public class AuditTrailTests : ImportTestBase
         string prefix = "400001", string cardScheme = "Visa", string productType = "Consumer",
         string fundingType = "Credit", string countryCode = "US", DateTime? validTo = null,
         bool acknowledgeSchemeMismatch = false) => new()
-    {
-        Prefix = prefix,
-        CardScheme = cardScheme,
-        ProductType = productType,
-        FundingType = fundingType,
-        CountryCode = countryCode,
-        ValidFrom = Started,
-        ValidTo = validTo,
-        AcknowledgeSchemeMismatch = acknowledgeSchemeMismatch
-    };
+        {
+            Prefix = prefix,
+            CardScheme = cardScheme,
+            ProductType = productType,
+            FundingType = fundingType,
+            CountryCode = countryCode,
+            ValidFrom = Started,
+            ValidTo = validTo,
+            AcknowledgeSchemeMismatch = acknowledgeSchemeMismatch
+        };
 
     // Reads the trail back through a fresh context, so a test only sees what was actually committed
     // rather than what is still sitting in the change tracker.

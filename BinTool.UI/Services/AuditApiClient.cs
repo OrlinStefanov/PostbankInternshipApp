@@ -3,9 +3,9 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using BinTool.Domain.Entities;
 using BinTool.Application.Models.Audit;
 using BinTool.Application.Models.BinRanges;
+using BinTool.Domain.Entities;
 
 namespace BinTool.UI.Services;
 

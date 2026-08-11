@@ -1,6 +1,6 @@
 using System.Text;
-using BinTool.Application.Models.Import;
 using BinTool.Application.Abstractions;
+using BinTool.Application.Models.Import;
 using BinTool.Application.Services;
 using BinTool.Infrastructure.Repositories;
 using BinTool.Infrastructure.Services;
@@ -34,7 +34,10 @@ public abstract class ImportTestBase : SqliteTestBase
     {
         private readonly Func<ICurrentUser> _resolve;
 
-        public DeferredCurrentUser(Func<ICurrentUser> resolve) => _resolve = resolve;
+        public DeferredCurrentUser(Func<ICurrentUser> resolve)
+        {
+            _resolve = resolve;
+        }
 
         public string? UserId => _resolve().UserId;
 

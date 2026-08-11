@@ -1,7 +1,7 @@
 using BinTool.Application.Authorization;
-using BinTool.Domain.Entities;
 using BinTool.Application.Models.Access;
 using BinTool.Application.Services;
+using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Repositories;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;

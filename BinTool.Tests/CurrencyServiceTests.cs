@@ -1,8 +1,8 @@
-using BinTool.Domain.Entities;
+using BinTool.Application.Abstractions;
 using BinTool.Application.Models.Currency;
 using BinTool.Application.Models.ReferenceData;
-using BinTool.Application.Abstractions;
 using BinTool.Application.Services;
+using BinTool.Domain.Entities;
 using BinTool.Infrastructure.Repositories;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
@@ -42,7 +42,10 @@ public class CurrencyServiceTests : SqliteTestBase
     {
         var result = await _service.CreateAsync(new CurrencyInput
         {
-            Code = "usd", Name = "US dollar", RateToEur = 0.92m, IsActive = true
+            Code = "usd",
+            Name = "US dollar",
+            RateToEur = 0.92m,
+            IsActive = true
         });
 
         result.Status.Should().Be(LookupMutationStatus.Created);
@@ -59,7 +62,9 @@ public class CurrencyServiceTests : SqliteTestBase
     {
         var result = await _service.CreateAsync(new CurrencyInput
         {
-            Code = "EUR", Name = "Euro again", RateToEur = 1m
+            Code = "EUR",
+            Name = "Euro again",
+            RateToEur = 1m
         });
 
         result.Succeeded.Should().BeFalse();
@@ -74,7 +79,9 @@ public class CurrencyServiceTests : SqliteTestBase
     {
         var result = await _service.CreateAsync(new CurrencyInput
         {
-            Code = code, Name = name, RateToEur = (decimal)rate
+            Code = code,
+            Name = name,
+            RateToEur = (decimal)rate
         });
 
         result.Succeeded.Should().BeFalse();
@@ -86,7 +93,10 @@ public class CurrencyServiceTests : SqliteTestBase
     {
         var result = await _service.UpdateAsync(BgnId, new CurrencyInput
         {
-            Code = "BGN", Name = "Bulgarian lev", RateToEur = 0.5m, IsActive = true
+            Code = "BGN",
+            Name = "Bulgarian lev",
+            RateToEur = 0.5m,
+            IsActive = true
         });
 
         result.Succeeded.Should().BeTrue();
@@ -101,7 +111,9 @@ public class CurrencyServiceTests : SqliteTestBase
     {
         var result = await _service.UpdateAsync(BgnId, new CurrencyInput
         {
-            Code = "EUR", Name = "Bulgarian lev", RateToEur = 0.5m
+            Code = "EUR",
+            Name = "Bulgarian lev",
+            RateToEur = 0.5m
         });
 
         result.Succeeded.Should().BeFalse();
@@ -113,7 +125,8 @@ public class CurrencyServiceTests : SqliteTestBase
     {
         Db.CommissionRules.Add(new CommissionRule
         {
-            RuleName = "Lev rule", CurrencyId = BgnId,
+            RuleName = "Lev rule",
+            CurrencyId = BgnId,
             ValidFrom = new DateTime(2024, 1, 1),
             RuleCriteria = new List<RuleCriteria> { new() }
         });
@@ -130,7 +143,9 @@ public class CurrencyServiceTests : SqliteTestBase
     {
         var created = await _service.CreateAsync(new CurrencyInput
         {
-            Code = "GBP", Name = "Pound sterling", RateToEur = 1.17m
+            Code = "GBP",
+            Name = "Pound sterling",
+            RateToEur = 1.17m
         });
         var id = created.Item!.Id;
 
@@ -146,14 +161,18 @@ public class CurrencyServiceTests : SqliteTestBase
     {
         var created = await _service.CreateAsync(new CurrencyInput
         {
-            Code = "CHF", Name = "Swiss franc", RateToEur = 1.05m
+            Code = "CHF",
+            Name = "Swiss franc",
+            RateToEur = 1.05m
         });
         var id = created.Item!.Id;
         await _service.DeleteAsync(id);
 
         var revived = await _service.CreateAsync(new CurrencyInput
         {
-            Code = "chf", Name = "Swiss franc", RateToEur = 1.06m
+            Code = "chf",
+            Name = "Swiss franc",
+            RateToEur = 1.06m
         });
 
         revived.Status.Should().Be(LookupMutationStatus.Restored);

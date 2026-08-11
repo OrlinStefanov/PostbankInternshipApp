@@ -164,8 +164,8 @@ public class BinRangeApiClient
     private static async Task<string> DescribeAsync(
         HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        if (response.StatusCode == HttpStatusCode.Unauthorized ||
-            response.StatusCode == HttpStatusCode.Forbidden)
+        if (response.StatusCode is HttpStatusCode.Unauthorized or
+            HttpStatusCode.Forbidden)
         {
             return "You are not allowed to change BIN ranges. Sign in as an admin and try again.";
         }

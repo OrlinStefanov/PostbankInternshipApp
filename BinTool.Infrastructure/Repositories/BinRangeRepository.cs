@@ -65,32 +65,32 @@ public class BinRangeRepository : IBinRangeRepository
 
     public async Task<BinRangeFilterOptions> GetFilterOptionsAsync(
         CancellationToken cancellationToken = default) => new()
-    {
-        CardSchemes = await _db.CardSchemes.AsNoTracking()
+        {
+            CardSchemes = await _db.CardSchemes.AsNoTracking()
             .Where(x => !x.IsDeleted).OrderBy(x => x.Name)
             .Select(x => x.Name).ToListAsync(cancellationToken),
 
-        ProductTypes = await _db.ProductTypes.AsNoTracking()
+            ProductTypes = await _db.ProductTypes.AsNoTracking()
             .Where(x => !x.IsDeleted).OrderBy(x => x.Name)
             .Select(x => x.Name).ToListAsync(cancellationToken),
 
-        FundingTypes = await _db.FundingTypes.AsNoTracking()
+            FundingTypes = await _db.FundingTypes.AsNoTracking()
             .Where(x => !x.IsDeleted).OrderBy(x => x.Name)
             .Select(x => x.Name).ToListAsync(cancellationToken),
 
-        Countries = await _db.Countries.AsNoTracking()
+            Countries = await _db.Countries.AsNoTracking()
             .Where(x => !x.IsDeleted).OrderBy(x => x.Name)
             .Select(x => new CountryOption { IsoCode = x.IsoCode, Name = x.Name })
             .ToListAsync(cancellationToken),
 
-        // Every account that has added a range, deleted rows included, so the "added by"
-        // filter can reach a range no matter its current state.
-        Creators = await _db.BinRanges.AsNoTracking()
+            // Every account that has added a range, deleted rows included, so the "added by"
+            // filter can reach a range no matter its current state.
+            Creators = await _db.BinRanges.AsNoTracking()
             .Where(b => b.CreatedBy != null)
             .Select(b => b.CreatedBy!)
             .Distinct().OrderBy(name => name)
             .ToListAsync(cancellationToken)
-    };
+        };
 
     public Task<BinRange?> GetForUpdateAsync(
         int binRangeId, CancellationToken cancellationToken = default) =>

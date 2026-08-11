@@ -1,8 +1,8 @@
 using BinTool.Api.Controllers;
 using BinTool.Api.Services;
 using BinTool.Application.Authorization;
-using BinTool.Domain.Entities;
 using BinTool.Application.Models.Auth;
+using BinTool.Domain.Entities;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
