@@ -34,9 +34,12 @@
                     </div>
 
                     <p class="text-secondary small mt-3 mb-2">
-                        The three keys below decide which cards the rule matches. Leave any of
-                        them on <strong>Any</strong> to wildcard it - the fewer wildcards a rule
-                        has, the more specific it is, and the more specific rule wins.
+                        The four keys below decide which cards the rule matches. Leave any of
+                        them on <strong>Any</strong> to wildcard it. When multiple rules match
+                        the same card, <strong>Priority</strong> decides first (higher wins);
+                        ties are broken by <strong>Priority score</strong>. The system suggests
+                        a score equal to the number of non-wildcard key fields, but you can
+                        override it.
                     </p>
 
                     <div class="row g-3">
@@ -145,8 +148,26 @@
 
                         <div class="col-12 col-md-4">
                             <label class="form-label" for="e-priority">Priority</label>
-                            <InputNumber id="e-priority" class="form-control" @bind-Value="_input.Priority" />
-                            <div class="form-text">Manual tiebreak; higher wins.</div>
+                            <InputNumber id="e-priority" class="form-control"
+                                         min="0" max="100" @bind-Value="_input.Priority" />
+                            <div class="form-text">Decides first; higher wins. 0–100.</div>
+                            <ValidationMessage For="() => _input.Priority" class="form-text text-danger" />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-0">
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="e-score">Priority score</label>
+                            <InputNumber id="e-score" class="form-control"
+                                         min="0" max="100" @bind-Value="_input.PriorityScore" />
+                            <div class="form-text">
+                                Suggested: @SuggestedScore (@SuggestedScore of 4 key fields set).
+                            </div>
+                            <ValidationMessage For="() => _input.PriorityScore" class="form-text text-danger" />
+                        </div>
+                        <div class="col-12 col-md-4 d-flex align-items-end pb-1">
+                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    @onclick="UseSuggestedScore">Use suggested</button>
                         </div>
                     </div>
 
@@ -213,6 +234,14 @@
     private bool _saving;
     private string? _error;
 
+    private int SuggestedScore =>
+        (_input.CardSchemeId is null ? 0 : 1)
+        + (_input.ProductTypeId is null ? 0 : 1)
+        + (_input.FundingTypeId is null ? 0 : 1)
+        + (_input.RegionId is null ? 0 : 1);
+
+    private void UseSuggestedScore() => _input.PriorityScore = null;
+
     private string Title => Rule is null ? "Add commission rule" : $"Edit commission rule — {Rule.RuleName}";
 
     /// <summary>Euro when it is offered, otherwise the first currency in the list, otherwise id 1.</summary>
@@ -245,6 +274,7 @@
                 FixedAmount = Rule.FixedAmount,
                 MinimumFee = Rule.MinimumFee,
                 Priority = Rule.Priority,
+                PriorityScore = Rule.PriorityScore,
                 ValidFrom = Rule.ValidFrom,
                 ValidTo = Rule.ValidTo,
                 IsActive = Rule.IsActive

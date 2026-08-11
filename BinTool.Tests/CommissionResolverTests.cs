@@ -43,8 +43,14 @@ public class CommissionResolverTests : SqliteTestBase
         DateTime? validTo = null,
         bool isActive = true,
         int priority = 0,
+        int? priorityScore = null,
         int currencyId = EurCurrencyId)
     {
+        var computedScore = (scheme is null ? 0 : 1)
+            + (product is null ? 0 : 1)
+            + (funding is null ? 0 : 1)
+            + (region is null ? 0 : 1);
+
         var rule = new CommissionRule
         {
             RuleName = name,
@@ -63,7 +69,8 @@ public class CommissionResolverTests : SqliteTestBase
                     CardSchemeId = scheme,
                     ProductTypeId = product,
                     FundingTypeId = funding,
-                    RegionId = region
+                    RegionId = region,
+                    PriorityScore = priorityScore ?? computedScore
                 }
             }
         };
@@ -200,6 +207,44 @@ public class CommissionResolverTests : SqliteTestBase
         var result = await Resolve();
 
         result!.AppliedRuleId.Should().Be(Math.Min(first.CommissionRuleId, second.CommissionRuleId));
+    }
+
+    [Fact]
+    public async Task Higher_priority_beats_a_more_specific_rule()
+    {
+        SeedRule("Visa exact (low priority)",
+            scheme: VisaId, product: ConsumerId, funding: CreditId, region: DomesticRegionId,
+            priority: 1);
+        var broad = SeedRule("Any card (high priority)", priority: 10);
+
+        var result = await Resolve();
+
+        result!.AppliedRuleId.Should().Be(broad.CommissionRuleId);
+    }
+
+    [Fact]
+    public async Task At_equal_priority_the_higher_priority_score_wins()
+    {
+        var low = SeedRule("Low score", priority: 5, priorityScore: 1);
+        var high = SeedRule("High score", priority: 5, priorityScore: 3);
+
+        var result = await Resolve();
+
+        result!.AppliedRuleId.Should().Be(high.CommissionRuleId);
+    }
+
+    [Fact]
+    public async Task An_overridden_priority_score_beats_the_computed_one()
+    {
+        SeedRule("Specific but low override",
+            scheme: VisaId, product: ConsumerId, funding: CreditId, region: DomesticRegionId,
+            priority: 5, priorityScore: 1);
+        var overridden = SeedRule("Wildcard with high override",
+            priority: 5, priorityScore: 10);
+
+        var result = await Resolve();
+
+        result!.AppliedRuleId.Should().Be(overridden.CommissionRuleId);
     }
 
     // ---- Story 5.4: fee calculation -------------------------------------------

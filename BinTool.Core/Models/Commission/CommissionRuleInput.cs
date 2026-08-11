@@ -46,10 +46,20 @@ public class CommissionRuleInput
     public decimal MinimumFee { get; set; }
 
     /// <summary>
-    /// A manual tiebreak used only when two matching rules are equally specific. Higher
-    /// wins. Specificity (fewer wildcards) is always decided first, so this rarely matters.
+    /// The primary ranking for rule resolution: among the rules that match a card and are
+    /// valid on the date, the one with the highest priority wins. Higher number = higher
+    /// priority. When two rules share a priority, <see cref="PriorityScore"/> breaks the tie.
     /// </summary>
+    [Range(0, 100, ErrorMessage = "Priority must be between 0 and 100.")]
     public int Priority { get; set; }
+
+    /// <summary>
+    /// Secondary tiebreak after <see cref="Priority"/>. The system suggests a value equal to
+    /// the number of non-wildcard key fields (0–4), but the admin can override it to any value
+    /// in the 0–100 range. Null means "use the suggested value".
+    /// </summary>
+    [Range(0, 100, ErrorMessage = "Priority score must be between 0 and 100.")]
+    public int? PriorityScore { get; set; }
 
     /// <summary>The date the rule starts applying (inclusive).</summary>
     [Required(ErrorMessage = "A ValidFrom date is required.")]

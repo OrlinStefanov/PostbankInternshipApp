@@ -8,10 +8,10 @@ namespace BinTool.Infrastructure.Services;
 
 /// <summary>
 /// Selects the applicable commission rule and works out the fee. Selection is deterministic:
-/// among the rules that match the card and are valid on the date, the most specific one wins,
-/// with a total ordering so the same inputs always produce the same rule regardless of the
-/// order rules were entered. When nothing matches, the configured default is used and the
-/// result is flagged as a fallback.
+/// among the rules that match the card and are valid on the date, the one with the highest
+/// Priority wins; ties are broken by PriorityScore, then ValidFrom (newer wins), then row id.
+/// When nothing matches, the configured default is used and the result is flagged as a
+/// fallback.
 /// </summary>
 public class CommissionResolver : ICommissionResolver
 {
@@ -42,8 +42,8 @@ public class CommissionResolver : ICommissionResolver
         var inputCurrency = await ResolveInputCurrencyAsync(inputCurrencyId, cancellationToken);
 
         // Every live rule that matches the card's attributes (a null criteria field is a
-        // wildcard) and is valid on the day. The set is small, so the tiebreak is settled
-        // in memory where it reads clearly.
+        // wildcard) and is valid on the day. The set is small, so the Priority / PriorityScore
+        // tiebreak is settled in memory where it reads clearly.
         var matches = await _db.CommissionRules.AsNoTracking()
             .Include(r => r.RuleCriteria)
             .Include(r => r.Currency)
@@ -57,10 +57,10 @@ public class CommissionResolver : ICommissionResolver
             .ToListAsync(cancellationToken);
 
         var winner = matches
-            .OrderByDescending(r => Specificity(r))     // fewest wildcards wins
-            .ThenByDescending(r => r.Priority)          // manual tiebreak
-            .ThenByDescending(r => r.ValidFrom)         // newer tariff wins
-            .ThenBy(r => r.CommissionRuleId)            // final deterministic tiebreak
+            .OrderByDescending(r => r.Priority)                                     // admin's ranking
+            .ThenByDescending(r => r.RuleCriteria.FirstOrDefault()?.PriorityScore ?? 0) // stored score
+            .ThenByDescending(r => r.ValidFrom)                                     // newer tariff wins
+            .ThenBy(r => r.CommissionRuleId)                                        // deterministic floor
             .FirstOrDefault();
 
         if (winner is not null)
@@ -161,17 +161,6 @@ public class CommissionResolver : ICommissionResolver
             FeeEur = ToEur(fee),
             Reason = Reason(rule, isFallback)
         };
-    }
-
-    private static int Specificity(CommissionRule rule)
-    {
-        var c = rule.RuleCriteria.FirstOrDefault();
-        if (c is null) return 0;
-
-        return (c.CardSchemeId is null ? 0 : 1)
-            + (c.ProductTypeId is null ? 0 : 1)
-            + (c.FundingTypeId is null ? 0 : 1)
-            + (c.RegionId is null ? 0 : 1);
     }
 
     private static string Reason(CommissionRule rule, bool isFallback)

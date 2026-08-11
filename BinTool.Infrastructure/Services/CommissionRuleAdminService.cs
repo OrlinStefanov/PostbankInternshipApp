@@ -46,8 +46,8 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
             // the most specific rule leads, then the manual priority, then the name. The
             // ordering is total, so a listing is stable however the rows were entered.
             .OrderBy(i => StatusRank(i.Status))
-            .ThenByDescending(i => i.Specificity)
             .ThenByDescending(i => i.Priority)
+            .ThenByDescending(i => i.PriorityScore)
             .ThenBy(i => i.RuleName, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -77,6 +77,9 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         var overlap = await FindOverlapAsync(input, excludeRuleId: 0, cancellationToken);
         if (overlap is not null) return overlap;
 
+        var ambiguity = await FindAmbiguityAsync(input, excludeRuleId: 0, cancellationToken);
+        if (ambiguity is not null) return ambiguity;
+
         var now = DateTime.UtcNow;
 
         var rule = new CommissionRule
@@ -93,7 +96,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
             ProductTypeId = input.ProductTypeId,
             FundingTypeId = input.FundingTypeId,
             RegionId = input.RegionId,
-            PriorityScore = Specificity(input)
+            PriorityScore = EffectivePriorityScore(input)
         });
 
         // The rule has no id until it is saved, and the audit entry has to carry one - so
@@ -137,8 +140,10 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         if (unresolved is not null) return unresolved;
 
         var overlap = await FindOverlapAsync(input, excludeRuleId: id, cancellationToken);
-
         if (overlap is not null) return overlap;
+
+        var ambiguity = await FindAmbiguityAsync(input, excludeRuleId: id, cancellationToken);
+        if (ambiguity is not null) return ambiguity;
 
         var before = await SnapshotAsync(id, cancellationToken);
 
@@ -158,7 +163,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         criteria.ProductTypeId = input.ProductTypeId;
         criteria.FundingTypeId = input.FundingTypeId;
         criteria.RegionId = input.RegionId;
-        criteria.PriorityScore = Specificity(input);
+        criteria.PriorityScore = EffectivePriorityScore(input);
 
         _audit.Record(AuditAction.Updated, AuditEntityTypes.CommissionRule, id,
             before, SnapshotFromInput(input, resolved, isDeleted: false));
@@ -366,7 +371,11 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
             FixedAmount = rule.FixedAmount,
             MinimumFee = rule.MinimumFee,
             Priority = rule.Priority,
-            Specificity = criteria?.PriorityScore ?? 0,
+            PriorityScore = criteria?.PriorityScore ?? 0,
+            Specificity = (criteria?.CardSchemeId is null ? 0 : 1)
+                + (criteria?.ProductTypeId is null ? 0 : 1)
+                + (criteria?.FundingTypeId is null ? 0 : 1)
+                + (criteria?.RegionId is null ? 0 : 1),
             ValidFrom = rule.ValidFrom,
             ValidTo = rule.ValidTo,
             IsActive = rule.IsActive,
@@ -401,11 +410,14 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         _ => 5
     };
 
-    private static int Specificity(CommissionRuleInput input) =>
+    private static int SuggestedPriorityScore(CommissionRuleInput input) =>
         (input.CardSchemeId is null ? 0 : 1)
         + (input.ProductTypeId is null ? 0 : 1)
         + (input.FundingTypeId is null ? 0 : 1)
         + (input.RegionId is null ? 0 : 1);
+
+    private static int EffectivePriorityScore(CommissionRuleInput input) =>
+        input.PriorityScore ?? SuggestedPriorityScore(input);
 
     private async Task<int?> CurrentDefaultRuleIdAsync(CancellationToken cancellationToken) =>
         await _db.DefaultRules.AsNoTracking()
@@ -502,6 +514,52 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
             conflict.CommissionRuleId, conflict.RuleName);
     }
 
+    /// <summary>
+    /// Refuses a rule when another non-deleted rule with the same Priority and effective
+    /// PriorityScore has an overlapping validity window and co-matchable criteria keys.
+    /// Two keys are co-matchable when, for every field, at least one side is null (wildcard)
+    /// or the two ids are equal — meaning some real card would match both rules.
+    /// </summary>
+    private async Task<CommissionRuleMutationResult?> FindAmbiguityAsync(
+        CommissionRuleInput input, int excludeRuleId, CancellationToken cancellationToken)
+    {
+        var effectiveScore = EffectivePriorityScore(input);
+        var inputFrom = input.ValidFrom.Date;
+        var inputTo = input.ValidTo?.Date ?? DateTime.MaxValue;
+
+        var candidates = await _db.CommissionRules.AsNoTracking()
+            .Include(r => r.RuleCriteria)
+            .Where(r => !r.IsDeleted && r.CommissionRuleId != excludeRuleId)
+            .Where(r => r.Priority == input.Priority)
+            .Where(r => r.ValidFrom <= inputTo
+                && inputFrom <= (r.ValidTo ?? DateTime.MaxValue))
+            .ToListAsync(cancellationToken);
+
+        foreach (var other in candidates)
+        {
+            var c = other.RuleCriteria.FirstOrDefault();
+            if (c is null) continue;
+
+            if ((c.PriorityScore) != effectiveScore) continue;
+
+            var coMatchable =
+                (input.CardSchemeId is null || c.CardSchemeId is null || input.CardSchemeId == c.CardSchemeId)
+                && (input.ProductTypeId is null || c.ProductTypeId is null || input.ProductTypeId == c.ProductTypeId)
+                && (input.FundingTypeId is null || c.FundingTypeId is null || input.FundingTypeId == c.FundingTypeId)
+                && (input.RegionId is null || c.RegionId is null || input.RegionId == c.RegionId);
+
+            if (!coMatchable) continue;
+
+            return CommissionRuleMutationResult.Conflict(
+                $"Rule '{other.RuleName}' has the same priority ({input.Priority}) and score " +
+                $"({effectiveScore}), and its criteria can match the same cards during an " +
+                "overlapping period. Change the priority or score so the two rules are unambiguous.",
+                other.CommissionRuleId, other.RuleName);
+        }
+
+        return null;
+    }
+
     private async Task<CommissionRuleSnapshot> SnapshotAsync(int id, CancellationToken cancellationToken)
     {
         var rule = await WithReferences(_db.CommissionRules.AsNoTracking())
@@ -520,6 +578,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
             rule.FixedAmount,
             rule.MinimumFee,
             rule.Priority,
+            criteria?.PriorityScore ?? 0,
             CommissionRuleSnapshot.Date(rule.ValidFrom),
             rule.ValidTo is null ? null : CommissionRuleSnapshot.Date(rule.ValidTo.Value),
             rule.IsActive,
@@ -538,6 +597,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
             input.FixedAmount,
             input.MinimumFee,
             input.Priority,
+            EffectivePriorityScore(input),
             CommissionRuleSnapshot.Date(input.ValidFrom.Date),
             input.ValidTo is null ? null : CommissionRuleSnapshot.Date(input.ValidTo.Value.Date),
             input.IsActive,

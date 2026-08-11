@@ -16,6 +16,7 @@ public sealed record CommissionRuleSnapshot(
     decimal FixedAmount,
     decimal MinimumFee,
     int Priority,
+    int PriorityScore,
     string ValidFrom,
     string? ValidTo,
     bool IsActive,
