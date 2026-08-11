@@ -1,5 +1,7 @@
 using BinTool.Domain.Entities;
 using BinTool.Application.Models.Access;
+using BinTool.Application.Services;
+using BinTool.Infrastructure.Repositories;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
 
@@ -12,7 +14,8 @@ namespace BinTool.Tests;
 public class UserAdminServiceTests : IdentityTestBase
 {
     private UserAdminService NewService() =>
-        new(Users, Roles, CurrentUser, Audit(), Db);
+        new(new UserRepository(Users, Roles, Db), CurrentUser, Audit(),
+            new RecordingLogger<UserAdminService>());
 
     private static UserRolesInput Want(params string[] roles) =>
         new() { Roles = roles.ToList() };

@@ -41,6 +41,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<ICountryRepository, CountryRepository>();
         services.AddScoped<ILookupRepository, LookupRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
 
         services.AddScoped<IRoleAdminService, RoleAdminService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
