@@ -1,3 +1,4 @@
+using BinTool.Api.Errors;
 using BinTool.Application.Abstractions;
 using BinTool.Application.Authorization;
 using BinTool.Application.Models.BinRanges;
@@ -221,7 +222,7 @@ public class BinRangesController : ControllerBase
             return CreatedAtRoute(nameof(GetById), new { id = result.Range!.BinRangeId }, result);
         }
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
     /// <summary>
@@ -257,7 +258,7 @@ public class BinRangesController : ControllerBase
     {
         var result = await _admin.UpdateAsync(id, input, cancellationToken);
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
     /// <summary>
@@ -285,7 +286,7 @@ public class BinRangesController : ControllerBase
     {
         var result = await _admin.DeleteAsync(id, cancellationToken);
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
     /// <summary>
@@ -309,18 +310,9 @@ public class BinRangesController : ControllerBase
     {
         var result = await _admin.RestoreAsync(id, cancellationToken);
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
     // Maps a refusal onto the status code that says the same thing. Every write returns the same
     // body either way, so a client reads one shape rather than two.
-    private IActionResult Respond(BinRangeMutationResult result) => result.Status switch
-    {
-        BinRangeMutationStatus.NotFound => NotFound(result),
-        BinRangeMutationStatus.PrefixInUse => Conflict(result),
-        BinRangeMutationStatus.AlreadyInThatState => Conflict(result),
-        BinRangeMutationStatus.SchemeMismatch => Conflict(result),
-        BinRangeMutationStatus.Invalid => BadRequest(result),
-        _ => Ok(result)
-    };
 }

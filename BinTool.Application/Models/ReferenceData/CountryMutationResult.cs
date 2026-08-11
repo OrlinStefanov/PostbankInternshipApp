@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using BinTool.Application.Models.Common;
 namespace BinTool.Application.Models.ReferenceData;
 
 /// <summary>
@@ -5,15 +7,15 @@ namespace BinTool.Application.Models.ReferenceData;
 /// <see cref="LookupMutationStatus"/> with the named lookups so clients read one shape;
 /// the <c>NameInUse</c> value covers a duplicate ISO code as well as a duplicate name.
 /// </summary>
-public class CountryMutationResult
+public class CountryMutationResult : IMutationResult
 {
     public LookupMutationStatus Status { get; set; }
 
-    public bool Succeeded =>
-        Status is LookupMutationStatus.Created
-            or LookupMutationStatus.Updated
-            or LookupMutationStatus.Restored
-            or LookupMutationStatus.Deleted;
+    // The status code carries this, so it is not repeated in the body.
+    [JsonIgnore]
+    public MutationOutcome Outcome => Status.Outcome();
+
+    public bool Succeeded => Outcome == MutationOutcome.Succeeded;
 
     public string? Error { get; set; }
 

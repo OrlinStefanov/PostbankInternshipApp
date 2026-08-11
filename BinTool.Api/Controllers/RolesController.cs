@@ -1,3 +1,4 @@
+using BinTool.Api.Errors;
 using BinTool.Application.Abstractions;
 using BinTool.Application.Authorization;
 using BinTool.Application.Models.Access;
@@ -87,7 +88,7 @@ public class RolesController : ControllerBase
             return CreatedAtAction(nameof(GetRoles), result);
         }
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
     /// <summary>
@@ -112,7 +113,7 @@ public class RolesController : ControllerBase
     public async Task<IActionResult> Update(
         string id, [FromBody] RoleInput input, CancellationToken cancellationToken)
     {
-        return Respond(await _service.UpdateAsync(id, input, cancellationToken));
+        return ApiResults.From(await _service.UpdateAsync(id, input, cancellationToken));
     }
 
     /// <summary>
@@ -132,16 +133,7 @@ public class RolesController : ControllerBase
     [ProducesResponseType(typeof(RoleMutationResult), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Delete(string id, CancellationToken cancellationToken)
     {
-        return Respond(await _service.DeleteAsync(id, cancellationToken));
+        return ApiResults.From(await _service.DeleteAsync(id, cancellationToken));
     }
 
-    private IActionResult Respond(RoleMutationResult result) => result.Status switch
-    {
-        RoleMutationStatus.NotFound => NotFound(result),
-        RoleMutationStatus.NameInUse => Conflict(result),
-        RoleMutationStatus.Protected => Conflict(result),
-        RoleMutationStatus.InUse => Conflict(result),
-        RoleMutationStatus.Invalid => BadRequest(result),
-        _ => Ok(result)
-    };
 }

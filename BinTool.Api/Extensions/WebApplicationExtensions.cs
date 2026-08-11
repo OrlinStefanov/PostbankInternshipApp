@@ -7,6 +7,10 @@ public static class WebApplicationExtensions
     // may do.
     public static WebApplication UseApplicationPipeline(this WebApplication app)
     {
+        // First, so that it wraps everything after it - including the two middlewares below,
+        // whose failures would otherwise never reach it.
+        app.UseExceptionHandler();
+
         if (app.Environment.IsDevelopment())
         {
             app.UseSwagger();

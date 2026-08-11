@@ -1,3 +1,4 @@
+using BinTool.Api.Errors;
 using BinTool.Application.Abstractions;
 using BinTool.Application.Authorization;
 using BinTool.Application.Models.ReferenceData;
@@ -95,7 +96,7 @@ public abstract class LookupControllerBase : ControllerBase
             return CreatedAtAction(nameof(GetById), new { id = result.Item!.Id }, result);
         }
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
     /// <summary>Overwrites a row with new values. A soft-deleted row must be restored first.</summary>
@@ -113,7 +114,7 @@ public abstract class LookupControllerBase : ControllerBase
     {
         var result = await _service.UpdateAsync(Kind, id, input, cancellationToken);
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
     /// <summary>
@@ -132,7 +133,7 @@ public abstract class LookupControllerBase : ControllerBase
     {
         var result = await _service.DeleteAsync(Kind, id, cancellationToken);
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
     /// <summary>Brings a soft-deleted row back.</summary>
@@ -147,16 +148,7 @@ public abstract class LookupControllerBase : ControllerBase
     {
         var result = await _service.RestoreAsync(Kind, id, cancellationToken);
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
-    private IActionResult Respond(LookupMutationResult result) => result.Status switch
-    {
-        LookupMutationStatus.NotFound => NotFound(result),
-        LookupMutationStatus.NameInUse => Conflict(result),
-        LookupMutationStatus.AlreadyInThatState => Conflict(result),
-        LookupMutationStatus.InUse => Conflict(result),
-        LookupMutationStatus.Invalid => BadRequest(result),
-        _ => Ok(result)
-    };
 }

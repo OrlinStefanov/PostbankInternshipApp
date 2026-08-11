@@ -24,6 +24,16 @@ public class BinCsvImportControllerTests
         return new FormFile(new MemoryStream(bytes), 0, bytes.Length, "file", fileName);
     }
 
+    // The status code and the body shape are what a client sees; which ObjectResult subclass
+    // produced them is not, so the guards are asserted on the answer rather than the type.
+    private static void ShouldBeRefused(IActionResult result)
+    {
+        var problem = result.Should().BeAssignableTo<ObjectResult>().Subject;
+
+        problem.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
+        problem.Value.Should().BeAssignableTo<ProblemDetails>();
+    }
+
     // ---- Import ----------------------------------------------------------------
 
     [Fact]
@@ -31,7 +41,7 @@ public class BinCsvImportControllerTests
     {
         var result = await CreateController().Import(null!, CancellationToken.None);
 
-        result.Should().BeOfType<BadRequestObjectResult>();
+        ShouldBeRefused(result);
         _service.VerifyNoOtherCalls();
     }
 
@@ -40,7 +50,7 @@ public class BinCsvImportControllerTests
     {
         var result = await CreateController().Import(FileWith(string.Empty), CancellationToken.None);
 
-        result.Should().BeOfType<BadRequestObjectResult>();
+        ShouldBeRefused(result);
         _service.VerifyNoOtherCalls();
     }
 
@@ -163,7 +173,7 @@ public class BinCsvImportControllerTests
     {
         var result = await CreateController().ResolveConflicts(null!, CancellationToken.None);
 
-        result.Should().BeOfType<BadRequestObjectResult>();
+        ShouldBeRefused(result);
         _service.VerifyNoOtherCalls();
     }
 

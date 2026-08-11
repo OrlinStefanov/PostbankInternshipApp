@@ -1,3 +1,4 @@
+using BinTool.Api.Errors;
 using BinTool.Application.Abstractions;
 using BinTool.Application.Authorization;
 using BinTool.Application.Models.BinRanges;
@@ -70,10 +71,13 @@ public class BinCsvImportController : ControllerBase
     [HttpPost("import")]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(BinImportResult), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Import(IFormFile file, CancellationToken cancellationToken)
     {
-        if (file == null || file.Length == 0) return BadRequest("Invalid file");
+        if (file is null || file.Length == 0)
+        {
+            return ApiResults.Invalid("A CSV file is required.");
+        }
 
         await using var stream = file.OpenReadStream();
 
@@ -160,11 +164,14 @@ public class BinCsvImportController : ControllerBase
     /// <response code="400">No request body was supplied.</response>
     [HttpPost("resolve-conflicts")]
     [ProducesResponseType(typeof(ConflictResolutionResult), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ResolveConflicts(
         [FromBody] IEnumerable<ConflictResolution> resolutions, CancellationToken cancellationToken)
     {
-        if (resolutions == null) return BadRequest("No resolutions provided");
+        if (resolutions is null)
+        {
+            return ApiResults.Invalid("At least one conflict resolution is required.");
+        }
 
         var result = await _service.ResolveConflictsAsync(resolutions, cancellationToken);
 

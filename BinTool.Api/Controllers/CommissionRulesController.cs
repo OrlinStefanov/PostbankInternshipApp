@@ -1,3 +1,4 @@
+using BinTool.Api.Errors;
 using BinTool.Application.Abstractions;
 using BinTool.Application.Authorization;
 using BinTool.Application.Models.Commission;
@@ -95,7 +96,7 @@ public class CommissionRulesController : ControllerBase
             return CreatedAtAction(nameof(GetById), new { id = result.Rule!.Id }, result);
         }
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
     /// <summary>Overwrites a rule with new values. A soft-deleted rule must be restored first.</summary>
@@ -114,7 +115,7 @@ public class CommissionRulesController : ControllerBase
     {
         var result = await _service.UpdateAsync(id, input, cancellationToken);
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
     /// <summary>
@@ -133,7 +134,7 @@ public class CommissionRulesController : ControllerBase
     {
         var result = await _service.DeleteAsync(id, cancellationToken);
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
     /// <summary>Brings a soft-deleted rule back.</summary>
@@ -149,7 +150,7 @@ public class CommissionRulesController : ControllerBase
     {
         var result = await _service.RestoreAsync(id, cancellationToken);
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
     /// <summary>
@@ -168,7 +169,7 @@ public class CommissionRulesController : ControllerBase
     {
         var result = await _service.SetDefaultAsync(id, cancellationToken);
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
     /// <summary>
@@ -183,16 +184,7 @@ public class CommissionRulesController : ControllerBase
     {
         var result = await _service.ClearDefaultAsync(cancellationToken);
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
-    private IActionResult Respond(CommissionRuleMutationResult result) => result.Status switch
-    {
-        CommissionRuleMutationStatus.NotFound => NotFound(result),
-        CommissionRuleMutationStatus.Invalid => BadRequest(result),
-        CommissionRuleMutationStatus.Overlap => Conflict(result),
-        CommissionRuleMutationStatus.InUse => Conflict(result),
-        CommissionRuleMutationStatus.AlreadyInThatState => Conflict(result),
-        _ => Ok(result)
-    };
 }

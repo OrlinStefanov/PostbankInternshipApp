@@ -1,3 +1,5 @@
+using BinTool.Application.Models.Common;
+
 namespace BinTool.Application.Models.ReferenceData;
 
 /// <summary>
@@ -33,4 +35,17 @@ public enum LookupMutationStatus
 
     /// <summary>Deleting a row that is still referenced by live BIN ranges (or by live countries, for a region).</summary>
     InUse = 8
+}
+
+public static class LookupMutationStatusExtensions
+{
+    public static MutationOutcome Outcome(this LookupMutationStatus status) => status switch
+    {
+        LookupMutationStatus.NotFound => MutationOutcome.NotFound,
+        LookupMutationStatus.Invalid => MutationOutcome.Invalid,
+        LookupMutationStatus.NameInUse => MutationOutcome.Conflict,
+        LookupMutationStatus.AlreadyInThatState => MutationOutcome.Conflict,
+        LookupMutationStatus.InUse => MutationOutcome.Conflict,
+        _ => MutationOutcome.Succeeded
+    };
 }

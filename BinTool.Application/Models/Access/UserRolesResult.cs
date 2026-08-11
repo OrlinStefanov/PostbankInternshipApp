@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using BinTool.Application.Models.Common;
 namespace BinTool.Application.Models.Access;
 
 public enum UserRolesStatus
@@ -22,11 +24,23 @@ public enum UserRolesStatus
 /// <summary>
 /// The outcome of setting a user's roles, in the app's usual result shape.
 /// </summary>
-public class UserRolesResult
+public class UserRolesResult : IMutationResult
 {
     public UserRolesStatus Status { get; set; }
 
-    public bool Succeeded => Status == UserRolesStatus.Updated;
+    // The status code carries this, so it is not repeated in the body.
+    [JsonIgnore]
+    public MutationOutcome Outcome => Status switch
+    {
+        UserRolesStatus.NotFound => MutationOutcome.NotFound,
+        UserRolesStatus.Invalid => MutationOutcome.Invalid,
+        UserRolesStatus.UnknownRole => MutationOutcome.Invalid,
+        UserRolesStatus.LastAdmin => MutationOutcome.Conflict,
+        UserRolesStatus.SelfDemotion => MutationOutcome.Conflict,
+        _ => MutationOutcome.Succeeded
+    };
+
+    public bool Succeeded => Outcome == MutationOutcome.Succeeded;
 
     public string? Error { get; set; }
 

@@ -1,3 +1,4 @@
+using BinTool.Api.Errors;
 using BinTool.Application.Abstractions;
 using BinTool.Application.Authorization;
 using BinTool.Application.Models.Access;
@@ -67,16 +68,6 @@ public class UsersController : ControllerBase
     public async Task<IActionResult> SetRoles(
         string id, [FromBody] UserRolesInput input, CancellationToken cancellationToken)
     {
-        var result = await _service.SetRolesAsync(id, input, cancellationToken);
-
-        return result.Status switch
-        {
-            UserRolesStatus.NotFound => NotFound(result),
-            UserRolesStatus.UnknownRole => BadRequest(result),
-            UserRolesStatus.LastAdmin => Conflict(result),
-            UserRolesStatus.SelfDemotion => Conflict(result),
-            UserRolesStatus.Invalid => BadRequest(result),
-            _ => Ok(result)
-        };
+        return ApiResults.From(await _service.SetRolesAsync(id, input, cancellationToken));
     }
 }

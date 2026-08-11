@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using BinTool.Application.Models.Common;
 using BinTool.Application.Models.ReferenceData;
 
 namespace BinTool.Application.Models.Currency;
@@ -7,15 +9,15 @@ namespace BinTool.Application.Models.Currency;
 /// <see cref="LookupMutationStatus"/> so the UI reads the same shape as the other reference
 /// tables.
 /// </summary>
-public class CurrencyMutationResult
+public class CurrencyMutationResult : IMutationResult
 {
     public LookupMutationStatus Status { get; set; }
 
-    public bool Succeeded =>
-        Status is LookupMutationStatus.Created
-            or LookupMutationStatus.Updated
-            or LookupMutationStatus.Restored
-            or LookupMutationStatus.Deleted;
+    // The status code carries this, so it is not repeated in the body.
+    [JsonIgnore]
+    public MutationOutcome Outcome => Status.Outcome();
+
+    public bool Succeeded => Outcome == MutationOutcome.Succeeded;
 
     /// <summary>Why the write was refused. Null when it succeeded.</summary>
     public string? Error { get; set; }

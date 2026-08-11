@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using BinTool.Application.Models.Common;
 namespace BinTool.Application.Models.BinRanges;
 
 /// <summary>
@@ -7,18 +9,16 @@ namespace BinTool.Application.Models.BinRanges;
 /// answer to an ordinary request, and the caller needs the reason to show the user.
 /// </para>
 /// </summary>
-public class BinRangeMutationResult
+public class BinRangeMutationResult : IMutationResult
 {
     public BinRangeMutationStatus Status { get; set; }
 
-    /// <summary>
-    /// True when the database changed.
-    /// </summary>
-    public bool Succeeded =>
-        Status is BinRangeMutationStatus.Created
-            or BinRangeMutationStatus.Updated
-            or BinRangeMutationStatus.Restored
-            or BinRangeMutationStatus.Deleted;
+    // The status code carries this, so it is not repeated in the body.
+    [JsonIgnore]
+    public MutationOutcome Outcome => Status.Outcome();
+
+    /// <summary>True when the database changed.</summary>
+    public bool Succeeded => Outcome == MutationOutcome.Succeeded;
 
     /// <summary>
     /// Why the write was refused. Null when it succeeded.

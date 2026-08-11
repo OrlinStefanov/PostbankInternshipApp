@@ -1,3 +1,5 @@
+using BinTool.Application.Models.Common;
+
 namespace BinTool.Application.Models.Access;
 
 /// <summary>
@@ -25,4 +27,17 @@ public enum RoleMutationStatus
 
     /// <summary>A field broke a rule - a blank name, or an unknown permission key.</summary>
     Invalid,
+}
+
+public static class RoleMutationStatusExtensions
+{
+    public static MutationOutcome Outcome(this RoleMutationStatus status) => status switch
+    {
+        RoleMutationStatus.NotFound => MutationOutcome.NotFound,
+        RoleMutationStatus.Invalid => MutationOutcome.Invalid,
+        RoleMutationStatus.NameInUse => MutationOutcome.Conflict,
+        RoleMutationStatus.Protected => MutationOutcome.Conflict,
+        RoleMutationStatus.InUse => MutationOutcome.Conflict,
+        _ => MutationOutcome.Succeeded
+    };
 }

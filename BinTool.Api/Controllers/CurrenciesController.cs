@@ -1,3 +1,4 @@
+using BinTool.Api.Errors;
 using BinTool.Application.Abstractions;
 using BinTool.Application.Authorization;
 using BinTool.Application.Models.Currency;
@@ -87,7 +88,7 @@ public class CurrenciesController : ControllerBase
             return CreatedAtAction(nameof(GetById), new { id = result.Item!.Id }, result);
         }
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
     /// <summary>Overwrites a currency. A soft-deleted row must be restored first.</summary>
@@ -106,7 +107,7 @@ public class CurrenciesController : ControllerBase
     {
         var result = await _service.UpdateAsync(id, input, cancellationToken);
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
     /// <summary>
@@ -124,7 +125,7 @@ public class CurrenciesController : ControllerBase
     {
         var result = await _service.DeleteAsync(id, cancellationToken);
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
     /// <summary>Brings a soft-deleted currency back.</summary>
@@ -140,16 +141,7 @@ public class CurrenciesController : ControllerBase
     {
         var result = await _service.RestoreAsync(id, cancellationToken);
 
-        return Respond(result);
+        return ApiResults.From(result);
     }
 
-    private IActionResult Respond(CurrencyMutationResult result) => result.Status switch
-    {
-        LookupMutationStatus.NotFound => NotFound(result),
-        LookupMutationStatus.NameInUse => Conflict(result),
-        LookupMutationStatus.AlreadyInThatState => Conflict(result),
-        LookupMutationStatus.InUse => Conflict(result),
-        LookupMutationStatus.Invalid => BadRequest(result),
-        _ => Ok(result)
-    };
 }

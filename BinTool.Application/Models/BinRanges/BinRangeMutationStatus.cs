@@ -1,3 +1,5 @@
+using BinTool.Application.Models.Common;
+
 namespace BinTool.Application.Models.BinRanges;
 
 /// <summary>
@@ -41,4 +43,17 @@ public enum BinRangeMutationStatus
     /// (co-branded ranges, new allocations) that the human has to have the last word.
     /// </summary>
     SchemeMismatch = 8
+}
+
+public static class BinRangeMutationStatusExtensions
+{
+    public static MutationOutcome Outcome(this BinRangeMutationStatus status) => status switch
+    {
+        BinRangeMutationStatus.NotFound => MutationOutcome.NotFound,
+        BinRangeMutationStatus.Invalid => MutationOutcome.Invalid,
+        BinRangeMutationStatus.PrefixInUse => MutationOutcome.Conflict,
+        BinRangeMutationStatus.AlreadyInThatState => MutationOutcome.Conflict,
+        BinRangeMutationStatus.SchemeMismatch => MutationOutcome.Conflict,
+        _ => MutationOutcome.Succeeded
+    };
 }

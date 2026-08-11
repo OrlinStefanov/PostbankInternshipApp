@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using BinTool.Application.Models.Common;
 namespace BinTool.Application.Models.Commission;
 
 /// <summary>
@@ -7,16 +9,16 @@ namespace BinTool.Application.Models.Commission;
 /// named, so the caller can point the user straight at what they collided with.
 /// </para>
 /// </summary>
-public class CommissionRuleMutationResult
+public class CommissionRuleMutationResult : IMutationResult
 {
     public CommissionRuleMutationStatus Status { get; set; }
 
+    // The status code carries this, so it is not repeated in the body.
+    [JsonIgnore]
+    public MutationOutcome Outcome => Status.Outcome();
+
     /// <summary>True when the database changed.</summary>
-    public bool Succeeded =>
-        Status is CommissionRuleMutationStatus.Created
-            or CommissionRuleMutationStatus.Updated
-            or CommissionRuleMutationStatus.Deleted
-            or CommissionRuleMutationStatus.Restored;
+    public bool Succeeded => Outcome == MutationOutcome.Succeeded;
 
     /// <summary>Why the write was refused. Null when it succeeded.</summary>
     public string? Error { get; set; }
