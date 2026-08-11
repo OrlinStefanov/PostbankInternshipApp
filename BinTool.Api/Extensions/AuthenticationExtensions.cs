@@ -46,14 +46,10 @@ public static class AuthenticationExtensions
                 ValidAudience = options.Audience,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.Key)),
 
-                // The default five-minute grace period would keep expired tokens working
-                // well past the expiry the client was told about.
                 ClockSkew = TimeSpan.Zero
             };
         });
 
-        // Permission-based authorization: an on-demand policy per catalog permission, plus the
-        // handler that makes Admin a superuser. The UI registers the same thing.
         services.AddPermissionAuthorization();
 
         return services;

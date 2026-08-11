@@ -1,8 +1,6 @@
-using BinTool.Domain.Entities;
 using BinTool.Application.Models.Commission;
-using BinTool.Application.Abstractions;
+using BinTool.Domain.Common;
 using BinTool.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace BinTool.Infrastructure.Services;
 
@@ -57,10 +55,10 @@ public class CommissionResolver : ICommissionResolver
             .ToListAsync(cancellationToken);
 
         var winner = matches
-            .OrderByDescending(r => r.Priority)                                     // admin's ranking
-            .ThenByDescending(r => r.RuleCriteria.FirstOrDefault()?.PriorityScore ?? 0) // stored score
-            .ThenByDescending(r => r.ValidFrom)                                     // newer tariff wins
-            .ThenBy(r => r.CommissionRuleId)                                        // deterministic floor
+            .OrderByDescending(r => r.Priority)          // the admin's ranking
+            .ThenByDescending(r => r.PriorityScore())    // the stored score
+            .ThenByDescending(r => r.ValidFrom)          // newer tariff wins
+            .ThenBy(r => r.CommissionRuleId)             // deterministic floor
             .FirstOrDefault();
 
         if (winner is not null)

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using BinTool.Domain.Common;
 
 namespace BinTool.Application.Models.Commission;
 
@@ -50,7 +51,8 @@ public class CommissionRuleInput
     /// valid on the date, the one with the highest priority wins. Higher number = higher
     /// priority. When two rules share a priority, <see cref="PriorityScore"/> breaks the tie.
     /// </summary>
-    [Range(0, 100, ErrorMessage = "Priority must be between 0 and 100.")]
+    [Range(CommissionRuleLimits.MinPriority, CommissionRuleLimits.MaxPriority,
+        ErrorMessage = "Priority must be between 0 and 100.")]
     public int Priority { get; set; }
 
     /// <summary>
@@ -58,7 +60,8 @@ public class CommissionRuleInput
     /// the number of non-wildcard key fields (0–4), but the admin can override it to any value
     /// in the 0–100 range. Null means "use the suggested value".
     /// </summary>
-    [Range(0, 100, ErrorMessage = "Priority score must be between 0 and 100.")]
+    [Range(CommissionRuleLimits.MinPriorityScore, CommissionRuleLimits.MaxPriorityScore,
+        ErrorMessage = "Priority score must be between 0 and 100.")]
     public int? PriorityScore { get; set; }
 
     /// <summary>The date the rule starts applying (inclusive).</summary>

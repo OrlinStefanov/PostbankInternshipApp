@@ -1,4 +1,6 @@
 using BinTool.Api.Services;
+using BinTool.Application.Services;
+using BinTool.Infrastructure.Repositories;
 using BinTool.Infrastructure.Services;
 
 namespace BinTool.Api.Extensions;
@@ -32,6 +34,9 @@ public static class ApplicationServiceExtensions
 
         services.AddScoped<ICommissionRuleAdminService, CommissionRuleAdminService>();
         services.AddScoped<ICommissionResolver, CommissionResolver>();
+
+        services.AddScoped<ICommissionRuleRepository, CommissionRuleRepository>();
+        services.AddScoped<IReferenceDataRepository, ReferenceDataRepository>();
 
         services.AddScoped<IRoleAdminService, RoleAdminService>();
         services.AddScoped<IUserAdminService, UserAdminService>();

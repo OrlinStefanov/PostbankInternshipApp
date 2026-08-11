@@ -1,13 +1,20 @@
 using BinTool.Application.Models.Commission;
-using BinTool.Application.Abstractions;
+using BinTool.Application.Services;
+using BinTool.Infrastructure.Repositories;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
 
 namespace BinTool.Tests;
 
 /// <summary>
-/// Tests for commission rule creation, validation, and the ambiguity guard that prevents
-/// two co-matchable rules from sharing the same Priority and PriorityScore.
+/// Commission rule writes against a real database: the ambiguity guard, the range checks and
+/// the score suggestion, all the way down to SQL.
+/// <para>
+/// The same rules are covered far more cheaply in
+/// <see cref="CommissionRuleAdminServiceUnitTests"/> against a fake repository. These exist to
+/// prove the two agree - that what the service decides in memory survives being written and
+/// read back through Entity Framework.
+/// </para>
 /// </summary>
 public class CommissionRuleAdminServiceTests : SqliteTestBase
 {
@@ -19,7 +26,10 @@ public class CommissionRuleAdminServiceTests : SqliteTestBase
         SeedUser(AdminUserId, "admin");
         var currentUser = new TestUser(AdminUserId, "admin");
         _service = new CommissionRuleAdminService(
-            Db, currentUser, new AuditLog(Db, currentUser));
+            new CommissionRuleRepository(Db),
+            new ReferenceDataRepository(Db),
+            currentUser,
+            new AuditLog(Db, currentUser));
     }
 
     private static CommissionRuleInput Input(
