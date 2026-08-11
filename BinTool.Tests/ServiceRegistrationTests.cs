@@ -71,6 +71,7 @@ public class ServiceRegistrationTests : IDisposable
         typeof(ICommissionResolver),
         typeof(ICommissionRuleRepository),
         typeof(IReferenceDataRepository),
+        typeof(ICurrencyRepository),
         typeof(IRoleAdminService),
         typeof(IUserAdminService)
     };

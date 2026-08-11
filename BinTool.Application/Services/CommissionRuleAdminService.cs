@@ -102,7 +102,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         await _rules.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        _logger.Created(
+        CommissionRuleLog.Created(_logger,
             rule.CommissionRuleId, rule.RuleName, _currentUser.Name,
             rule.Priority, rule.PriorityScore());
 
@@ -147,7 +147,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
 
         await _rules.SaveChangesAsync(cancellationToken);
 
-        _logger.Updated(id, rule.RuleName, _currentUser.Name);
+        CommissionRuleLog.Updated(_logger, id, rule.RuleName, _currentUser.Name);
 
         return await SucceededAsync(CommissionRuleMutationStatus.Updated, id, cancellationToken);
     }
@@ -192,7 +192,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
 
         await _rules.SaveChangesAsync(cancellationToken);
 
-        _logger.Deleted(id, rule.RuleName, _currentUser.Name);
+        CommissionRuleLog.Deleted(_logger, id, rule.RuleName, _currentUser.Name);
 
         return await SucceededAsync(CommissionRuleMutationStatus.Deleted, id, cancellationToken);
     }
@@ -224,7 +224,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
 
         await _rules.SaveChangesAsync(cancellationToken);
 
-        _logger.Restored(id, rule.RuleName, _currentUser.Name);
+        CommissionRuleLog.Restored(_logger, id, rule.RuleName, _currentUser.Name);
 
         return await SucceededAsync(CommissionRuleMutationStatus.Restored, id, cancellationToken);
     }
@@ -271,7 +271,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         await _rules.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        _logger.DefaultSet(id, rule.RuleName, _currentUser.Name);
+        CommissionRuleLog.DefaultSet(_logger, id, rule.RuleName, _currentUser.Name);
 
         return await SucceededAsync(CommissionRuleMutationStatus.Updated, id, cancellationToken);
     }
@@ -300,7 +300,7 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         // Worth an event of its own: with no default, a card that matches no rule stops
         // being priced at all, and that is a configuration change someone should be able
         // to find later without reading the audit table.
-        _logger.DefaultCleared(_currentUser.Name);
+        CommissionRuleLog.DefaultCleared(_logger, _currentUser.Name);
 
         return new CommissionRuleMutationResult { Status = CommissionRuleMutationStatus.Updated };
     }
@@ -465,16 +465,16 @@ public class CommissionRuleAdminService : ICommissionRuleAdminService
         switch (result.Status)
         {
             case CommissionRuleMutationStatus.Overlap:
-                _logger.RefusedAsConflicting(
+                CommissionRuleLog.RefusedAsConflicting(_logger,
                     result.ConflictingRuleId ?? 0, result.ConflictingRuleName ?? "(unnamed)", reason);
                 break;
 
             case CommissionRuleMutationStatus.Invalid:
-                _logger.RefusedAsInvalid(reason);
+                CommissionRuleLog.RefusedAsInvalid(_logger, reason);
                 break;
 
             default:
-                _logger.RefusedAsUnavailable(ruleId, reason);
+                CommissionRuleLog.RefusedAsUnavailable(_logger, ruleId, reason);
                 break;
         }
 

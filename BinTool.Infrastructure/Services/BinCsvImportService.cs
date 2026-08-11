@@ -73,7 +73,7 @@ public class BinCsvImportService : IBinCsvImportService
             ["ImportFile"] = fileName
         });
 
-        _logger.Started(fileName, _currentUser.Name);
+        ImportLog.Started(_logger, fileName, _currentUser.Name);
 
         var result = new BinImportResult { FileName = fileName };
 
@@ -99,7 +99,7 @@ public class BinCsvImportService : IBinCsvImportService
 
             history.Status = "Failed";
 
-            _logger.FileRejected(fileName, "the file is empty or has no header row");
+            ImportLog.FileRejected(_logger, fileName, "the file is empty or has no header row");
 
             await FinalizeAsync(result, history, cancellationToken);
 
@@ -115,7 +115,7 @@ public class BinCsvImportService : IBinCsvImportService
                 $"Missing required column(s): {string.Join(", ", missing)}", string.Join(",", header));
             history.Status = "Failed";
 
-            _logger.FileRejected(
+            ImportLog.FileRejected(_logger,
                 fileName, $"required column(s) missing: {string.Join(", ", missing)}");
 
             await FinalizeAsync(result, history, cancellationToken);
@@ -229,7 +229,7 @@ public class BinCsvImportService : IBinCsvImportService
                 var mismatch = NewConflict(v, candidate.Raw, history, now, ConflictType.SchemeMismatch);
 
                 mismatch.TargetBinRangeId = current?.BinRangeId;
-                
+
                 _db.Set<PendingBinConflict>().Add(mismatch);
 
                 // Only a live target has an existing record to diff against; an insert or
@@ -356,7 +356,7 @@ public class BinCsvImportService : IBinCsvImportService
         result.ConflictCount = result.Conflicts.Count;
         result.ImportHistoryId = history.ImportHistoryId;
 
-        _logger.Finished(
+        ImportLog.Finished(_logger,
             fileName, history.Status, result.TotalRows, result.InsertedCount,
             result.UnchangedCount, result.RejectedCount, result.ConflictCount);
 
@@ -365,7 +365,7 @@ public class BinCsvImportService : IBinCsvImportService
         // what the file said it should be.
         if (result.ConflictCount > 0)
         {
-            _logger.ConflictsPending(fileName, result.ConflictCount);
+            ImportLog.ConflictsPending(_logger, fileName, result.ConflictCount);
         }
 
         return result;
@@ -524,7 +524,7 @@ public class BinCsvImportService : IBinCsvImportService
     }
 
     private void LogResolved(ConflictResolutionResult result) =>
-        _logger.ConflictsResolved(
+        ImportLog.ConflictsResolved(_logger,
             result.UpdatedCount + result.DiscardedCount, _currentUser.Name,
             result.UpdatedCount, result.DiscardedCount);
 
@@ -888,7 +888,7 @@ public class BinCsvImportService : IBinCsvImportService
         BinImportResult result, ImportHistory history, int rowNumber, string reason, string raw)
     {
         result.Errors.Add(new BinImportError { RowNumber = rowNumber, Reason = reason, RawData = raw });
-        
+
         history.RejectedRows_Navigation.Add(new RejectedImportRow
         {
             RowNumber = rowNumber,
@@ -904,7 +904,7 @@ public class BinCsvImportService : IBinCsvImportService
         history.RejectedRows = result.RejectedCount;
 
         await _db.SaveChangesAsync(cancellationToken);
-        
+
         result.ImportHistoryId = history.ImportHistoryId;
     }
 
