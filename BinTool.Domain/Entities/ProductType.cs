@@ -3,9 +3,11 @@ namespace BinTool.Domain.Entities;
 /// <summary>
 /// Card product types (Consumer, Commercial, Prepaid)
 /// </summary>
-public class ProductType
+public class ProductType : ILookupEntity
 {
     public int ProductTypeId { get; set; }
+
+    int ILookupEntity.Id => ProductTypeId;
 
     /// <summary>
     /// Product type name

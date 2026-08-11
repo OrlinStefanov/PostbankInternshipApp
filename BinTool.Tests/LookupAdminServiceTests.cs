@@ -1,6 +1,8 @@
 using BinTool.Domain.Entities;
 using BinTool.Application.Models.ReferenceData;
 using BinTool.Application.Abstractions;
+using BinTool.Application.Services;
+using BinTool.Infrastructure.Repositories;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +26,9 @@ public class LookupAdminServiceTests : SqliteTestBase
         SeedUser(AdminUserId, "admin");
 
         _user = new TestCurrentUser(AdminUserId, "admin");
-        _service = new LookupAdminService(Db, _user, new AuditLog(Db, _user));
+        _service = new LookupAdminService(
+            new LookupRepository(Db), _user, new AuditLog(Db, _user),
+            new RecordingLogger<LookupAdminService>());
     }
 
     public static IEnumerable<object[]> AllKinds => new[]

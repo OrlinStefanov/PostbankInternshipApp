@@ -3,9 +3,11 @@ namespace BinTool.Domain.Entities;
 /// <summary>
 /// Geographic region for determining fee rules and regulations
 /// </summary>
-public class Region
+public class Region : ILookupEntity
 {
     public int RegionId { get; set; }
+
+    int ILookupEntity.Id => RegionId;
 
     /// <summary>
     /// Region name (e.g., "Domestic", "Intra-EEA", "Inter-Regional")

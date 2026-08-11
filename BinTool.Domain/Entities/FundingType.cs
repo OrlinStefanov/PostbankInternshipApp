@@ -3,9 +3,11 @@ namespace BinTool.Domain.Entities;
 /// <summary>
 /// Card funding types (Credit, Debit, etc.)
 /// </summary>
-public class FundingType
+public class FundingType : ILookupEntity
 {
     public int FundingTypeId { get; set; }
+
+    int ILookupEntity.Id => FundingTypeId;
 
     /// <summary>
     /// Funding type name

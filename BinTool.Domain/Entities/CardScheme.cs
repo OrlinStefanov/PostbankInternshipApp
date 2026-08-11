@@ -3,9 +3,11 @@ namespace BinTool.Domain.Entities;
 /// <summary>
 /// Card payment schemes (networks)
 /// </summary>
-public class CardScheme
+public class CardScheme : ILookupEntity
 {
     public int CardSchemeId { get; set; }
+
+    int ILookupEntity.Id => CardSchemeId;
 
     /// <summary>
     /// Scheme name (e.g., "Visa", "Mastercard", "American Express")
