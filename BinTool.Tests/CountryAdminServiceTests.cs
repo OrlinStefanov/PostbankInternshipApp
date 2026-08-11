@@ -1,6 +1,8 @@
 using BinTool.Domain.Entities;
 using BinTool.Application.Models.ReferenceData;
 using BinTool.Application.Abstractions;
+using BinTool.Application.Services;
+using BinTool.Infrastructure.Repositories;
 using BinTool.Infrastructure.Services;
 using FluentAssertions;
 
@@ -23,7 +25,9 @@ public class CountryAdminServiceTests : SqliteTestBase
         SeedUser(AdminUserId, "admin");
 
         var user = new TestCurrentUser(AdminUserId, "admin");
-        _service = new CountryAdminService(Db, user, new AuditLog(Db, user));
+        _service = new CountryAdminService(
+            new CountryRepository(Db), user, new AuditLog(Db, user),
+            new RecordingLogger<CountryAdminService>());
     }
 
     private const int DomesticRegionId = 1;
