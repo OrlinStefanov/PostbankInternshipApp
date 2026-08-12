@@ -1,124 +1,82 @@
 using BinTool.Api.Controllers;
 using BinTool.Api.Services;
-using BinTool.Application.Authorization;
 using BinTool.Application.Models.Auth;
-using BinTool.Domain.Entities;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace BinTool.Tests;
 
-// How Login treats passwords and lockouts against a real <see
-// cref="Microsoft.AspNetCore.Identity.UserManager{T}"/>: the password is checked before the lock,
-// so the account's owner is never shut out by their own typos, and a lockout is reported distinctly
-// from a wrong password.
-public class AuthControllerTests : IdentityTestBase
+// What the endpoint makes of an outcome. The rules themselves are SignInServiceTests; what is left
+// here is the mapping onto HTTP, including that a refusal never reaches the caller as a 200 with an
+// empty token.
+public class AuthControllerTests
 {
-    private AuthController CreateController() =>
-        new(Users, Roles, new StubTokens(), NullLogger<AuthController>.Instance);
-
-    private Task<IActionResult> Login(string userName, string password) =>
-        CreateController().Login(new LoginRequest { UserName = userName, Password = password });
+    private static Task<IActionResult> Login(SignInOutcome outcome) =>
+        new AuthController(
+            new StubSignIn(outcome), new StubTokens(), NullLogger<AuthController>.Instance)
+            .Login(new LoginRequest { UserName = "admin", Password = "whatever" }, default);
 
     private static LoginRejection Rejection(IActionResult result) =>
         result.Should().BeOfType<UnauthorizedObjectResult>()
             .Which.Value.Should().BeOfType<LoginRejection>().Which;
 
     [Fact]
-    public async Task The_correct_password_signs_in()
+    public async Task An_accepted_sign_in_returns_the_token_and_what_the_account_may_do()
     {
-        await CreateUserAsync("admin", AppRoles.Admin);
+        var user = new AuthenticatedUser(
+            "user-1", "admin", "admin@bintool.local", "System Administrator",
+            new[] { "Admin" }, new[] { "binranges.read" });
 
-        var result = await Login("admin", "Passw0rd!");
+        var result = await Login(SignInOutcome.Accepted(user));
 
-        result.Should().BeOfType<OkObjectResult>()
-            .Which.Value.Should().BeOfType<LoginResponse>();
+        var response = result.Should().BeOfType<OkObjectResult>()
+            .Which.Value.Should().BeOfType<LoginResponse>().Which;
+
+        response.AccessToken.Should().Be("stub-token");
+        response.UserName.Should().Be("admin");
+        response.Roles.Should().ContainSingle().Which.Should().Be("Admin");
+        response.Permissions.Should().ContainSingle().Which.Should().Be("binranges.read");
     }
 
     [Fact]
-    public async Task A_wrong_password_is_rejected_as_invalid_credentials()
+    public async Task Rejected_credentials_come_back_as_401()
     {
-        await CreateUserAsync("admin", AppRoles.Admin);
-
-        var result = await Login("admin", "wrong");
+        var result = await Login(SignInOutcome.Invalid());
 
         Rejection(result).Reason.Should().Be(LoginRejectionReason.InvalidCredentials);
     }
 
     [Fact]
-    public async Task An_unknown_user_is_rejected_as_invalid_credentials()
+    public async Task A_lockout_comes_back_as_401_with_the_time_it_lifts()
     {
-        var result = await Login("nobody", "whatever");
+        var until = DateTime.UtcNow.AddMinutes(3);
 
-        Rejection(result).Reason.Should().Be(LoginRejectionReason.InvalidCredentials);
-    }
-
-    [Fact]
-    public async Task A_deactivated_account_is_rejected_as_invalid_credentials()
-    {
-        var user = await CreateUserAsync("admin", AppRoles.Admin);
-        user.IsActive = false;
-        await Users.UpdateAsync(user);
-
-        var result = await Login("admin", "Passw0rd!");
-
-        Rejection(result).Reason.Should().Be(LoginRejectionReason.InvalidCredentials);
-    }
-
-    [Fact]
-    public async Task Five_wrong_attempts_lock_the_account_and_say_so()
-    {
-        await CreateUserAsync("admin", AppRoles.Admin);
-
-        IActionResult result = null!;
-        for (var i = 0; i < 5; i++)
-        {
-            result = await Login("admin", "wrong");
-        }
+        var result = await Login(SignInOutcome.Locked(until));
 
         var rejection = Rejection(result);
         rejection.Reason.Should().Be(LoginRejectionReason.LockedOut);
-        rejection.LockoutEndsUtc.Should().NotBeNull().And.Subject.Should().BeAfter(DateTime.UtcNow);
+        rejection.LockoutEndsUtc.Should().Be(until);
     }
 
-    [Fact]
-    public async Task The_correct_password_releases_an_active_lockout()
+    private sealed class StubSignIn : ISignInService
     {
-        await CreateUserAsync("admin", AppRoles.Admin);
-        for (var i = 0; i < 5; i++)
+        private readonly SignInOutcome _outcome;
+
+        public StubSignIn(SignInOutcome outcome)
         {
-            await Login("admin", "wrong");
+            _outcome = outcome;
         }
 
-        (await Users.IsLockedOutAsync((await Users.FindByNameAsync("admin"))!)).Should().BeTrue();
-
-        var result = await Login("admin", "Passw0rd!");
-
-        result.Should().BeOfType<OkObjectResult>();
-
-        var reloaded = (await Users.FindByNameAsync("admin"))!;
-        (await Users.IsLockedOutAsync(reloaded)).Should().BeFalse();
-        (await Users.GetAccessFailedCountAsync(reloaded)).Should().Be(0);
-    }
-
-    [Fact]
-    public async Task A_successful_sign_in_clears_a_partial_failed_count()
-    {
-        await CreateUserAsync("admin", AppRoles.Admin);
-        await Login("admin", "wrong");
-        await Login("admin", "wrong");
-
-        await Login("admin", "Passw0rd!");
-
-        var reloaded = (await Users.FindByNameAsync("admin"))!;
-        (await Users.GetAccessFailedCountAsync(reloaded)).Should().Be(0);
+        public Task<SignInOutcome> SignInAsync(
+            string userName, string password, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_outcome);
     }
 
     private sealed class StubTokens : IJwtTokenService
     {
         public (string Token, DateTime ExpiresAtUtc) CreateToken(
-            ApplicationUser user, IEnumerable<string> roles, IEnumerable<string> permissions)
+            AuthenticatedUser user, IEnumerable<string> roles, IEnumerable<string> permissions)
             => ("stub-token", DateTime.UtcNow.AddMinutes(30));
     }
 }

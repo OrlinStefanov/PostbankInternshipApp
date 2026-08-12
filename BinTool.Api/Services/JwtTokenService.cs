@@ -12,7 +12,7 @@ namespace BinTool.Api.Services;
 public interface IJwtTokenService
 {
     (string Token, DateTime ExpiresAtUtc) CreateToken(
-        ApplicationUser user, IEnumerable<string> roles, IEnumerable<string> permissions);
+        AuthenticatedUser user, IEnumerable<string> roles, IEnumerable<string> permissions);
 }
 
 public class JwtTokenService : IJwtTokenService
@@ -25,7 +25,7 @@ public class JwtTokenService : IJwtTokenService
     }
 
     public (string Token, DateTime ExpiresAtUtc) CreateToken(
-        ApplicationUser user, IEnumerable<string> roles, IEnumerable<string> permissions)
+        AuthenticatedUser user, IEnumerable<string> roles, IEnumerable<string> permissions)
     {
         var issuedAt = DateTime.UtcNow;
         var expiresAt = issuedAt.AddMinutes(_options.ExpiryMinutes);
@@ -35,7 +35,7 @@ public class JwtTokenService : IJwtTokenService
             new(JwtRegisteredClaimNames.Sub, user.Id),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(ClaimTypes.NameIdentifier, user.Id),
-            new(ClaimTypes.Name, user.UserName ?? string.Empty)
+            new(ClaimTypes.Name, user.UserName)
         };
 
         if (!string.IsNullOrEmpty(user.Email))

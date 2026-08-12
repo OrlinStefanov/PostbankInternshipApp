@@ -1,10 +1,9 @@
 using System.Security.Claims;
 using BinTool.Api.Services;
-using BinTool.Application.Authorization;
+using BinTool.Application.Mapping;
 using BinTool.Application.Models.Auth;
-using BinTool.Domain.Entities;
+using BinTool.Application.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.Api.Controllers;
@@ -15,19 +14,16 @@ namespace BinTool.Api.Controllers;
 [Authorize]
 public class AuthController : ControllerBase
 {
-    private readonly UserManager<ApplicationUser> _users;
-    private readonly RoleManager<ApplicationRole> _roles;
+    private readonly ISignInService _signIn;
     private readonly IJwtTokenService _tokens;
     private readonly ILogger<AuthController> _logger;
 
     public AuthController(
-        UserManager<ApplicationUser> users,
-        RoleManager<ApplicationRole> roles,
+        ISignInService signIn,
         IJwtTokenService tokens,
         ILogger<AuthController> logger)
     {
-        _users = users;
-        _roles = roles;
+        _signIn = signIn;
         _tokens = tokens;
         _logger = logger;
     }
@@ -38,111 +34,24 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(LoginRejection), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    public async Task<IActionResult> Login(
+        [FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
-        var user = await _users.FindByNameAsync(request.UserName)
-                   ?? await _users.FindByEmailAsync(request.UserName);
+        var outcome = await _signIn.SignInAsync(
+            request.UserName, request.Password, cancellationToken);
 
-        if (user is null || !user.IsActive)
+        if (outcome.User is null)
         {
-            // Deliberately the same event as a wrong password: the log must not become the
-            // place where "does this account exist?" can be answered.
-            AuthLog.CredentialsRejected(_logger, request.UserName);
-
-            return Unauthorized(new LoginRejection { Reason = LoginRejectionReason.InvalidCredentials });
+            return Unauthorized(SignInMapper.ToRejection(outcome));
         }
 
-        // Check the password first, before the lockout - so the account's real owner is
-        // never shut out by their own typos. CheckPasswordAsync only verifies the hash; it
-        // does not touch the failed-attempt count or the lock.
-        if (await _users.CheckPasswordAsync(user, request.Password))
-        {
-            // The correct password releases any lock and wipes the failed-attempt count,
-            // rather than making the owner wait the window out.
-            if (await _users.GetLockoutEndDateAsync(user) is not null)
-            {
-                await _users.SetLockoutEndDateAsync(user, null);
-            }
-
-            await _users.ResetAccessFailedCountAsync(user);
-        }
-        else
-        {
-            // A wrong password is recorded; the fifth in a row sets the lock.
-            await _users.AccessFailedAsync(user);
-
-            if (await _users.IsLockedOutAsync(user))
-            {
-                var lockoutEnd = await _users.GetLockoutEndDateAsync(user);
-
-                AuthLog.LockedOut(_logger, user.UserName, lockoutEnd);
-
-                return Unauthorized(new LoginRejection
-                {
-                    Reason = LoginRejectionReason.LockedOut,
-                    LockoutEndsUtc = lockoutEnd?.UtcDateTime
-                });
-            }
-
-            AuthLog.CredentialsRejected(_logger, request.UserName);
-
-            return Unauthorized(new LoginRejection { Reason = LoginRejectionReason.InvalidCredentials });
-        }
-
-        var roles = await _users.GetRolesAsync(user);
-        var permissions = await ResolvePermissionsAsync(roles);
-        var (token, expiresAt) = _tokens.CreateToken(user, roles, permissions);
-
-        user.LastLoginAt = DateTime.UtcNow;
-
-        await _users.UpdateAsync(user);
+        var (token, expiresAt) = _tokens.CreateToken(
+            outcome.User, outcome.User.Roles, outcome.User.Permissions);
 
         // The token itself is never logged - only that one was issued and when it lapses.
-        AuthLog.SignedIn(_logger, user.UserName!, expiresAt);
+        SignInLog.SignedIn(_logger, outcome.User.UserName, expiresAt);
 
-        return Ok(new LoginResponse
-        {
-            AccessToken = token,
-            ExpiresAtUtc = expiresAt,
-            UserId = user.Id,
-            UserName = user.UserName ?? string.Empty,
-            FullName = user.FullName,
-            Roles = roles.ToList(),
-            Permissions = permissions
-        });
-    }
-
-    // Flattens the user's roles into the permissions they grant, read from each role's claims.
-    // Admin is a superuser, so it is credited with the whole catalog whether or not every grant is
-    // present - the token then advertises the same access the API enforces.
-    private async Task<List<string>> ResolvePermissionsAsync(IEnumerable<string> roleNames)
-    {
-        var permissions = new HashSet<string>(StringComparer.Ordinal);
-
-        foreach (var roleName in roleNames)
-        {
-            if (string.Equals(roleName, AppRoles.Admin, StringComparison.Ordinal))
-            {
-                permissions.UnionWith(Permissions.AllKeys);
-                continue;
-            }
-
-            var role = await _roles.FindByNameAsync(roleName);
-            if (role is null)
-            {
-                continue;
-            }
-
-            foreach (var claim in await _roles.GetClaimsAsync(role))
-            {
-                if (claim.Type == PermissionClaimTypes.Permission)
-                {
-                    permissions.Add(claim.Value);
-                }
-            }
-        }
-
-        return permissions.ToList();
+        return Ok(SignInMapper.ToResponse(outcome.User, token, expiresAt));
     }
 
     /// <summary>Returns the identity behind the bearer token.</summary>

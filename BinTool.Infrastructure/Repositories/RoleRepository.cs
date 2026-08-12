@@ -113,6 +113,22 @@ public class RoleRepository : IRoleRepository
         }
     }
 
+    public async Task<IReadOnlySet<string>> GetPermissionsAsync(
+        IEnumerable<string> roleNames, CancellationToken cancellationToken = default)
+    {
+        var permissions = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var roleName in roleNames)
+        {
+            var role = await _roles.FindByNameAsync(roleName);
+            if (role is null) continue;
+
+            permissions.UnionWith(await CurrentPermissionsAsync(role));
+        }
+
+        return permissions;
+    }
+
     public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
         _db.SaveChangesAsync(cancellationToken);
 

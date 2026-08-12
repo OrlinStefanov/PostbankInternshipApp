@@ -43,8 +43,11 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IAuditRepository, AuditRepository>();
         services.AddScoped<IImportHistoryRepository, ImportHistoryRepository>();
 
+        services.AddScoped<ICredentialStore, CredentialStore>();
+
         services.AddScoped<IRoleAdminService, RoleAdminService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
+        services.AddScoped<ISignInService, SignInService>();
 
         return services;
     }

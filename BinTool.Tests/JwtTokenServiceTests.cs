@@ -23,13 +23,9 @@ public class JwtTokenServiceTests
         ExpiryMinutes = 30
     };
 
-    private static readonly ApplicationUser User = new()
-    {
-        Id = "user-1",
-        UserName = "admin",
-        Email = "admin@bintool.local",
-        FullName = "System Administrator"
-    };
+    private static readonly AuthenticatedUser User = new(
+        "user-1", "admin", "admin@bintool.local", "System Administrator",
+        Array.Empty<string>(), Array.Empty<string>());
 
     private static JwtTokenService CreateService() =>
         new(Microsoft.Extensions.Options.Options.Create(Options));
