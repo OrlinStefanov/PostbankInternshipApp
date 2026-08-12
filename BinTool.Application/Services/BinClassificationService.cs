@@ -1,7 +1,6 @@
 using BinTool.Application.Abstractions;
 using BinTool.Application.Models.Classification;
 using BinTool.Domain.Common;
-using BinTool.Domain.Services;
 
 namespace BinTool.Application.Services;
 

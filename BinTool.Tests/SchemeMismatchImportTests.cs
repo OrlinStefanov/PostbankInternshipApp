@@ -214,7 +214,7 @@ public class SchemeMismatchImportTests : ImportTestBase
             new Infrastructure.Repositories.BinImportRepository(fresh), CurrentUser,
             new Application.Services.AuditLog(
                 new Infrastructure.Repositories.AuditRepository(fresh), CurrentUser),
-            new Domain.Services.CardSchemeDetector(),
+            new Domain.Common.CardSchemeDetector(),
             new RecordingLogger<Application.Services.BinCsvImportService>());
 
         var conflict = (await freshService.GetPendingConflictsAsync()).Single();

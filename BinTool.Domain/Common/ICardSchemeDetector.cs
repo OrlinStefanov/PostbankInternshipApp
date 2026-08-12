@@ -1,4 +1,4 @@
-namespace BinTool.Domain.Services;
+namespace BinTool.Domain.Common;
 
 /// <summary>
 /// The card network a BIN prefix belongs to, derived from the published IIN/BIN

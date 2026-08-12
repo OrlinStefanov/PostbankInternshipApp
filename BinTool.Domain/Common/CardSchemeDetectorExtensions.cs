@@ -1,4 +1,4 @@
-namespace BinTool.Domain.Services;
+namespace BinTool.Domain.Common;
 
 public static class CardSchemeDetectorExtensions
 {
