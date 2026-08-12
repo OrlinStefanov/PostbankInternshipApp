@@ -83,8 +83,6 @@ public class BinRangeRepository : IBinRangeRepository
             .Select(x => new CountryOption { IsoCode = x.IsoCode, Name = x.Name })
             .ToListAsync(cancellationToken),
 
-            // Every account that has added a range, deleted rows included, so the "added by"
-            // filter can reach a range no matter its current state.
             Creators = await _db.BinRanges.AsNoTracking()
             .Where(b => b.CreatedBy != null)
             .Select(b => b.CreatedBy!)
@@ -109,9 +107,6 @@ public class BinRangeRepository : IBinRangeRepository
         string cardScheme, string productType, string fundingType, string countryCode,
         CancellationToken cancellationToken = default)
     {
-        // Matched lower-cased because SQLite compares text case-sensitively by default and
-        // "visa" should find Visa. What comes back is the stored spelling, so an audit
-        // entry never shows a case difference as a change.
         var scheme = cardScheme.ToLowerInvariant();
         var product = productType.ToLowerInvariant();
         var funding = fundingType.ToLowerInvariant();
@@ -172,8 +167,6 @@ public class BinRangeRepository : IBinRangeRepository
     public async Task<ITransaction> BeginTransactionAsync(CancellationToken cancellationToken = default) =>
         new EfTransaction(await _db.Database.BeginTransactionAsync(cancellationToken));
 
-    // Narrows by whichever filters were supplied. Status is a where clause per case rather than a
-    // filter over the projection, so paging and the total both run in the database.
     private static IQueryable<BinRange> ApplyFilters(
         IQueryable<BinRange> rows, BinRangeQuery query, DateTime today)
     {

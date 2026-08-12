@@ -2,6 +2,7 @@ using System.Globalization;
 using BinTool.Application.Abstractions;
 using BinTool.Application.Models.Audit;
 using BinTool.Application.Models.Import;
+using BinTool.Application.Services.BinImport;
 using BinTool.Domain.Entities;
 using CsvHelper;
 using CsvHelper.Configuration;
@@ -42,9 +43,6 @@ public class BinCsvImportService : IBinCsvImportService
     public async Task<BinImportResult> ImportAsync(
         Stream csvStream, string fileName, CancellationToken cancellationToken = default)
     {
-        // Everything logged for the rest of this call carries the run id and the file name. The run
-        // id is generated here rather than taken from the history row, which has no id until the
-        // first save - and the failure paths above that save need to be traceable too.
         using var scope = _logger.BeginScope(new Dictionary<string, object>
         {
             ["ImportRunId"] = Guid.NewGuid(),
@@ -54,10 +52,113 @@ public class BinCsvImportService : IBinCsvImportService
         ImportLog.Started(_logger, fileName, _currentUser.Name);
 
         var result = new BinImportResult { FileName = fileName };
+        var lookups = new BinImportLookups(await _repository.LoadReferenceTablesAsync(cancellationToken));
+        var history = StartHistory(fileName);
 
-        // Load the lookup tables once so every row resolves against in-memory maps.
-        var lookups = new Lookups(await _repository.LoadReferenceTablesAsync(cancellationToken));
+        using var reader = new StreamReader(
+            csvStream, detectEncodingFromByteOrderMarks: true, bufferSize: StreamBufferSize);
+        using var csv = new CsvReader(reader, CsvSettings);
 
+        if (!TryReadHeader(csv, result, history, fileName, out var columns))
+        {
+            await FinalizeAsync(result, history, cancellationToken);
+            return result;
+        }
+
+        var candidates = CollectCandidates(csv, columns, lookups, result, history);
+
+        var now = DateTime.UtcNow;
+        var classification = await ClassifyAsync(candidates, lookups, history, now, result, cancellationToken);
+
+        await ApplyRevivalsAsync(classification.Revivals, now, cancellationToken);
+
+        FinalizeCounts(result, history, classification);
+
+        await PersistImportAsync(classification, lookups, cancellationToken);
+
+        BuildConflictResponses(result, classification.StagedConflicts);
+        result.ImportHistoryId = history.ImportHistoryId;
+
+        ImportLog.Finished(_logger,
+            fileName, history.Status, result.TotalRows, result.InsertedCount,
+            result.UnchangedCount, result.RejectedCount, result.ConflictCount);
+
+        if (result.ConflictCount > 0)
+            ImportLog.ConflictsPending(_logger, fileName, result.ConflictCount);
+
+        return result;
+    }
+
+    public async Task<ConflictResolutionResult> ResolveConflictsAsync(
+        IEnumerable<ConflictResolution> resolutions, CancellationToken cancellationToken = default)
+    {
+        var result = new ConflictResolutionResult();
+
+        var decisions = IndexResolutions(resolutions);
+        var ids = decisions.Keys.ToList();
+
+        var conflicts = await _repository.GetPendingForUpdateAsync(ids, cancellationToken);
+        var targets = await LoadTargetsAsync(conflicts, cancellationToken);
+
+        var found = conflicts.Select(c => c.PendingBinConflictId).ToHashSet();
+        result.NotFoundCount = ids.Count(id => !found.Contains(id));
+
+        var now = DateTime.UtcNow;
+        var updatesByHistory = new Dictionary<int, int>();
+        var insertsByHistory = new Dictionary<int, int>();
+        var insertedFromConflicts = new List<(BinRange Added, ResolvedRow Values)>();
+
+        // Only needed to name the ids in the audit snapshots.
+        var lookups = conflicts.Count > 0
+            ? new BinImportLookups(await _repository.LoadReferenceTablesAsync(cancellationToken))
+            : null;
+
+        foreach (var conflict in conflicts)
+        {
+            ApplyResolution(
+                conflict, decisions[conflict.PendingBinConflictId], targets, lookups!, now,
+                result, updatesByHistory, insertsByHistory, insertedFromConflicts);
+        }
+
+        await ApplyHistoryDeltasAsync(updatesByHistory, insertsByHistory, cancellationToken);
+
+        await PersistResolutionsAsync(insertedFromConflicts, lookups, cancellationToken);
+
+        LogResolved(result);
+
+        return result;
+    }
+
+    public async Task<List<BinConflict>> GetPendingConflictsAsync(CancellationToken cancellationToken = default)
+    {
+        var lookups = new BinImportLookups(await _repository.LoadReferenceTablesAsync(cancellationToken));
+        var pending = await _repository.ListPendingAsync(cancellationToken);
+
+        var targetIds = pending
+            .Where(c => c.TargetBinRangeId.HasValue)
+            .Select(c => c.TargetBinRangeId!.Value)
+            .Distinct()
+            .ToList();
+        var targets = (await _repository.GetRangesAsync(targetIds, cancellationToken))
+            .ToDictionary(b => b.BinRangeId);
+
+        var conflicts = new List<BinConflict>();
+        foreach (var conflict in pending)
+        {
+            BinRange? target = null;
+            if (conflict.TargetBinRangeId is int targetId)
+                targets.TryGetValue(targetId, out target);
+
+            var response = BuildPendingResponse(conflict, target, lookups);
+            if (response is not null)
+                conflicts.Add(response);
+        }
+
+        return conflicts;
+    }
+
+    private ImportHistory StartHistory(string fileName)
+    {
         var history = new ImportHistory
         {
             FileName = fileName,
@@ -66,22 +167,21 @@ public class BinCsvImportService : IBinCsvImportService
         };
 
         _repository.AddHistory(history);
+        return history;
+    }
 
-        using var reader = new StreamReader(
-            csvStream, detectEncodingFromByteOrderMarks: true, bufferSize: StreamBufferSize);
-        using var csv = new CsvReader(reader, CsvSettings);
+    private bool TryReadHeader(
+        CsvReader csv, BinImportResult result, ImportHistory history, string fileName,
+        out CsvFieldIndexes columns)
+    {
+        columns = default;
 
         if (!csv.Read() || !csv.ReadHeader())
         {
             AddRejection(result, history, 0, "File is empty or has no header row", string.Empty);
-
             history.Status = "Failed";
-
             ImportLog.FileRejected(_logger, fileName, "the file is empty or has no header row");
-
-            await FinalizeAsync(result, history, cancellationToken);
-
-            return result;
+            return false;
         }
 
         var header = csv.HeaderRecord ?? Array.Empty<string>();
@@ -92,24 +192,21 @@ public class BinCsvImportService : IBinCsvImportService
             AddRejection(result, history, 0,
                 $"Missing required column(s): {string.Join(", ", missing)}", string.Join(",", header));
             history.Status = "Failed";
-
             ImportLog.FileRejected(_logger,
                 fileName, $"required column(s) missing: {string.Join(", ", missing)}");
-
-            await FinalizeAsync(result, history, cancellationToken);
-
-            return result;
+            return false;
         }
 
-        // Resolve column positions once. Reading fields by index in the loop avoids a
-        // name lookup per field per row.
-        var columns = FieldIndexes.FromHeader(header);
+        columns = CsvFieldIndexes.FromHeader(header);
+        return true;
+    }
 
-        // First pass: parse, validate structure, resolve lookups, and collect the
-        // rows we might persist. We defer the existing-row lookup so it can be
-        // batched instead of hitting the database per row.
+    private List<ImportCandidate> CollectCandidates(
+        CsvReader csv, CsvFieldIndexes columns, BinImportLookups lookups,
+        BinImportResult result, ImportHistory history)
+    {
         var seenPrefixes = new HashSet<string>(StringComparer.Ordinal);
-        var candidates = new List<Candidate>();
+        var candidates = new List<ImportCandidate>();
         var rowNumber = 0;
 
         while (csv.Read())
@@ -147,116 +244,134 @@ public class BinCsvImportService : IBinCsvImportService
                 continue;
             }
 
-            candidates.Add(new Candidate(rowNumber, raw, resolved));
+            candidates.Add(new ImportCandidate(rowNumber, raw, resolved));
         }
 
-        // Second pass: reconcile the resolved rows against the existing BIN ranges.
-        // Soft-deleted rows are included deliberately: the unique index on Prefix spans
-        // them, so inserting alongside one would violate the constraint.
+        return candidates;
+    }
+
+    private async Task<ClassifiedCandidates> ClassifyAsync(
+        List<ImportCandidate> candidates, BinImportLookups lookups, ImportHistory history,
+        DateTime now, BinImportResult result, CancellationToken cancellationToken)
+    {
         var existingRows = await _repository.FindByPrefixesAsync(
             candidates.Select(c => c.Values.Prefix).ToList(), cancellationToken);
 
         var existing = existingRows.ToDictionary(r => r.Prefix, StringComparer.Ordinal);
 
-        var now = DateTime.UtcNow;
-        var stagedConflicts = new List<(PendingBinConflict Entity, int RowNumber, List<BinFieldDiff> Diffs, string? Message, string? Advisory)>();
-        var revivals = new Dictionary<int, ResolvedRow>();
-
-        // Rows that changed live data, kept so each can be audited once its id exists.
-        var inserted = new List<(BinRange Entity, ResolvedRow Values)>();
-        var revivedFrom = new Dictionary<int, BinRangeSnapshot>();
+        var classification = new ClassifiedCandidates(
+            Inserted: new List<(BinRange, ResolvedRow)>(),
+            Revivals: new Dictionary<int, ResolvedRow>(),
+            RevivedFrom: new Dictionary<int, BinRangeSnapshot>(),
+            StagedConflicts: new List<StagedConflict>());
 
         foreach (var candidate in candidates)
+            ClassifyOne(candidate, existing, lookups, history, now, classification, result);
+
+        return classification;
+    }
+
+    private void ClassifyOne(
+        ImportCandidate candidate, Dictionary<string, BinRange> existing, BinImportLookups lookups,
+        ImportHistory history, DateTime now, ClassifiedCandidates classification, BinImportResult result)
+    {
+        var v = candidate.Values;
+        existing.TryGetValue(v.Prefix, out var current);
+
+        List<BinFieldDiff>? liveDiffs = null;
+        if (current is { IsDeleted: false })
         {
-            var v = candidate.Values;
-            existing.TryGetValue(v.Prefix, out var current);
-
-            // A row identical to the live record changes nothing, and running a scheme
-            // check over data that is already stored would only raise noise - so settle
-            // the unchanged case first and move on.
-            List<BinFieldDiff>? liveDiffs = null;
-            if (current is { IsDeleted: false })
+            liveDiffs = Diff(current, v, lookups);
+            if (liveDiffs.Count == 0)
             {
-                liveDiffs = Diff(current, v, lookups);
-                if (liveDiffs.Count == 0)
-                {
-                    result.UnchangedCount++;
-                    continue;
-                }
+                result.UnchangedCount++;
+                return;
             }
-
-            // A declared scheme that contradicts the network the prefix belongs to (or a
-            // prefix in no known range at all) is held for review rather than trusted -
-            // whether the row would otherwise insert, revive, or update an existing range.
-            var declaredScheme = lookups.CardSchemeName(v.CardSchemeId);
-
-            var detected = _schemeDetector.Detect(v.Prefix);
-
-            if (!_schemeDetector.Matches(detected, declaredScheme))
-            {
-                var mismatch = NewConflict(v, candidate.Raw, history, now, ConflictType.SchemeMismatch);
-
-                mismatch.TargetBinRangeId = current?.BinRangeId;
-
-                _repository.AddConflict(mismatch);
-
-                // Only a live target has an existing record to diff against; an insert or
-                // a revival is explained by the message alone.
-                var diffs = current is { IsDeleted: false } ? liveDiffs! : new List<BinFieldDiff>();
-                stagedConflicts.Add((mismatch, candidate.RowNumber, diffs,
-                    MismatchMessage(v.Prefix, detected, declaredScheme),
-                    StoredSchemeAdvisory(current, detected, lookups)));
-                continue;
-            }
-
-            if (current is null)
-            {
-                var added = new BinRange
-                {
-                    Prefix = v.Prefix,
-                    PrefixLength = v.Prefix.Length,
-                    CardSchemeId = v.CardSchemeId,
-                    ProductTypeId = v.ProductTypeId,
-                    FundingTypeId = v.FundingTypeId,
-                    CountryId = v.CountryId,
-                    ValidFrom = v.ValidFrom,
-                    ValidTo = v.ValidTo,
-                    CreatedAt = now,
-                    UpdatedAt = now,
-                    CreatedBy = _currentUser.Name,
-                    UpdatedBy = _currentUser.Name
-                };
-
-                _repository.AddRange(added);
-
-                inserted.Add((added, v));
-                result.InsertedCount++;
-
-                continue;
-            }
-
-            // A soft-deleted range is not live data, so there is nothing for the user to arbitrate:
-            // revive the existing row in place with the imported values, keeping its identity and
-            // audit trail.
-            if (current.IsDeleted)
-            {
-                revivals[current.BinRangeId] = v;
-                revivedFrom[current.BinRangeId] = Snapshot(current, lookups);
-                result.InsertedCount++;
-                continue;
-            }
-
-            // A live row with different values, scheme consistent: a plain value conflict.
-            var conflict = NewConflict(v, candidate.Raw, history, now, ConflictType.ValueConflict);
-            conflict.TargetBinRangeId = current.BinRangeId;
-            _repository.AddConflict(conflict);
-
-            stagedConflicts.Add((conflict, candidate.RowNumber, liveDiffs!, null,
-                StoredSchemeAdvisory(current, detected, lookups)));
         }
 
-        // Revived rows are re-read with tracking so the change tracker owns the instance
-        // (attaching the no-tracking copy would clash with anything already tracked).
+        var declaredScheme = lookups.CardSchemeName(v.CardSchemeId);
+        var detected = _schemeDetector.Detect(v.Prefix);
+
+        if (!_schemeDetector.Matches(detected, declaredScheme))
+        {
+            StageMismatch(candidate, current, liveDiffs, detected, declaredScheme, lookups, history, now, classification);
+            return;
+        }
+
+        if (current is null)
+        {
+            AddInsert(v, now, classification);
+            result.InsertedCount++;
+            return;
+        }
+
+        if (current.IsDeleted)
+        {
+            classification.Revivals[current.BinRangeId] = v;
+            classification.RevivedFrom[current.BinRangeId] = Snapshot(current, lookups);
+            result.InsertedCount++;
+            return;
+        }
+
+        // Live row with different values, scheme consistent: a plain value conflict.
+        StageValueConflict(candidate, current, liveDiffs!, detected, lookups, history, now, classification);
+    }
+
+    private void StageMismatch(
+        ImportCandidate candidate, BinRange? current, List<BinFieldDiff>? liveDiffs,
+        DetectedScheme detected, string? declaredScheme, BinImportLookups lookups,
+        ImportHistory history, DateTime now, ClassifiedCandidates classification)
+    {
+        var mismatch = NewConflict(candidate.Values, candidate.Raw, history, now, ConflictType.SchemeMismatch);
+        mismatch.TargetBinRangeId = current?.BinRangeId;
+        _repository.AddConflict(mismatch);
+
+        var diffs = current is { IsDeleted: false } ? liveDiffs! : new List<BinFieldDiff>();
+        classification.StagedConflicts.Add(new StagedConflict(
+            mismatch, candidate.RowNumber, diffs,
+            MismatchMessage(candidate.Values.Prefix, detected, declaredScheme),
+            StoredSchemeAdvisory(current, detected, lookups)));
+    }
+
+    private void StageValueConflict(
+        ImportCandidate candidate, BinRange current, List<BinFieldDiff> liveDiffs,
+        DetectedScheme detected, BinImportLookups lookups, ImportHistory history, DateTime now,
+        ClassifiedCandidates classification)
+    {
+        var conflict = NewConflict(candidate.Values, candidate.Raw, history, now, ConflictType.ValueConflict);
+        conflict.TargetBinRangeId = current.BinRangeId;
+        _repository.AddConflict(conflict);
+
+        classification.StagedConflicts.Add(new StagedConflict(
+            conflict, candidate.RowNumber, liveDiffs, null,
+            StoredSchemeAdvisory(current, detected, lookups)));
+    }
+
+    private void AddInsert(ResolvedRow v, DateTime now, ClassifiedCandidates classification)
+    {
+        var added = new BinRange
+        {
+            Prefix = v.Prefix,
+            PrefixLength = v.Prefix.Length,
+            CardSchemeId = v.CardSchemeId,
+            ProductTypeId = v.ProductTypeId,
+            FundingTypeId = v.FundingTypeId,
+            CountryId = v.CountryId,
+            ValidFrom = v.ValidFrom,
+            ValidTo = v.ValidTo,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = _currentUser.Name,
+            UpdatedBy = _currentUser.Name
+        };
+
+        _repository.AddRange(added);
+        classification.Inserted.Add((added, v));
+    }
+
+    private async Task ApplyRevivalsAsync(
+        Dictionary<int, ResolvedRow> revivals, DateTime now, CancellationToken cancellationToken)
+    {
         var tracked = await _repository.GetRangesForUpdateAsync(revivals.Keys, cancellationToken);
 
         foreach (var row in tracked)
@@ -276,189 +391,161 @@ public class BinCsvImportService : IBinCsvImportService
             row.UpdatedAt = now;
             row.UpdatedBy = _currentUser.Name;
         }
+    }
 
+    private static void FinalizeCounts(
+        BinImportResult result, ImportHistory history, ClassifiedCandidates classification)
+    {
         result.RejectedCount = result.Errors.Count;
         history.ImportedRows = result.InsertedCount;
         history.RejectedRows = result.RejectedCount;
         history.Status = result.RejectedCount == result.TotalRows && result.TotalRows > 0
             ? "Failed"
-            : result.RejectedCount > 0 || stagedConflicts.Count > 0
+            : result.RejectedCount > 0 || classification.StagedConflicts.Count > 0
                 ? "Partial"
                 : "Success";
+    }
 
-        // Inserted ranges have no id until they are saved and an audit entry has to carry one, so
-        // the trail is written in a second save with a transaction holding the two together - a
-        // quietly incomplete trail is the one failure an audit trail cannot have.
+    private async Task PersistImportAsync(
+        ClassifiedCandidates classification, BinImportLookups lookups, CancellationToken cancellationToken)
+    {
         await using var transaction = await _repository.BeginTransactionAsync(cancellationToken);
 
         await _repository.SaveChangesAsync(cancellationToken);
 
-        RecordImportedRanges(inserted, revivals, revivedFrom, lookups);
+        RecordImportedRanges(classification.Inserted, classification.Revivals, classification.RevivedFrom, lookups);
 
         await _repository.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+    }
 
-        // Ids are generated now, so build the response conflicts.
-        foreach (var (entity, stagedRowNumber, diffs, message, advisory) in stagedConflicts)
+    private void BuildConflictResponses(BinImportResult result, List<StagedConflict> staged)
+    {
+        foreach (var s in staged)
         {
             result.Conflicts.Add(new BinConflict
             {
-                PendingBinConflictId = entity.PendingBinConflictId,
-                RowNumber = stagedRowNumber,
-                Prefix = entity.Prefix,
-                ConflictType = entity.ConflictType.ToString(),
-                Message = message,
-                Differences = diffs,
-                DetectedScheme = _schemeDetector.DisplayName(_schemeDetector.Detect(entity.Prefix)),
-                SchemeAdvisory = advisory
+                PendingBinConflictId = s.Entity.PendingBinConflictId,
+                RowNumber = s.RowNumber,
+                Prefix = s.Entity.Prefix,
+                ConflictType = s.Entity.ConflictType.ToString(),
+                Message = s.Message,
+                Differences = s.Diffs,
+                DetectedScheme = _schemeDetector.DisplayName(_schemeDetector.Detect(s.Entity.Prefix)),
+                SchemeAdvisory = s.Advisory
             });
         }
 
         result.ConflictCount = result.Conflicts.Count;
-        result.ImportHistoryId = history.ImportHistoryId;
-
-        ImportLog.Finished(_logger,
-            fileName, history.Status, result.TotalRows, result.InsertedCount,
-            result.UnchangedCount, result.RejectedCount, result.ConflictCount);
-
-        // Separate from the summary and at Warning, because a pending conflict is work the
-        // import could not finish on its own - the run "succeeded" but the data is not yet
-        // what the file said it should be.
-        if (result.ConflictCount > 0)
-        {
-            ImportLog.ConflictsPending(_logger, fileName, result.ConflictCount);
-        }
-
-        return result;
     }
 
-    public async Task<ConflictResolutionResult> ResolveConflictsAsync(
-        IEnumerable<ConflictResolution> resolutions, CancellationToken cancellationToken = default)
-    {
-        var result = new ConflictResolutionResult();
-
-        var decisions = resolutions
+    private static Dictionary<int, bool> IndexResolutions(IEnumerable<ConflictResolution> resolutions) =>
+        resolutions
             .GroupBy(r => r.PendingBinConflictId)
             .ToDictionary(g => g.Key, g => g.Last().Update);
 
-        var ids = decisions.Keys.ToList();
-
-        var conflicts = await _repository.GetPendingForUpdateAsync(ids, cancellationToken);
-
-        // Value conflicts and scheme mismatches on an existing prefix carry a target to
-        // overwrite; a scheme mismatch on a new prefix has none and inserts on apply.
+    private async Task<Dictionary<int, BinRange>> LoadTargetsAsync(
+        IReadOnlyList<PendingBinConflict> conflicts, CancellationToken cancellationToken)
+    {
         var targetIds = conflicts
             .Where(c => c.TargetBinRangeId.HasValue)
             .Select(c => c.TargetBinRangeId!.Value)
             .ToList();
-        var targets = (await _repository.GetRangesForUpdateAsync(targetIds, cancellationToken))
-            .ToDictionary(b => b.BinRangeId);
 
-        var found = conflicts.Select(c => c.PendingBinConflictId).ToHashSet();
-        result.NotFoundCount = ids.Count(id => !found.Contains(id));
+        var rows = await _repository.GetRangesForUpdateAsync(targetIds, cancellationToken);
+        return rows.ToDictionary(b => b.BinRangeId);
+    }
 
-        var now = DateTime.UtcNow;
+    private void ApplyResolution(
+        PendingBinConflict conflict, bool apply, Dictionary<int, BinRange> targets,
+        BinImportLookups lookups, DateTime now, ConflictResolutionResult result,
+        Dictionary<int, int> updatesByHistory, Dictionary<int, int> insertsByHistory,
+        List<(BinRange Added, ResolvedRow Values)> insertedFromConflicts)
+    {
+        var values = new ResolvedRow(
+            conflict.Prefix, conflict.CardSchemeId, conflict.ProductTypeId,
+            conflict.FundingTypeId, conflict.CountryId, conflict.ValidFrom, conflict.ValidTo);
 
-        // Count applied conflicts back against the originating import, so its ImportHistory totals
-        // reflect what its conflicts ultimately produced once they are resolved.
-        var updatesByHistory = new Dictionary<int, int>();
-        var insertsByHistory = new Dictionary<int, int>();
-
-        // New ranges have no id until saved, and an audit entry needs one, so they are
-        // audited in a second save inside a transaction (as the import itself does).
-        var insertedFromConflicts = new List<(BinRange Added, ResolvedRow Values)>();
-
-        // Only needed to name the ids in the audit snapshots.
-        var lookups = conflicts.Count > 0
-            ? new Lookups(await _repository.LoadReferenceTablesAsync(cancellationToken))
-            : null;
-
-        foreach (var conflict in conflicts)
+        if (apply && conflict.TargetBinRangeId is int targetId && targets.TryGetValue(targetId, out var target))
         {
-            var apply = decisions[conflict.PendingBinConflictId];
-            var values = new ResolvedRow(
-                conflict.Prefix, conflict.CardSchemeId, conflict.ProductTypeId,
-                conflict.FundingTypeId, conflict.CountryId, conflict.ValidFrom, conflict.ValidTo);
-
-            if (apply && conflict.TargetBinRangeId is int targetId
-                && targets.TryGetValue(targetId, out var target))
-            {
-                // Applying overwrites the existing row (reviving it if it had been
-                // soft-deleted), so the values it replaces are captured first.
-                var before = Snapshot(target, lookups!);
-
-                target.CardSchemeId = conflict.CardSchemeId;
-                target.ProductTypeId = conflict.ProductTypeId;
-                target.FundingTypeId = conflict.FundingTypeId;
-                target.CountryId = conflict.CountryId;
-                target.PrefixLength = conflict.PrefixLength;
-                target.ValidFrom = conflict.ValidFrom;
-                target.ValidTo = conflict.ValidTo;
-                target.IsDeleted = false;
-                target.DeletedAt = null;
-                target.DeletedBy = null;
-                target.UpdatedAt = now;
-                target.UpdatedBy = _currentUser.Name;
-
-                _audit.Record(AuditAction.Updated, AuditEntityTypes.BinRange, target.BinRangeId,
-                    before, Snapshot(target, lookups!));
-
-                conflict.Status = ConflictStatus.Applied;
-                result.UpdatedCount++;
-                updatesByHistory[conflict.ImportHistoryId] =
-                    updatesByHistory.GetValueOrDefault(conflict.ImportHistoryId) + 1;
-            }
-            else if (apply && conflict.TargetBinRangeId is null)
-            {
-                // A scheme mismatch on a brand-new prefix: applying trusts the file and
-                // inserts the range as declared. Audited once it has an id, below.
-                var added = new BinRange
-                {
-                    Prefix = conflict.Prefix,
-                    PrefixLength = conflict.PrefixLength,
-                    CardSchemeId = conflict.CardSchemeId,
-                    ProductTypeId = conflict.ProductTypeId,
-                    FundingTypeId = conflict.FundingTypeId,
-                    CountryId = conflict.CountryId,
-                    ValidFrom = conflict.ValidFrom,
-                    ValidTo = conflict.ValidTo,
-                    CreatedAt = now,
-                    UpdatedAt = now,
-                    CreatedBy = _currentUser.Name,
-                    UpdatedBy = _currentUser.Name
-                };
-
-                _repository.AddRange(added);
-                insertedFromConflicts.Add((added, values));
-
-                conflict.Status = ConflictStatus.Applied;
-                result.UpdatedCount++;
-                insertsByHistory[conflict.ImportHistoryId] =
-                    insertsByHistory.GetValueOrDefault(conflict.ImportHistoryId) + 1;
-            }
-            else
-            {
-                // Discarding changes no BIN range, so there is nothing to snapshot. Who
-                // decided, and when, is recorded on the conflict itself just below. A
-                // stale update whose target row has vanished lands here too.
-                conflict.Status = ConflictStatus.Discarded;
-                result.DiscardedCount++;
-            }
-
-            conflict.ResolvedAt = now;
-            conflict.ResolvedBy = _currentUser.Name;
+            ApplyUpdate(target, conflict, lookups, now);
+            result.UpdatedCount++;
+            updatesByHistory[conflict.ImportHistoryId] =
+                updatesByHistory.GetValueOrDefault(conflict.ImportHistoryId) + 1;
+        }
+        else if (apply && conflict.TargetBinRangeId is null)
+        {
+            var added = ApplyInsertFromConflict(conflict, now);
+            insertedFromConflicts.Add((added, values));
+            result.UpdatedCount++;
+            insertsByHistory[conflict.ImportHistoryId] =
+                insertsByHistory.GetValueOrDefault(conflict.ImportHistoryId) + 1;
+        }
+        else
+        {
+            conflict.Status = ConflictStatus.Discarded;
+            result.DiscardedCount++;
         }
 
-        await ApplyHistoryDeltasAsync(updatesByHistory, insertsByHistory, cancellationToken);
+        if (conflict.Status != ConflictStatus.Discarded)
+            conflict.Status = ConflictStatus.Applied;
 
+        conflict.ResolvedAt = now;
+        conflict.ResolvedBy = _currentUser.Name;
+    }
+
+    private void ApplyUpdate(BinRange target, PendingBinConflict conflict, BinImportLookups lookups, DateTime now)
+    {
+        var before = Snapshot(target, lookups);
+
+        target.CardSchemeId = conflict.CardSchemeId;
+        target.ProductTypeId = conflict.ProductTypeId;
+        target.FundingTypeId = conflict.FundingTypeId;
+        target.CountryId = conflict.CountryId;
+        target.PrefixLength = conflict.PrefixLength;
+        target.ValidFrom = conflict.ValidFrom;
+        target.ValidTo = conflict.ValidTo;
+        target.IsDeleted = false;
+        target.DeletedAt = null;
+        target.DeletedBy = null;
+        target.UpdatedAt = now;
+        target.UpdatedBy = _currentUser.Name;
+
+        _audit.Record(AuditAction.Updated, AuditEntityTypes.BinRange, target.BinRangeId,
+            before, Snapshot(target, lookups));
+    }
+
+    private BinRange ApplyInsertFromConflict(PendingBinConflict conflict, DateTime now)
+    {
+        var added = new BinRange
+        {
+            Prefix = conflict.Prefix,
+            PrefixLength = conflict.PrefixLength,
+            CardSchemeId = conflict.CardSchemeId,
+            ProductTypeId = conflict.ProductTypeId,
+            FundingTypeId = conflict.FundingTypeId,
+            CountryId = conflict.CountryId,
+            ValidFrom = conflict.ValidFrom,
+            ValidTo = conflict.ValidTo,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = _currentUser.Name,
+            UpdatedBy = _currentUser.Name
+        };
+
+        _repository.AddRange(added);
+        return added;
+    }
+
+    private async Task PersistResolutionsAsync(
+        List<(BinRange Added, ResolvedRow Values)> insertedFromConflicts,
+        BinImportLookups? lookups, CancellationToken cancellationToken)
+    {
         // No inserts means no ids to backfill, so the single save is enough.
         if (insertedFromConflicts.Count == 0)
         {
             await _repository.SaveChangesAsync(cancellationToken);
-
-            LogResolved(result);
-
-            return result;
+            return;
         }
 
         await using var transaction = await _repository.BeginTransactionAsync(cancellationToken);
@@ -473,10 +560,68 @@ public class BinCsvImportService : IBinCsvImportService
 
         await _repository.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+    }
 
-        LogResolved(result);
+    private BinConflict? BuildPendingResponse(
+        PendingBinConflict conflict, BinRange? target, BinImportLookups lookups)
+    {
+        var incoming = new ResolvedRow(
+            conflict.Prefix, conflict.CardSchemeId, conflict.ProductTypeId,
+            conflict.FundingTypeId, conflict.CountryId, conflict.ValidFrom, conflict.ValidTo);
 
-        return result;
+        var detected = _schemeDetector.Detect(conflict.Prefix);
+        var detectedName = _schemeDetector.DisplayName(detected);
+        var advisory = StoredSchemeAdvisory(target, detected, lookups);
+
+        if (conflict.ConflictType == ConflictType.SchemeMismatch)
+        {
+            return new BinConflict
+            {
+                PendingBinConflictId = conflict.PendingBinConflictId,
+                RowNumber = 0,
+                Prefix = conflict.Prefix,
+                ConflictType = conflict.ConflictType.ToString(),
+                Message = MismatchMessage(conflict.Prefix, detected,
+                    lookups.CardSchemeName(conflict.CardSchemeId)),
+                Differences = target is not null ? Diff(target, incoming, lookups) : new(),
+                DetectedScheme = detectedName,
+                SchemeAdvisory = advisory
+            };
+        }
+
+        if (target is null)
+            return null;
+
+        return new BinConflict
+        {
+            PendingBinConflictId = conflict.PendingBinConflictId,
+            RowNumber = 0,
+            Prefix = conflict.Prefix,
+            ConflictType = conflict.ConflictType.ToString(),
+            Differences = Diff(target, incoming, lookups),
+            DetectedScheme = detectedName,
+            SchemeAdvisory = advisory
+        };
+    }
+
+    private void RecordImportedRanges(
+        List<(BinRange Entity, ResolvedRow Values)> inserted,
+        Dictionary<int, ResolvedRow> revivals,
+        Dictionary<int, BinRangeSnapshot> revivedFrom,
+        BinImportLookups lookups)
+    {
+        // Imported rather than Created: the trail says a range arrived in a file.
+        foreach (var (entity, values) in inserted)
+        {
+            _audit.Record(AuditAction.Imported, AuditEntityTypes.BinRange, entity.BinRangeId,
+                null, Snapshot(values, lookups, isDeleted: false));
+        }
+
+        foreach (var (binRangeId, values) in revivals)
+        {
+            _audit.Record(AuditAction.Imported, AuditEntityTypes.BinRange, binRangeId,
+                revivedFrom[binRangeId], Snapshot(values, lookups, isDeleted: false));
+        }
     }
 
     private void LogResolved(ConflictResolutionResult result) =>
@@ -502,103 +647,7 @@ public class BinCsvImportService : IBinCsvImportService
         }
     }
 
-    public async Task<List<BinConflict>> GetPendingConflictsAsync(CancellationToken cancellationToken = default)
-    {
-        var lookups = new Lookups(await _repository.LoadReferenceTablesAsync(cancellationToken));
-
-        // Read-only projection for display, so nothing here needs change tracking.
-        var pending = await _repository.ListPendingAsync(cancellationToken);
-
-        var targetIds = pending
-            .Where(c => c.TargetBinRangeId.HasValue)
-            .Select(c => c.TargetBinRangeId!.Value)
-            .Distinct()
-            .ToList();
-        var targets = (await _repository.GetRangesAsync(targetIds, cancellationToken))
-            .ToDictionary(b => b.BinRangeId);
-
-        var conflicts = new List<BinConflict>();
-        foreach (var conflict in pending)
-        {
-            BinRange? target = null;
-            if (conflict.TargetBinRangeId is int targetId)
-                targets.TryGetValue(targetId, out target);
-
-            var incoming = new ResolvedRow(
-                conflict.Prefix, conflict.CardSchemeId, conflict.ProductTypeId,
-                conflict.FundingTypeId, conflict.CountryId, conflict.ValidFrom, conflict.ValidTo);
-
-            var detected = _schemeDetector.Detect(conflict.Prefix);
-            var detectedName = _schemeDetector.DisplayName(detected);
-            var advisory = StoredSchemeAdvisory(target, detected, lookups);
-
-            if (conflict.ConflictType == ConflictType.SchemeMismatch)
-            {
-                // A scheme mismatch stands on its own - a new-prefix mismatch never has a
-                // target, so a missing one is not staleness. Diff only when there is an
-                // existing row it would overwrite.
-                conflicts.Add(new BinConflict
-                {
-                    PendingBinConflictId = conflict.PendingBinConflictId,
-                    RowNumber = 0, // not meaningful outside the originating file
-                    Prefix = conflict.Prefix,
-                    ConflictType = conflict.ConflictType.ToString(),
-                    Message = MismatchMessage(conflict.Prefix, detected,
-                        lookups.CardSchemeName(conflict.CardSchemeId)),
-                    Differences = target is not null ? Diff(target, incoming, lookups) : new(),
-                    DetectedScheme = detectedName,
-                    SchemeAdvisory = advisory
-                });
-                continue;
-            }
-
-            // A value conflict only exists against a live row; if the target is gone the
-            // conflict is stale, so skip it.
-            if (target is null)
-                continue;
-
-            conflicts.Add(new BinConflict
-            {
-                PendingBinConflictId = conflict.PendingBinConflictId,
-                RowNumber = 0, // not meaningful outside the originating file
-                Prefix = conflict.Prefix,
-                ConflictType = conflict.ConflictType.ToString(),
-                Differences = Diff(target, incoming, lookups),
-                DetectedScheme = detectedName,
-                SchemeAdvisory = advisory
-            });
-        }
-
-        return conflicts;
-    }
-
-    // Only the rows that touched live BIN data are recorded. A rejected row changed nothing and is
-    // already kept with its reason on the import history; a staged conflict is audited if and when
-    // someone applies it.
-    private void RecordImportedRanges(
-        List<(BinRange Entity, ResolvedRow Values)> inserted,
-        Dictionary<int, ResolvedRow> revivals,
-        Dictionary<int, BinRangeSnapshot> revivedFrom,
-        Lookups lookups)
-    {
-        // Imported rather than Created: the trail should say a range arrived in a file
-        // rather than being typed in by hand.
-        foreach (var (entity, values) in inserted)
-        {
-            _audit.Record(AuditAction.Imported, AuditEntityTypes.BinRange, entity.BinRangeId,
-                null, Snapshot(values, lookups, isDeleted: false));
-        }
-
-        foreach (var (binRangeId, values) in revivals)
-        {
-            _audit.Record(AuditAction.Imported, AuditEntityTypes.BinRange, binRangeId,
-                revivedFrom[binRangeId], Snapshot(values, lookups, isDeleted: false));
-        }
-    }
-
-    // Describes a stored range for the audit trail, resolving its lookup ids through the snapshot
-    // the import already loaded rather than going back to the database per row.
-    private static BinRangeSnapshot Snapshot(BinRange range, Lookups lookups) => new(
+    private static BinRangeSnapshot Snapshot(BinRange range, BinImportLookups lookups) => new(
         range.Prefix,
         lookups.CardSchemeName(range.CardSchemeId),
         lookups.ProductTypeName(range.ProductTypeId),
@@ -608,7 +657,7 @@ public class BinCsvImportService : IBinCsvImportService
         range.ValidTo is null ? null : BinRangeSnapshot.Date(range.ValidTo.Value),
         range.IsDeleted);
 
-    private static BinRangeSnapshot Snapshot(ResolvedRow row, Lookups lookups, bool isDeleted) => new(
+    private static BinRangeSnapshot Snapshot(ResolvedRow row, BinImportLookups lookups, bool isDeleted) => new(
         row.Prefix,
         lookups.CardSchemeName(row.CardSchemeId),
         lookups.ProductTypeName(row.ProductTypeId),
@@ -693,10 +742,7 @@ public class BinCsvImportService : IBinCsvImportService
         return true;
     }
 
-    // Compares an incoming row against the existing record, returning a diff entry for every field
-    // that differs (formatted for display). An empty list means the records are identical and the
-    // row can be skipped.
-    private static List<BinFieldDiff> Diff(BinRange current, ResolvedRow incoming, Lookups lookups)
+    private static List<BinFieldDiff> Diff(BinRange current, ResolvedRow incoming, BinImportLookups lookups)
     {
         var diffs = new List<BinFieldDiff>();
 
@@ -763,8 +809,6 @@ public class BinCsvImportService : IBinCsvImportService
         return diffs;
     }
 
-    // Builds a staged conflict from an import row, linked to its originating import. The caller
-    // sets TargetBinRangeId (an existing row to overwrite, or null to insert on apply).
     private static PendingBinConflict NewConflict(
         ResolvedRow v, string raw, ImportHistory history, DateTime now, ConflictType type) => new()
         {
@@ -783,8 +827,6 @@ public class BinCsvImportService : IBinCsvImportService
             ImportHistory = history
         };
 
-    // A one-line explanation of why a row's declared scheme was not trusted: either it names a
-    // different network than the prefix belongs to, or the prefix matches no known network at all.
     private string MismatchMessage(string prefix, DetectedScheme detected, string? declared)
     {
         var declaredName = string.IsNullOrWhiteSpace(declared) ? "an unknown scheme" : declared;
@@ -795,10 +837,7 @@ public class BinCsvImportService : IBinCsvImportService
             : $"Prefix {prefix} is a {detectedName} range, but the file declares {declaredName}.";
     }
 
-    // Non-null when the target row already in the database holds a scheme the detector disagrees
-    // with - a reviewer needs telling the stored row is wrong for its prefix even when the incoming
-    // row is not changing it.
-    private string? StoredSchemeAdvisory(BinRange? target, DetectedScheme detected, Lookups lookups)
+    private string? StoredSchemeAdvisory(BinRange? target, DetectedScheme detected, BinImportLookups lookups)
     {
         if (target is null) return null;
 
@@ -834,93 +873,5 @@ public class BinCsvImportService : IBinCsvImportService
         await _repository.SaveChangesAsync(cancellationToken);
 
         result.ImportHistoryId = history.ImportHistoryId;
-    }
-
-    private sealed record Candidate(int RowNumber, string Raw, ResolvedRow Values);
-
-    private readonly struct FieldIndexes
-    {
-        public int Prefix { get; private init; }
-        public int CardScheme { get; private init; }
-        public int ProductType { get; private init; }
-        public int FundingType { get; private init; }
-        public int CountryCode { get; private init; }
-        public int ValidFrom { get; private init; }
-        public int ValidTo { get; private init; }
-
-        public static FieldIndexes FromHeader(string[] header) => new()
-        {
-            Prefix = Array.IndexOf(header, "Prefix"),
-            CardScheme = Array.IndexOf(header, "CardScheme"),
-            ProductType = Array.IndexOf(header, "ProductType"),
-            FundingType = Array.IndexOf(header, "FundingType"),
-            CountryCode = Array.IndexOf(header, "CountryCode"),
-            ValidFrom = Array.IndexOf(header, "ValidFrom"),
-            ValidTo = Array.IndexOf(header, "ValidTo")
-        };
-    }
-
-    // A structurally-valid row before its lookup names are resolved to ids. A struct so the parse
-    // loop does not allocate one object per row.
-    private readonly record struct ParsedRow(
-        string Prefix, string CardScheme, string ProductType, string FundingType,
-        string CountryCode, DateTime ValidFrom, DateTime? ValidTo);
-
-    private sealed record ResolvedRow(
-        string Prefix, int CardSchemeId, int ProductTypeId, int FundingTypeId, int CountryId,
-        DateTime ValidFrom, DateTime? ValidTo);
-
-    // The reference tables as loaded, plus the resolution rule: an incoming row's four names either
-    // all resolve to live ids or the row is rejected naming the first one that did not. Loading is
-    // storage and lives in the repository; deciding is not.
-    private sealed class Lookups
-    {
-        private readonly ReferenceTables _tables;
-
-        public Lookups(ReferenceTables tables)
-        {
-            _tables = tables;
-        }
-
-        public bool TryResolve(in ParsedRow row, out ResolvedRow resolved, out string reason)
-        {
-            resolved = default!;
-            reason = string.Empty;
-
-            if (!_tables.CardSchemeIds.TryGetValue(row.CardScheme, out var cardSchemeId))
-            {
-                reason = $"CardScheme '{row.CardScheme}' does not exist";
-                return false;
-            }
-
-            if (!_tables.ProductTypeIds.TryGetValue(row.ProductType, out var productTypeId))
-            {
-                reason = $"ProductType '{row.ProductType}' does not exist";
-                return false;
-            }
-
-            if (!_tables.FundingTypeIds.TryGetValue(row.FundingType, out var fundingTypeId))
-            {
-                reason = $"FundingType '{row.FundingType}' does not exist";
-                return false;
-            }
-
-            if (!_tables.CountryIds.TryGetValue(row.CountryCode, out var countryId))
-            {
-                reason = $"CountryCode '{row.CountryCode}' does not exist";
-                return false;
-            }
-
-            resolved = new ResolvedRow(
-                row.Prefix, cardSchemeId, productTypeId, fundingTypeId, countryId,
-                row.ValidFrom, row.ValidTo);
-
-            return true;
-        }
-
-        public string? CardSchemeName(int id) => _tables.CardSchemeNames.GetValueOrDefault(id);
-        public string? ProductTypeName(int id) => _tables.ProductTypeNames.GetValueOrDefault(id);
-        public string? FundingTypeName(int id) => _tables.FundingTypeNames.GetValueOrDefault(id);
-        public string? CountryCode(int id) => _tables.CountryCodes.GetValueOrDefault(id);
     }
 }

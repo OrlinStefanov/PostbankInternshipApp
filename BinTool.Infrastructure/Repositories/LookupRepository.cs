@@ -4,9 +4,6 @@ using BinTool.Infrastructure.Data;
 
 namespace BinTool.Infrastructure.Repositories;
 
-// Entity Framework storage for the four lookup tables. Each public method dispatches on the kind
-// once, in one line per table, and hands off to a generic helper - the four tables differ only in
-// which DbSet holds them and what their key column is called.
 public class LookupRepository : ILookupRepository
 {
     private readonly AppDbContext _db;

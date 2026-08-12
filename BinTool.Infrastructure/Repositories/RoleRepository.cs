@@ -6,8 +6,6 @@ using Microsoft.AspNetCore.Identity;
 
 namespace BinTool.Infrastructure.Repositories;
 
-// Identity-backed storage for roles. Permissions are held as role claims of type Permission, so no
-// extra table is needed and a login can flatten them onto the user's token.
 public class RoleRepository : IRoleRepository
 {
     private readonly RoleManager<ApplicationRole> _roles;

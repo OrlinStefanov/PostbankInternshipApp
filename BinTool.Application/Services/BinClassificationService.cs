@@ -51,13 +51,9 @@ public class BinClassificationService : IBinClassificationService
             Region = match.Region,
             ValidFrom = match.ValidFrom,
             ValidTo = match.ValidTo,
-            // Judged on the matched prefix - what actually classified the card - rather than
-            // the input, so a short 6-digit stored range is judged on its own digits.
             DetectedScheme = _schemeDetector.MismatchedName(match.Prefix, match.CardScheme)
         };
 
-        // Pricing only when the caller asked for it. The card matched, so every key id is
-        // present - the resolver decides whether any rule (or the default) applies.
         if (amount is { } transactionAmount)
         {
             var inputCurrencyId = await _currencies.FindLiveIdByCodeAsync(

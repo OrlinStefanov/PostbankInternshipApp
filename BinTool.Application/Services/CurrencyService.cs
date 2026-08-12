@@ -8,9 +8,6 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-// Maintains the currency table and the euro rates commission is priced in. Every write runs the
-// same beats - validate, refuse a clash, snapshot, apply, audit in the same unit of work, save -
-// and this class does no more than run them in that order.
 public class CurrencyService : ICurrencyService
 {
     private readonly ICurrencyRepository _currencies;
@@ -63,8 +60,6 @@ public class CurrencyService : ICurrencyService
                 LookupMutationStatus.NameInUse, $"Currency '{code}' already exists."));
         }
 
-        // The code is unique across deleted rows too, so re-adding one revives its row
-        // rather than being refused for a collision the user cannot see.
         if (existing is { IsDeleted: true })
         {
             return await ReviveAsync(existing, input, cancellationToken);
@@ -141,8 +136,6 @@ public class CurrencyService : ICurrencyService
 
         CurrencyLog.Updated(_logger, id, current.Code, _currentUser.Name);
 
-        // A rate move reprices every rule quoted in this currency at once, which is worth
-        // finding in the log later without reconstructing it from the audit diff.
         if (previousRate != current.RateToEur)
         {
             CurrencyLog.RateChanged(_logger, id, current.Code, previousRate, current.RateToEur, _currentUser.Name);
@@ -164,8 +157,6 @@ public class CurrencyService : ICurrencyService
                 $"Currency '{current.Code}' is already deleted."), id);
         }
 
-        // Refused while a live rule is still priced in it; those amounts would lose the
-        // unit they are quoted in.
         var inUse = await _currencies.CountRulesUsingAsync(id, cancellationToken);
         if (inUse > 0)
         {
@@ -257,8 +248,6 @@ public class CurrencyService : ICurrencyService
         return CurrencyMutationResult.Success(status, item!);
     }
 
-    // Every refused write leaves through here, so the reason logged is the reason the
-    // caller was given and the two cannot drift apart.
     private CurrencyMutationResult Refused(CurrencyMutationResult result, int currencyId = 0)
     {
         CurrencyLog.WriteRefused(_logger, currencyId, result.Status.ToString(), result.Error ?? string.Empty);

@@ -5,9 +5,6 @@ namespace BinTool.Infrastructure.Repositories;
 
 public class BinImportRepository : IBinImportRepository
 {
-    // Lookups are batched so a large file does not build a single enormous IN (...) clause, which
-    // is slow to plan and can exceed the provider's parameter limit (SQLite caps host parameters
-    // per statement).
     private const int BatchSize = 500;
 
     private readonly AppDbContext _db;
@@ -32,8 +29,7 @@ public class BinImportRepository : IBinImportRepository
         var countries = await _db.Countries.AsNoTracking().Where(c => !c.IsDeleted)
             .Select(c => new { Id = c.CountryId, Name = c.IsoCode }).ToListAsync(cancellationToken);
 
-        // Name to id is case-insensitive because a file may spell "visa"; id to name gives
-        // back the stored spelling, so a diff never shows a case difference as a change.
+        // Name to id is case-insensitive because a file may spell "visa"
         return new ReferenceTables(
             cardSchemes.ToDictionary(x => x.Name, x => x.Id, StringComparer.OrdinalIgnoreCase),
             productTypes.ToDictionary(x => x.Name, x => x.Id, StringComparer.OrdinalIgnoreCase),

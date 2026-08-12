@@ -5,8 +5,6 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-// The order of the checks is the rule worth holding on to: the password is checked before the lock,
-// so an account's owner is never shut out by their own typos
 public class SignInService : ISignInService
 {
     private readonly ICredentialStore _credentials;
@@ -68,8 +66,7 @@ public class SignInService : ISignInService
         return SignInOutcome.Invalid();
     }
 
-    // Admin holds every key, including ones added to the catalog after it was seeded; every other
-    // role holds what its claims say.
+    // Admin holds every key, including ones added to the catalog after it was seeded
     private async Task<IReadOnlyList<string>> ResolvePermissionsAsync(
         IReadOnlyList<string> roleNames, CancellationToken cancellationToken)
     {

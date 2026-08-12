@@ -4,8 +4,6 @@ using BinTool.Infrastructure.Data;
 
 namespace BinTool.Infrastructure.Repositories;
 
-// Reads the canonical names behind reference ids. Only live rows are considered, so soft-deleted
-// reference data cannot be assigned to a new rule.
 public class ReferenceDataRepository : IReferenceDataRepository
 {
     private readonly AppDbContext _db;
@@ -18,9 +16,6 @@ public class ReferenceDataRepository : IReferenceDataRepository
     public async Task<ReferenceNames> ResolveAsync(
         int currencyId, RuleCriteriaKey key, CancellationToken cancellationToken = default)
     {
-        // One query per table, and only for the ids that were actually supplied - a wildcard
-        // is not a lookup. They run in sequence because a DbContext serves one query at a
-        // time; a key with every field wildcarded costs a single round trip.
         var currency = await _db.Currencies.AsNoTracking()
             .Where(x => !x.IsDeleted && x.CurrencyId == currencyId)
             .Select(x => x.Code)

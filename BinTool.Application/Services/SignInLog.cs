@@ -2,8 +2,6 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-// Never logged here: the password, the issued token, or any part of either. A refusal never says
-// which of the two halves was wrong - the log would then answer the question the 401 refuses to.
 public static partial class SignInLog
 {
     [LoggerMessage(EventId = 3001, Level = LogLevel.Information,

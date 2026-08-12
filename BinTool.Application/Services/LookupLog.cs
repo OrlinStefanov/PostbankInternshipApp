@@ -2,9 +2,6 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-// One set of events for all four lookup tables, with the table as a field. A search for "everything
-// that happened to funding types" is then a filter on {Kind}, which four separate event sets would
-// not allow.
 internal static partial class LookupLog
 {
     [LoggerMessage(EventId = 1601, Level = LogLevel.Information,

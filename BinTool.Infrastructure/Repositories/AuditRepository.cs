@@ -72,8 +72,6 @@ public class AuditRepository : IAuditRepository
         var userName = Normalize(query.UserName);
         if (userName is not null)
         {
-            // "system" is the marker recorded when nobody was signed in, not a real user,
-            // so filtering to it returns rows with a null user reference.
             if (userName == ICurrentUser.SystemName)
             {
                 rows = rows.Where(a => a.PerformedByUserId == null);

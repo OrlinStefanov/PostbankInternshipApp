@@ -7,9 +7,6 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-// The four Name+Description reference tables - card scheme, product type, funding type and region -
-// share a shape, so one service serves all four. The LookupKind only picks the table and the audit
-// entity-type constant; every rule below is identical.
 public class LookupAdminService : ILookupAdminService
 {
     private readonly ILookupRepository _lookups;
@@ -63,8 +60,6 @@ public class LookupAdminService : ILookupAdminService
                 $"{LookupMapper.DisplayName(kind)} '{name}' already exists."));
         }
 
-        // The unique index on Name spans soft-deleted rows, so re-adding a deleted name
-        // revives that row: it keeps its id, its foreign keys and its audit trail.
         if (existing is { IsDeleted: true })
         {
             return await ReviveAsync(kind, existing, input, cancellationToken);
@@ -147,8 +142,7 @@ public class LookupAdminService : ILookupAdminService
                 $"{LookupMapper.DisplayName(kind)} '{current.Name}' is already deleted."), id);
         }
 
-        // Deletion is refused while live data still points here. Restore stays
-        // unconditional - a row that came back was fine before it left.
+        // Deletion is refused while live data still points here.
         var inUse = await _lookups.CountLiveReferencesAsync(kind, id, cancellationToken);
         if (inUse > 0)
         {

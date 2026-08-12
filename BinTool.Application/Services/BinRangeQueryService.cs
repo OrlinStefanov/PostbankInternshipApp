@@ -1,11 +1,9 @@
 using BinTool.Application.Abstractions;
 using BinTool.Application.Models.BinRanges;
+using BinTool.Application.Services.BinRangeQueries;
 
 namespace BinTool.Application.Services;
 
-// Browsing BIN ranges, and the scheme-mismatch report. The database narrows and pages; what is
-// decided here is the detector's opinion, which is a judgement about the data rather than something
-// a query can express.
 public class BinRangeQueryService : IBinRangeQueryService
 {
     private readonly IBinRangeRepository _ranges;
@@ -25,9 +23,6 @@ public class BinRangeQueryService : IBinRangeQueryService
         var result = await _ranges.SearchAsync(
             query, page, pageSize, DateTime.UtcNow.Date, cancellationToken);
 
-        // Flag mismatched rows on the ordinary listing too, so a browsing user sees the
-        // same warning the scheme-mismatch page does. Runs on the sliced page only - capped
-        // by MaxPageSize, so this is at most a couple of hundred Detect() calls.
         foreach (var item in result.Items)
         {
             item.DetectedScheme = _detector.MismatchedName(item.Prefix, item.CardScheme);
@@ -42,8 +37,6 @@ public class BinRangeQueryService : IBinRangeQueryService
 
     public SchemeHint DetectScheme(string prefix, string? declaredScheme)
     {
-        // Normalized on the way in so a client sees the same refusals here as on save, rather
-        // than a hint that quietly disagrees with what the range endpoints will accept.
         var normalized = BinPrefix.Normalize(prefix);
 
         var detected = _detector.Detect(normalized);
@@ -66,8 +59,6 @@ public class BinRangeQueryService : IBinRangeQueryService
             .Take(actualSize)
             .ToList();
 
-        // Second read for the full projection, only for the sliced ids, so the payload
-        // stays small even when the mismatch set is large.
         var items = await _ranges.GetManyAsync(
             pageRows.Select(m => m.Id).ToList(), DateTime.UtcNow.Date, cancellationToken);
 
@@ -90,9 +81,6 @@ public class BinRangeQueryService : IBinRangeQueryService
     public async Task<int> CountSchemeMismatchesAsync(CancellationToken cancellationToken = default) =>
         (await FindMismatchesAsync(cancellationToken)).Count;
 
-    // Every live range whose stored scheme contradicts the detector. A prefix the detector cannot
-    // place is not a mismatch - it is an absence of an opinion, and reporting it as a fault would
-    // bury the real ones.
     private async Task<List<Mismatch>> FindMismatchesAsync(CancellationToken cancellationToken)
     {
         var rows = await _ranges.ListLivePrefixSchemesAsync(cancellationToken);
@@ -114,6 +102,4 @@ public class BinRangeQueryService : IBinRangeQueryService
          Math.Clamp(
              pageSize <= 0 ? BinRangeQuery.DefaultPageSize : pageSize,
              1, BinRangeQuery.MaxPageSize));
-
-    private readonly record struct Mismatch(int Id, string Prefix, string DetectedName);
 }

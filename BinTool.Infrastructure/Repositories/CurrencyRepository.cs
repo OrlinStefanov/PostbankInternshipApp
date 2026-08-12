@@ -30,8 +30,6 @@ public class CurrencyRepository : ICurrencyRepository
 
     public Task<Currency?> FindByCodeAsync(string code, CancellationToken cancellationToken = default)
     {
-        // Compared against the stored value directly rather than with a case-insensitive
-        // collation, because every code is upper-cased before it is written.
         var upper = code.ToUpperInvariant();
 
         return _db.Currencies.FirstOrDefaultAsync(c => c.Code == upper, cancellationToken);

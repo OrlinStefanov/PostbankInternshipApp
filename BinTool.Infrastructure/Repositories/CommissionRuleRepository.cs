@@ -4,9 +4,6 @@ using BinTool.Infrastructure.Data;
 
 namespace BinTool.Infrastructure.Repositories;
 
-// Entity Framework storage for commission rules. Everything about how a rule is fetched - which
-// navigations come with it, whether it is tracked, how a date window becomes SQL - is decided here
-// and nowhere else.
 public class CommissionRuleRepository : ICommissionRuleRepository
 {
     private readonly AppDbContext _db;
@@ -122,9 +119,6 @@ public class CommissionRuleRepository : ICommissionRuleRepository
     private IQueryable<CommissionRule> Live(int excludeRuleId) =>
         _db.CommissionRules.Where(r => !r.IsDeleted && r.CommissionRuleId != excludeRuleId);
 
-    // The one place this predicate is written. It has to translate to SQL, so Overlaps cannot be
-    // called inside the expression - but the two ends still arrive as a DateRange, and every caller
-    // gets the same comparison.
     private static IQueryable<CommissionRule> Overlapping(
         IQueryable<CommissionRule> query, DateRange window)
     {

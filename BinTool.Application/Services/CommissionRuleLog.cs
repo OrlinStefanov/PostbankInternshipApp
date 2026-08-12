@@ -2,9 +2,6 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-// Declared once so every call site spells the same event the same way. The message templates are
-// the contract - "{RuleId}" arrives at the sink as a named field, which an interpolated string
-// would collapse back into text.
 internal static partial class CommissionRuleLog
 {
     // 1000-1099: successful writes.
@@ -33,9 +30,6 @@ internal static partial class CommissionRuleLog
     [LoggerMessage(EventId = 1006, Level = LogLevel.Information,
         Message = "The default commission rule was cleared by {User}; unmatched cards now have no fallback.")]
     public static partial void DefaultCleared(ILogger logger, string user);
-
-    // 1100-1199: refusals. Warning, not Error - a refused write is the guard doing its job,
-    // and logging it at Error would train whoever watches the dashboard to ignore Error.
 
     [LoggerMessage(EventId = 1101, Level = LogLevel.Warning,
         Message = "Commission rule write refused as invalid: {Reason}")]

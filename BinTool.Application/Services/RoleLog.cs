@@ -2,8 +2,6 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-// Role changes are access-control changes, so they are logged at Information even though they are
-// rare. The permission keys stay in the audit trail; the log carries only how many there are.
 internal static partial class RoleLog
 {
     [LoggerMessage(EventId = 1801, Level = LogLevel.Information,

@@ -50,13 +50,8 @@ public class BinRangeAdminService : IBinRangeAdminService
                 $"Prefix '{prefix}' already belongs to another BIN range."), prefix);
         }
 
-        // Held in reserve: an admin can accept the row anyway (co-brand block, new
-        // allocation the detector does not know) but never by accident.
         if (SchemeMismatch(input, resolved!.Value) is { } mismatch) return mismatch;
 
-        // The unique index on Prefix spans soft-deleted rows, so a deleted range would
-        // block the insert. Revive it with the new values instead - the same rule the CSV
-        // import follows, and it keeps the row's id and audit trail.
         if (existing is not null)
         {
             return await ReviveAsync(existing, input, resolved.Value, cancellationToken);
@@ -67,9 +62,6 @@ public class BinRangeAdminService : IBinRangeAdminService
 
         BinRangeMapper.Apply(range, input, resolved!.Value, _currentUser.Name, now);
 
-        // An insert has no id until it is saved, and the audit entry has to carry one. The
-        // transaction keeps the pair atomic across the two saves - a range that committed
-        // without its audit row would be a silent hole in the trail.
         await using var transaction = await _ranges.BeginTransactionAsync(cancellationToken);
 
         _ranges.Add(range);
@@ -115,8 +107,6 @@ public class BinRangeAdminService : IBinRangeAdminService
                 $"Prefix '{prefix}' already belongs to another BIN range."), prefix);
         }
 
-        // Same rule as on insert: the network the digits belong to has to match the name
-        // being saved, or the caller has to say they know and want it anyway.
         if (SchemeMismatch(input, resolved!.Value) is { } mismatch) return mismatch;
 
         // Read the stored values before they are overwritten - afterwards they are gone.
@@ -150,8 +140,7 @@ public class BinRangeAdminService : IBinRangeAdminService
         var now = DateTime.UtcNow;
         var before = await SnapshotAsync(binRangeId, cancellationToken);
 
-        // Soft delete: the row stops matching classification and leaves the default
-        // listing, but nothing is erased and the prefix stays reserved.
+        // Soft delete: the row stops matching classification and leaves the default listing, but nothing is erased and the prefix stays reserved.
         range.IsDeleted = true;
         range.DeletedAt = now;
         range.DeletedBy = _currentUser.Name;
@@ -197,9 +186,6 @@ public class BinRangeAdminService : IBinRangeAdminService
         return await SucceededAsync(BinRangeMutationStatus.Restored, binRangeId, cancellationToken);
     }
 
-    // What a create and an update both have to establish before they may proceed. The scheme
-    // mismatch is checked later, after the prefix-in-use check: a duplicate prefix is the more
-    // specific refusal.
     private async Task<(ResolvedReferences? Resolved, BinRangeMutationResult? Refused)> PrepareAsync(
         BinRangeInput input, CancellationToken cancellationToken)
     {
@@ -241,9 +227,6 @@ public class BinRangeAdminService : IBinRangeAdminService
             names.FundingType!.Value, names.Country!.Value), null);
     }
 
-    // Refuses the write when the prefix's digits disagree with the declared scheme, unless the
-    // caller ticks AcknowledgeSchemeMismatch. The resolved name is used rather than the raw input,
-    // so the message matches how the row would be stored - canonical spelling, not "visa".
     private BinRangeMutationResult? SchemeMismatch(
         BinRangeInput input, ResolvedReferences resolved)
     {
@@ -302,8 +285,6 @@ public class BinRangeAdminService : IBinRangeAdminService
     private async Task<BinRangeMutationResult> SucceededAsync(
         BinRangeMutationStatus status, int binRangeId, CancellationToken cancellationToken)
     {
-        // Re-read through the shared projection, so the caller gets the row exactly as the
-        // browse listing would show it - names resolved, status derived.
         var range = await _ranges.GetAsync(binRangeId, DateTime.UtcNow.Date, cancellationToken);
 
         return BinRangeMutationResult.Success(status, range!);

@@ -56,8 +56,7 @@ public class CountryAdminService : ICountryAdminService
                 LookupMutationStatus.NameInUse, $"Country '{isoCode}' already exists."));
         }
 
-        // The unique index on IsoCode spans soft-deleted rows, so re-adding a deleted code
-        // revives its row instead of colliding with something the user cannot see.
+        // The unique index on IsoCode spans soft-deleted rows
         if (existing is { IsDeleted: true })
         {
             return await ReviveAsync(existing, input, region!.Value, cancellationToken);
@@ -203,8 +202,6 @@ public class CountryAdminService : ICountryAdminService
         return await SucceededAsync(LookupMutationStatus.Restored, id, cancellationToken);
     }
 
-    // What a create and an update both have to establish: the input is well formed and the
-    // region it names is one a country may actually be assigned to.
     private async Task<(RegionIdentity? Region, CountryMutationResult? Refused)> PrepareAsync(
         CountryInput input, CancellationToken cancellationToken)
     {
@@ -248,8 +245,6 @@ public class CountryAdminService : ICountryAdminService
             LookupMutationStatus.Restored, existing.CountryId, cancellationToken);
     }
 
-    // The region name has to be read before the row is overwritten; afterwards the old id
-    // is gone and the snapshot would name the new region on both sides of the diff.
     private async Task<CountrySnapshot> SnapshotAsync(
         Country country, CancellationToken cancellationToken)
     {

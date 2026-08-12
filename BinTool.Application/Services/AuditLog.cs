@@ -7,8 +7,6 @@ namespace BinTool.Application.Services;
 
 public class AuditLog : IAuditLog
 {
-    // Nulls are kept rather than dropped: in a before/after comparison "this field was empty" and
-    // "this field was not recorded" have to stay tellable apart.
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,
@@ -37,8 +35,6 @@ public class AuditLog : IAuditLog
             OldValues = Serialize(oldValues),
             NewValues = Serialize(newValues),
 
-            // The id, not the name: a name can be changed, and the entry has to keep
-            // pointing at the same account. Null when nobody was signed in.
             PerformedByUserId = _currentUser.UserId,
             PerformedAt = DateTime.UtcNow
         });

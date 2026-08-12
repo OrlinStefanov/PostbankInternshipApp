@@ -5,9 +5,6 @@ using BinTool.Domain.Entities;
 
 namespace BinTool.Application.Services;
 
-// Selection is deterministic: among the rules matching the card and valid on the date, the highest
-// Priority wins; ties break by PriorityScore, then ValidFrom (newer wins), then row id. Nothing
-// matching uses the configured default and flags the result as a fallback.
 public class CommissionResolver : ICommissionResolver
 {
     private readonly ICommissionRuleRepository _rules;
@@ -31,15 +28,13 @@ public class CommissionResolver : ICommissionResolver
     {
         var day = onDate.Date;
 
-        // The currency the amount was quoted in, so the fee can be worked out in the rule's
-        // currency even when the two differ. Falls back to the euro base currency.
+ 
         var inputCurrency = await ResolveInputCurrencyAsync(inputCurrencyId, cancellationToken);
 
         var matches = await _rules.FindMatchingAsync(
             cardSchemeId, productTypeId, fundingTypeId, regionId, day, cancellationToken);
 
-        // The matching set is small, so the tiebreak is settled here where it reads as the
-        // ranking it is rather than as an ORDER BY four clauses long.
+
         var winner = matches
             .OrderByDescending(r => r.Priority)          // the admin's ranking
             .ThenByDescending(r => r.PriorityScore())    // the stored score
@@ -60,9 +55,6 @@ public class CommissionResolver : ICommissionResolver
             : Calculate(fallback, amount, inputCurrency, isFallback: true);
     }
 
-    // Loads the currency the amount was quoted in. A null id, or an id that no longer resolves to a
-    // live currency, is treated as the euro base currency so a price is still produced rather than
-    // silently dropped.
     private async Task<Currency> ResolveInputCurrencyAsync(
         int? inputCurrencyId, CancellationToken cancellationToken)
     {
@@ -74,24 +66,17 @@ public class CommissionResolver : ICommissionResolver
 
         var euro = await _currencies.GetBaseCurrencyAsync(cancellationToken);
 
-        // No euro row configured at all: fall back to a synthetic 1:1 base so pricing never
-        // fails outright over reference data. Should not happen once the seed has run.
         return euro ?? BaseCurrency();
     }
 
     private static Currency BaseCurrency() =>
         new() { Code = DomainConstants.BaseCurrencyCode, Name = "Euro", RateToEur = 1m };
 
-    // Converts the amount into the rule's currency, then: percentage part (rounded to 4dp) + fixed
-    // amount, raised to the minimum fee, final fee rounded to 2dp. Banker's rounding throughout.
-    // Every native figure is also converted to euro at the rule's rate.
     private static CommissionCalculation Calculate(
         CommissionRule rule, decimal inputAmount, Currency inputCurrency, bool isFallback)
     {
         var ruleCurrency = rule.Currency ?? BaseCurrency();
 
-        // Convert the entered amount into the rule's currency, pivoting through euro:
-        // eur = amount * inputRate; then amount_in_rule = eur / ruleRate.
         var amount = ruleCurrency.CurrencyId == inputCurrency.CurrencyId
             ? inputAmount
             : inputAmount * inputCurrency.RateToEur / ruleCurrency.RateToEur;

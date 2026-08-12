@@ -2,9 +2,6 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-// Nothing here logs per row - one import can touch thousands, and the row-level detail belongs in
-// BinImportResult. Rejection reasons are logged; the rejected line itself is not, being unvalidated
-// caller input.
 internal static partial class ImportLog
 {
     [LoggerMessage(EventId = 2001, Level = LogLevel.Information,
