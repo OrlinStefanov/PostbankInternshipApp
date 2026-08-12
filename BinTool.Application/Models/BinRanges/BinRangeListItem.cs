@@ -1,9 +1,5 @@
 namespace BinTool.Application.Models.BinRanges;
 
-/// <summary>
-/// One BIN range as it appears in a browse listing, with the lookup ids already
-/// resolved to their names.
-/// </summary>
 public class BinRangeListItem
 {
     public int BinRangeId { get; set; }
@@ -11,9 +7,7 @@ public class BinRangeListItem
     /// <summary>BIN prefix, 6 to 8 digits.</summary>
     public string Prefix { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Number of digits in the prefix. A longer prefix wins during classification.
-    /// </summary>
+    /// <summary>Number of digits in the prefix.</summary>
     public int PrefixLength { get; set; }
 
     public string CardScheme { get; set; } = string.Empty;
@@ -43,26 +37,17 @@ public class BinRangeListItem
 
     /// <summary>
     /// User name of whoever added the range - normally the person who ran the import.
-    /// <para>
-    /// The literal <c>system</c> means no user was signed in at the time, which is how
-    /// rows written before authentication existed are recorded. It is not an account.
-    /// </para>
     /// </summary>
     public string? CreatedBy { get; set; }
 
     public DateTime UpdatedAt { get; set; }
 
-    /// <summary>
-    /// User name of whoever last changed the range. Differs from <see cref="CreatedBy"/>
-    /// once someone applies a conflict that overwrites it.
-    /// </summary>
+    /// <summary>User name of whoever last changed the range.</summary>
     public string? UpdatedBy { get; set; }
 
     /// <summary>
-    /// The card scheme the detector assigns to this prefix, or null if the prefix sits in
-    /// no range the detector recognises. Populated by the scheme-mismatch listing so the
-    /// disagreement with <see cref="CardScheme"/> is visible per row; null on the ordinary
-    /// browse listing.
+    /// The card scheme the detector assigns to this prefix, or null if the prefix sits in no range
+    /// the detector recognises.
     /// </summary>
     public string? DetectedScheme { get; set; }
 }

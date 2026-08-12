@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.Api.Controllers;
 
-/// <summary>Maintains the card scheme reference table (Visa, Mastercard, …).</summary>
 [Route("api/[controller]")]
 public class CardSchemesController : LookupControllerBase
 {

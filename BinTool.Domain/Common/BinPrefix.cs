@@ -1,10 +1,5 @@
 namespace BinTool.Domain.Common;
 
-/// <summary>
-/// What a BIN is allowed to be, and how a card number is reduced to one. Pure rules with no
-/// storage behind them, so they hold wherever a BIN arrives - a lookup, an import row, a
-/// future bulk endpoint - rather than only on the path that happened to be written first.
-/// </summary>
 public static class BinPrefix
 {
     // Shortest stored prefix, so anything shorter cannot be classified at all.
@@ -20,10 +15,6 @@ public static class BinPrefix
     /// <summary>
     /// Trims, checks and truncates an incoming BIN or full card number to the lookup key.
     /// </summary>
-    /// <exception cref="ArgumentException">
-    /// The value is blank, holds a non-digit, or is outside 6-19 digits. The message never
-    /// echoes the input: it may be a full card number.
-    /// </exception>
     public static string Normalize(string value, string paramName = "bin")
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -54,10 +45,7 @@ public static class BinPrefix
         return trimmed.Length > MaxLength ? trimmed[..MaxLength] : trimmed;
     }
 
-    /// <summary>
-    /// Every stored prefix length the key could match, shortest first. A lookup asks for all
-    /// of them at once and keeps the longest hit, which is the most specific range.
-    /// </summary>
+    /// <summary>Every stored prefix length the key could match, shortest first.</summary>
     public static string[] Candidates(string lookupKey)
     {
         var candidates = new string[lookupKey.Length - MinLength + 1];

@@ -2,12 +2,6 @@ using BinTool.Application.Models.ReferenceData;
 
 namespace BinTool.Application.Abstractions;
 
-/// <summary>
-/// Maintenance surface for the country reference table. Countries are shaped
-/// differently from the other reference rows (ISO code + region assignment + audit
-/// fields), so they get their own service rather than sharing one with the named
-/// lookups.
-/// </summary>
 public interface ICountryAdminService
 {
     Task<List<CountryListItem>> SearchAsync(

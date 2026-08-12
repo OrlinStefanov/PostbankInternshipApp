@@ -2,11 +2,6 @@ using System.Text.Json.Serialization;
 using BinTool.Application.Models.Common;
 namespace BinTool.Application.Models.ReferenceData;
 
-/// <summary>
-/// The outcome of adding, editing, deleting or restoring one country. Shares
-/// <see cref="LookupMutationStatus"/> with the named lookups so clients read one shape;
-/// the <c>NameInUse</c> value covers a duplicate ISO code as well as a duplicate name.
-/// </summary>
 public class CountryMutationResult : IMutationResult
 {
     public LookupMutationStatus Status { get; set; }

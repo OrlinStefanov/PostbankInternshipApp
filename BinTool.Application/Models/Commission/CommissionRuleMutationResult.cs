@@ -2,13 +2,6 @@ using System.Text.Json.Serialization;
 using BinTool.Application.Models.Common;
 namespace BinTool.Application.Models.Commission;
 
-/// <summary>
-/// The outcome of adding, editing, deleting, restoring or defaulting one commission rule.
-/// <para>
-/// On an <see cref="CommissionRuleMutationStatus.Overlap"/> refusal the conflicting rule is
-/// named, so the caller can point the user straight at what they collided with.
-/// </para>
-/// </summary>
 public class CommissionRuleMutationResult : IMutationResult
 {
     public CommissionRuleMutationStatus Status { get; set; }
@@ -20,10 +13,10 @@ public class CommissionRuleMutationResult : IMutationResult
     /// <summary>True when the database changed.</summary>
     public bool Succeeded => Outcome == MutationOutcome.Succeeded;
 
-    /// <summary>Why the write was refused. Null when it succeeded.</summary>
+    /// <summary>Why the write was refused.</summary>
     public string? Error { get; set; }
 
-    /// <summary>The rule as it now stands. Null when the write was refused.</summary>
+    /// <summary>The rule as it now stands.</summary>
     public CommissionRuleListItem? Rule { get; set; }
 
     /// <summary>On an overlap, the id of the rule that already covers the window.</summary>

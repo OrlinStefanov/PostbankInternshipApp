@@ -1,10 +1,5 @@
 namespace BinTool.Application.Models.Commission;
 
-/// <summary>
-/// A commission rule's lifecycle state, derived rather than stored: it folds the
-/// soft-delete flag, the active flag and the validity window into the one label a
-/// listing shows. The order matters - a listing sorts live rules ahead of the rest.
-/// </summary>
 public enum CommissionRuleStatus
 {
     /// <summary>Active, not deleted, and valid today.</summary>

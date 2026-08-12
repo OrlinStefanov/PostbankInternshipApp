@@ -2,10 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BinTool.Application.Models.Access;
 
-/// <summary>
-/// The values supplied when creating or editing a role: a name, an optional description, and
-/// the set of permission keys it grants.
-/// </summary>
 public class RoleInput : IValidatableObject
 {
     [Required(ErrorMessage = "Name is required.")]
@@ -17,15 +13,12 @@ public class RoleInput : IValidatableObject
     [StringLength(256, ErrorMessage = "Description must be 256 characters or fewer.")]
     public string? Description { get; set; }
 
-    /// <summary>
-    /// The permission keys to grant. Each must be a key from the permission catalog; an unknown
-    /// key is a bug in the client rather than something to silently drop.
-    /// </summary>
+    /// <summary>The permission keys to grant.</summary>
     public List<string> Permissions { get; set; } = new();
 
     /// <summary>
-    /// Cross-field rules, kept on the model so the API's automatic validation and a direct
-    /// service call reject the same input.
+    /// Cross-field rules, kept on the model so the API's automatic validation and a direct service
+    /// call reject the same input.
     /// </summary>
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

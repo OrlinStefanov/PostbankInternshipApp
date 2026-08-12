@@ -1,9 +1,5 @@
 namespace BinTool.Application.Models.Commission;
 
-/// <summary>
-/// One commission rule as a browse listing shows it: the raw values, the resolved names
-/// for the key ids, the derived status and specificity, and the audit trail.
-/// </summary>
 public class CommissionRuleListItem
 {
     public int Id { get; set; }
@@ -45,13 +41,11 @@ public class CommissionRuleListItem
 
     /// <summary>
     /// The stored priority score — the secondary tiebreak after <see cref="Priority"/>.
-    /// Can be overridden by the admin; defaults to the count of non-wildcard key fields.
     /// </summary>
     public int PriorityScore { get; set; }
 
     /// <summary>
     /// The system-suggested priority score: the count of non-wildcard key fields, 0 to 4.
-    /// Shown alongside the stored value so the admin can see what the system would suggest.
     /// </summary>
     public int Specificity { get; set; }
 

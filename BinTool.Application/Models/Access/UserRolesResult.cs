@@ -21,7 +21,6 @@ public enum UserRolesStatus
     Invalid,
 }
 
-/// <summary>The outcome of setting a user's roles, in the app's usual result shape.</summary>
 public class UserRolesResult : IMutationResult
 {
     public UserRolesStatus Status { get; set; }
@@ -42,7 +41,7 @@ public class UserRolesResult : IMutationResult
 
     public string? Error { get; set; }
 
-    /// <summary>The user with their roles as they now stand. Null on a refusal.</summary>
+    /// <summary>The user with their roles as they now stand.</summary>
     public UserListItem? User { get; set; }
 
     public static UserRolesResult Success(UserListItem user) =>

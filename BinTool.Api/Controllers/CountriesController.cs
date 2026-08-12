@@ -7,14 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.Api.Controllers;
 
-/// <summary>
-/// Maintains the country reference table. Unlike the named lookups, a country carries
-/// an ISO 3166-1 alpha-2 code and a region assignment - so it has its own controller.
-/// <para>
-/// A country cannot be deleted while any live BIN range still names it as the issuing
-/// country. Restore is unconditional.
-/// </para>
-/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
@@ -29,8 +21,6 @@ public class CountriesController : ControllerBase
     }
 
     /// <summary>Lists countries, ordered by ISO code.</summary>
-    /// <param name="includeDeleted">Include soft-deleted rows.</param>
-    /// <response code="200">The rows.</response>
     [HttpGet]
     [ProducesResponseType(typeof(List<CountryListItem>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Search(
@@ -42,8 +32,6 @@ public class CountriesController : ControllerBase
     }
 
     /// <summary>Returns one country by id, deleted rows included.</summary>
-    /// <response code="200">The country.</response>
-    /// <response code="404">No country has that id.</response>
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(CountryListItem), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -54,15 +42,7 @@ public class CountriesController : ControllerBase
         return item is null ? NotFound() : Ok(item);
     }
 
-    /// <summary>
-    /// Adds a country. The ISO code is uppercased and must be free across live and
-    /// soft-deleted rows; a code already held by a soft-deleted row revives that row in
-    /// place with the supplied values.
-    /// </summary>
-    /// <response code="201">Added.</response>
-    /// <response code="200">An existing soft-deleted country was revived with these values.</response>
-    /// <response code="400">Validation failed, or the region does not exist.</response>
-    /// <response code="409">A live country already owns that ISO code.</response>
+    /// <summary>Adds a country.</summary>
     [HttpPost]
     [ProducesResponseType(typeof(CountryMutationResult), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(CountryMutationResult), StatusCodes.Status200OK)]
@@ -81,7 +61,7 @@ public class CountriesController : ControllerBase
         return ApiResults.From(result);
     }
 
-    /// <summary>Overwrites a country. A soft-deleted country must be restored first.</summary>
+    /// <summary>Overwrites a country.</summary>
     [HttpPut("{id:int}")]
     [ProducesResponseType(typeof(CountryMutationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -95,9 +75,7 @@ public class CountriesController : ControllerBase
         return ApiResults.From(result);
     }
 
-    /// <summary>
-    /// Soft-deletes a country. Refused with 409 while any live BIN range still names it.
-    /// </summary>
+    /// <summary>Soft-deletes a country.</summary>
     [HttpDelete("{id:int}")]
     [ProducesResponseType(typeof(CountryMutationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(CountryMutationResult), StatusCodes.Status404NotFound)]

@@ -4,11 +4,6 @@ using BinTool.Application.Models.ReferenceData;
 
 namespace BinTool.Application.Models.Currency;
 
-/// <summary>
-/// The outcome of adding, editing, deleting or restoring one currency. Reuses the shared
-/// <see cref="LookupMutationStatus"/> so the UI reads the same shape as the other reference
-/// tables.
-/// </summary>
 public class CurrencyMutationResult : IMutationResult
 {
     public LookupMutationStatus Status { get; set; }
@@ -19,10 +14,10 @@ public class CurrencyMutationResult : IMutationResult
 
     public bool Succeeded => Outcome == MutationOutcome.Succeeded;
 
-    /// <summary>Why the write was refused. Null when it succeeded.</summary>
+    /// <summary>Why the write was refused.</summary>
     public string? Error { get; set; }
 
-    /// <summary>The currency as it now stands. Null when the write was refused.</summary>
+    /// <summary>The currency as it now stands.</summary>
     public CurrencyListItem? Item { get; set; }
 
     public static CurrencyMutationResult Success(LookupMutationStatus status, CurrencyListItem item) =>

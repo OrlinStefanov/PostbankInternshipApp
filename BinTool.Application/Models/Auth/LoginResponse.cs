@@ -1,14 +1,13 @@
 namespace BinTool.Application.Models.Auth;
 
-/// <summary>A successfully issued access token and the identity it represents.</summary>
 public class LoginResponse
 {
     /// <summary>The signed JWT. Send it as <c>Authorization: Bearer &lt;token&gt;</c>.</summary>
     public string AccessToken { get; set; } = string.Empty;
 
     /// <summary>
-    /// When the token stops being accepted, in UTC. After this the caller must log in again;
-    /// there is no refresh token.
+    /// When the token stops being accepted, in UTC. After this the caller must log in again; there
+    /// is no refresh token.
     /// </summary>
     public DateTime ExpiresAtUtc { get; set; }
 
@@ -21,14 +20,11 @@ public class LoginResponse
 
     /// <summary>
     /// Roles held by the user - what a client should use to decide which screens to offer.
-    /// The API enforces the same roles regardless of what the client shows.
     /// </summary>
     public List<string> Roles { get; set; } = new();
 
     /// <summary>
     /// The permission keys the user's roles add up to, also carried as claims inside the token.
-    /// A client uses these for fine-grained gating; the API enforces the same permissions
-    /// regardless of what the client shows. Admins are a superuser and hold every permission.
     /// </summary>
     public List<string> Permissions { get; set; } = new();
 }

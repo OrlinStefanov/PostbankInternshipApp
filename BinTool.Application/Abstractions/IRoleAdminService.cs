@@ -3,10 +3,6 @@ using BinTool.Application.Models.Access;
 
 namespace BinTool.Application.Abstractions;
 
-/// <summary>
-/// Manages roles and the permissions they grant. The Admin role is protected: it cannot be
-/// renamed, deleted or have its permissions changed, and it holds every permission implicitly.
-/// </summary>
 public interface IRoleAdminService
 {
     /// <summary>All roles, with their permissions and how many users hold each.</summary>

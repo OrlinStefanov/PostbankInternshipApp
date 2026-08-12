@@ -7,16 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.Api.Controllers;
 
-/// <summary>
-/// The four Name+Description reference controllers share their shape - the only thing
-/// that varies is the <see cref="LookupKind"/>. Each concrete controller inherits from
-/// this class and states its kind, so the actions and their XML docs live once here.
-/// <para>
-/// Everything the controller does needs <c>referencedata.manage</c>. The listing
-/// includes soft-deleted rows on demand, which is broader than what the classification
-/// filters expose - so reads share the same admin permission as writes.
-/// </para>
-/// </summary>
 [ApiController]
 [Produces("application/json")]
 [Authorize(Policy = Permissions.ReferenceDataManage)]
@@ -36,8 +26,6 @@ public abstract class LookupControllerBase : ControllerBase
     protected abstract string ResourceName { get; }
 
     /// <summary>Lists rows for this reference table, ordered by name.</summary>
-    /// <param name="includeDeleted">Include soft-deleted rows.</param>
-    /// <response code="200">The rows.</response>
     [HttpGet]
     [ProducesResponseType(typeof(List<LookupListItem>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Search(
@@ -49,8 +37,6 @@ public abstract class LookupControllerBase : ControllerBase
     }
 
     /// <summary>Returns one row by id, deleted rows included.</summary>
-    /// <response code="200">The row.</response>
-    /// <response code="404">No row has that id.</response>
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(LookupListItem), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -62,10 +48,6 @@ public abstract class LookupControllerBase : ControllerBase
     }
 
     /// <summary>Adds a new row.</summary>
-    /// <response code="201">Added. The body carries the row.</response>
-    /// <response code="200">An existing soft-deleted row was revived with these values.</response>
-    /// <response code="400">A field broke a rule.</response>
-    /// <response code="409">A live row already owns that name.</response>
     [HttpPost]
     [ProducesResponseType(typeof(LookupMutationResult), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(LookupMutationResult), StatusCodes.Status200OK)]
@@ -84,11 +66,7 @@ public abstract class LookupControllerBase : ControllerBase
         return ApiResults.From(result);
     }
 
-    /// <summary>Overwrites a row with new values. A soft-deleted row must be restored first.</summary>
-    /// <response code="200">Updated. The body carries the row.</response>
-    /// <response code="400">A field broke a rule.</response>
-    /// <response code="404">No such row, or it is deleted and must be restored first.</response>
-    /// <response code="409">Another row already owns that name.</response>
+    /// <summary>Overwrites a row with new values.</summary>
     [HttpPut("{id:int}")]
     [ProducesResponseType(typeof(LookupMutationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -102,14 +80,7 @@ public abstract class LookupControllerBase : ControllerBase
         return ApiResults.From(result);
     }
 
-    /// <summary>
-    /// Soft-deletes a row. Refused with 409 while the row is still referenced by live
-    /// data (BIN ranges for the card scheme / product type / funding type, live
-    /// countries for a region).
-    /// </summary>
-    /// <response code="200">Deleted. The body carries the row.</response>
-    /// <response code="404">No row has that id.</response>
-    /// <response code="409">The row is already deleted, or is still in use.</response>
+    /// <summary>Soft-deletes a row.</summary>
     [HttpDelete("{id:int}")]
     [ProducesResponseType(typeof(LookupMutationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(LookupMutationResult), StatusCodes.Status404NotFound)]
@@ -122,9 +93,6 @@ public abstract class LookupControllerBase : ControllerBase
     }
 
     /// <summary>Brings a soft-deleted row back.</summary>
-    /// <response code="200">Restored. The body carries the row.</response>
-    /// <response code="404">No row has that id.</response>
-    /// <response code="409">The row was not deleted.</response>
     [HttpPost("{id:int}/restore")]
     [ProducesResponseType(typeof(LookupMutationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(LookupMutationResult), StatusCodes.Status404NotFound)]

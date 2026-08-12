@@ -1,8 +1,5 @@
 namespace BinTool.Application.Models.ReferenceData;
 
-/// <summary>
-/// One country as it appears in a browse listing, with the region id resolved to a name.
-/// </summary>
 public class CountryListItem
 {
     public int Id { get; set; }

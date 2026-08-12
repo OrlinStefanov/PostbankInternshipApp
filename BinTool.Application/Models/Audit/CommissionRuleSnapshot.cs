@@ -1,10 +1,5 @@
 namespace BinTool.Application.Models.Audit;
 
-/// <summary>
-/// What a commission rule looked like at one moment, as stored in an audit entry's
-/// <c>OldValues</c> / <c>NewValues</c>. The key ids are recorded alongside their resolved
-/// names so the trail stays readable even if a scheme, product or region is later renamed.
-/// </summary>
 public sealed record CommissionRuleSnapshot(
     string RuleName,
     string CardScheme,

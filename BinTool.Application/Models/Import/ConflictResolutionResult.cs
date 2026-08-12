@@ -1,6 +1,5 @@
 namespace BinTool.Application.Models.Import;
 
-/// <summary>Outcome of resolving a batch of staged conflicts.</summary>
 public class ConflictResolutionResult
 {
     /// <summary>Conflicts whose values were written onto the existing BIN range.</summary>

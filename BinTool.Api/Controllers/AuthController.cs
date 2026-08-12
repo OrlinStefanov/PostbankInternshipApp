@@ -9,13 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.Api.Controllers;
 
-/// <summary>
-/// Issues the access tokens the rest of the API expects.
-/// <para>
-/// Protected by default so anything added here is closed unless it opts out; only
-/// <see cref="Login"/> is anonymous, because you cannot hold a token before you log in.
-/// </para>
-/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
@@ -40,11 +33,6 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>Exchanges credentials for an access token.</summary>
-    /// <param name="request">The credentials.</param>
-    /// <response code="200">The credentials were accepted. Returns the token and the user's roles.</response>
-    /// <response code="400">The user name or password was missing.</response>
-    /// <response code="401">The credentials were rejected, or the account is locked out.
-    /// The body is a <see cref="LoginRejection"/> whose <c>reason</c> distinguishes the two.</response>
     [AllowAnonymous]
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
@@ -158,8 +146,6 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>Returns the identity behind the bearer token.</summary>
-    /// <response code="200">The token is valid. Returns the caller's id, name and roles.</response>
-    /// <response code="401">No token was sent, or it has expired.</response>
     [Authorize]
     [HttpGet("me")]
     [ProducesResponseType(StatusCodes.Status200OK)]

@@ -4,15 +4,6 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 namespace BinTool.Api.Errors;
 
-/// <summary>
-/// The last line of the pipeline: anything that escapes an action leaves as ProblemDetails
-/// rather than as a stack trace or an empty 500.
-/// <para>
-/// A refused write is not an exception here - it comes back as a result and goes through
-/// <see cref="ApiResults"/>. What reaches this handler is either a guard that was never
-/// meant to be reachable through the API, or a genuine fault.
-/// </para>
-/// </summary>
 public sealed class ApiExceptionHandler : IExceptionHandler
 {
     private readonly IProblemDetailsService _problemDetails;

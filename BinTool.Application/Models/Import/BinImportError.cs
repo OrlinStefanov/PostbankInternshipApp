@@ -1,9 +1,5 @@
 namespace BinTool.Application.Models.Import;
 
-/// <summary>
-/// A single row that failed validation during import.
-/// Maps directly onto the RejectedImportRow entity when persisted (Phase 5).
-/// </summary>
 public class BinImportError
 {
     /// <summary>

@@ -1,22 +1,16 @@
 namespace BinTool.Application.Models.BinRanges;
 
-/// <summary>
-/// Filters and paging for a BIN range search. Every filter is optional; omitting all
-/// of them lists everything that has not been deleted.
-/// </summary>
 public class BinRangeQuery
 {
     /// <summary>
-    /// Largest page the API will return in one call, so a wide-open query cannot pull
-    /// the whole table into memory.
+    /// Largest page the API will return in one call, so a wide-open query cannot pull the whole
+    /// table into memory.
     /// </summary>
     public const int MaxPageSize = 200;
 
     public const int DefaultPageSize = 25;
 
-    /// <summary>
-    /// Matches prefixes that start with these digits. "4000" finds 400001 and 40000123.
-    /// </summary>
+    /// <summary>Matches prefixes that start with these digits.</summary>
     public string? Prefix { get; set; }
 
     /// <summary>Card scheme name, matched case-insensitively (for example "Visa").</summary>
@@ -33,20 +27,16 @@ public class BinRangeQuery
     /// </summary>
     public string? CountryCode { get; set; }
 
-    /// <summary>
-    /// Restricts the results to one status. Left unset, deleted ranges are excluded and
-    /// everything else is returned; pass <c>Deleted</c> to see the soft-deleted ones.
-    /// </summary>
+    /// <summary>Restricts the results to one status.</summary>
     public BinRangeStatus? Status { get; set; }
 
     /// <summary>
-    /// User name of whoever added the range, matched case-insensitively - normally the
-    /// person who ran the import. The literal <c>system</c> selects rows written with no
-    /// user signed in.
+    /// User name of whoever added the range, matched case-insensitively - normally the person who
+    /// ran the import.
     /// </summary>
     public string? CreatedBy { get; set; }
 
-    /// <summary>1-based page number. Values below 1 are treated as 1.</summary>
+    /// <summary>1-based page number.</summary>
     public int Page { get; set; } = 1;
 
     /// <summary>Rows per page, capped at <see cref="MaxPageSize"/>.</summary>

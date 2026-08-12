@@ -2,9 +2,6 @@ using System.Text.Json.Serialization;
 using BinTool.Application.Models.Common;
 namespace BinTool.Application.Models.ReferenceData;
 
-/// <summary>
-/// The outcome of adding, editing, deleting or restoring one named reference row.
-/// </summary>
 public class LookupMutationResult : IMutationResult
 {
     public LookupMutationStatus Status { get; set; }
@@ -15,10 +12,10 @@ public class LookupMutationResult : IMutationResult
 
     public bool Succeeded => Outcome == MutationOutcome.Succeeded;
 
-    /// <summary>Why the write was refused. Null when it succeeded.</summary>
+    /// <summary>Why the write was refused.</summary>
     public string? Error { get; set; }
 
-    /// <summary>The row as it now stands. Null when the write was refused.</summary>
+    /// <summary>The row as it now stands.</summary>
     public LookupListItem? Item { get; set; }
 
     public static LookupMutationResult Success(LookupMutationStatus status, LookupListItem item) =>

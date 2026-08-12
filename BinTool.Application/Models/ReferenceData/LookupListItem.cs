@@ -1,6 +1,5 @@
 namespace BinTool.Application.Models.ReferenceData;
 
-/// <summary>One Name+Description reference row as it appears in a browse listing.</summary>
 public class LookupListItem
 {
     public int Id { get; set; }

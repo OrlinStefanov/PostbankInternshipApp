@@ -6,13 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.Api.Controllers;
 
-/// <summary>
-/// Classifies card BINs against the stored BIN ranges.
-/// <para>
-/// Requires the <c>bin.classify</c> permission. Classification only reads, so any role granted
-/// it - Viewer holds it by default - can classify.
-/// </para>
-/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
@@ -27,12 +20,6 @@ public class BinController : ControllerBase
     }
 
     /// <summary>Classifies a BIN.</summary>
-    /// <param name="request">The BIN to classify.</param>
-    /// <response code="200">
-    /// The classification ran. Check <c>matched</c> - when no range covers the BIN the
-    /// response is still 200, with <c>matched: false</c> and the card attributes null.
-    /// </response>
-    /// <response code="400">The BIN is missing, contains a non-digit, or is not 6-19 digits long.</response>
     [HttpPost("classify")]
     [ProducesResponseType(typeof(BinClassificationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]

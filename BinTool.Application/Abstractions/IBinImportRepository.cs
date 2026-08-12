@@ -1,17 +1,10 @@
 namespace BinTool.Application.Abstractions;
 
-/// <summary>
-/// Storage for a BIN import run and the conflicts it leaves behind.
-/// <para>
-/// Prefixes and ids are looked up in batches rather than one row at a time: a large file
-/// would otherwise be one query per row, and a single enormous IN (...) clause is slow to
-/// plan and can exceed SQLite's per-statement parameter limit. The batch size is the
-/// repository's business, so callers hand over the whole set and let it decide.
-/// </para>
-/// </summary>
 public interface IBinImportRepository
 {
-    /// <summary>The live reference tables, keyed both ways: name to id, and id back to name.</summary>
+    /// <summary>
+    /// The live reference tables, keyed both ways: name to id, and id back to name.
+    /// </summary>
     Task<ReferenceTables> LoadReferenceTablesAsync(CancellationToken cancellationToken = default);
 
     void AddHistory(ImportHistory history);
@@ -20,9 +13,8 @@ public interface IBinImportRepository
         IReadOnlyCollection<int> historyIds, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Existing ranges for these prefixes, soft-deleted rows included: the unique index on
-    /// Prefix spans them, so inserting alongside one would violate the constraint.
-    /// Untracked - this is the compare path, and the rare revival is re-read tracked.
+    /// Existing ranges for these prefixes, soft-deleted rows included: the unique index on Prefix
+    /// spans them, so inserting alongside one would violate the constraint.
     /// </summary>
     Task<IReadOnlyList<BinRange>> FindByPrefixesAsync(
         IReadOnlyCollection<string> prefixes, CancellationToken cancellationToken = default);
@@ -38,7 +30,9 @@ public interface IBinImportRepository
 
     void AddConflict(PendingBinConflict conflict);
 
-    /// <summary>Still-pending conflicts among the given ids, tracked so they can be resolved.</summary>
+    /// <summary>
+    /// Still-pending conflicts among the given ids, tracked so they can be resolved.
+    /// </summary>
     Task<IReadOnlyList<PendingBinConflict>> GetPendingForUpdateAsync(
         IReadOnlyCollection<int> conflictIds, CancellationToken cancellationToken = default);
 
@@ -51,10 +45,6 @@ public interface IBinImportRepository
     Task<ITransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
 }
 
-/// <summary>
-/// The reference tables as the import needs them: name to id to resolve an incoming row,
-/// and id back to name to describe a stored one in a diff.
-/// </summary>
 public sealed record ReferenceTables(
     IReadOnlyDictionary<string, int> CardSchemeIds,
     IReadOnlyDictionary<string, int> ProductTypeIds,

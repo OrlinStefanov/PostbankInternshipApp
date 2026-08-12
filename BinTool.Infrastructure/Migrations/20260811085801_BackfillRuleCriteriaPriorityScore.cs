@@ -4,11 +4,6 @@
 
 namespace BinTool.Infrastructure.Migrations
 {
-    /// <summary>
-    /// One-time backfill: sets PriorityScore to the count of non-null key columns for every
-    /// existing RuleCriteria row. Safe now because the field has never been editable and no
-    /// deliberate overrides exist yet. Must not be re-run once admin overrides are in use.
-    /// </summary>
     public partial class BackfillRuleCriteriaPriorityScore : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

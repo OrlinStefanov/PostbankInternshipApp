@@ -1,9 +1,5 @@
 namespace BinTool.Application.Abstractions;
 
-/// <summary>
-/// Storage for users and the roles they hold. Identity's UserManager stays behind it, the
-/// same way <see cref="IRoleRepository"/> keeps RoleManager out of the application layer.
-/// </summary>
 public interface IUserRepository
 {
     Task<IReadOnlyList<UserRecord>> ListAsync(CancellationToken cancellationToken = default);

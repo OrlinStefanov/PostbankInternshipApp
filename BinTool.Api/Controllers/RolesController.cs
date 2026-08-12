@@ -7,14 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.Api.Controllers;
 
-/// <summary>
-/// Manages roles and the permissions they grant.
-/// <para>
-/// Requires the <c>roles.manage</c> permission - in practice an admin, though it can be granted
-/// to a custom role. The Admin role itself is protected here: it can't be renamed, deleted or
-/// have its permissions changed, and it holds every permission implicitly.
-/// </para>
-/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
@@ -29,7 +21,6 @@ public class RolesController : ControllerBase
     }
 
     /// <summary>Lists all roles, each with its permissions and how many users hold it.</summary>
-    /// <response code="200">The roles.</response>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<RoleListItem>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetRoles(CancellationToken cancellationToken)
@@ -38,7 +29,6 @@ public class RolesController : ControllerBase
     }
 
     /// <summary>Lists the permission catalog a role can be composed from.</summary>
-    /// <response code="200">The permission catalog.</response>
     [HttpGet("permissions")]
     [ProducesResponseType(typeof(IReadOnlyList<PermissionInfo>), StatusCodes.Status200OK)]
     public IActionResult GetPermissions()
@@ -47,10 +37,6 @@ public class RolesController : ControllerBase
     }
 
     /// <summary>Creates a role.</summary>
-    /// <param name="input">The role to create.</param>
-    /// <response code="201">Created. The body carries the stored role.</response>
-    /// <response code="400">A field broke a rule, or named an unknown permission.</response>
-    /// <response code="409">A role already owns that name.</response>
     [HttpPost]
     [ProducesResponseType(typeof(RoleMutationResult), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -69,12 +55,6 @@ public class RolesController : ControllerBase
     }
 
     /// <summary>Overwrites a role's name, description and permissions.</summary>
-    /// <param name="id">Id of the role to edit.</param>
-    /// <param name="input">The new values.</param>
-    /// <response code="200">Updated. The body carries the stored role.</response>
-    /// <response code="400">A field broke a rule, or named an unknown permission.</response>
-    /// <response code="404">No role has that id.</response>
-    /// <response code="409">Another role owns that name, or the role is protected.</response>
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(RoleMutationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -87,10 +67,6 @@ public class RolesController : ControllerBase
     }
 
     /// <summary>Deletes a role.</summary>
-    /// <param name="id">Id of the role to delete.</param>
-    /// <response code="200">Deleted.</response>
-    /// <response code="404">No role has that id.</response>
-    /// <response code="409">The role has members, or is protected.</response>
     [HttpDelete("{id}")]
     [ProducesResponseType(typeof(RoleMutationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(RoleMutationResult), StatusCodes.Status404NotFound)]

@@ -1,9 +1,5 @@
 namespace BinTool.Application.Models.ReferenceData;
 
-/// <summary>
-/// Derived from a reference row's <c>IsDeleted</c> flag, so a listing communicates the
-/// same live-vs-withdrawn distinction the BIN range listing does.
-/// </summary>
 public enum LookupStatus
 {
     /// <summary>The row is available for classification, import and rule resolution.</summary>

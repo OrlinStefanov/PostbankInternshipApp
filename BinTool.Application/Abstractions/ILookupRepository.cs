@@ -2,11 +2,6 @@ using BinTool.Application.Models.ReferenceData;
 
 namespace BinTool.Application.Abstractions;
 
-/// <summary>
-/// Storage for the four Name+Description reference tables. The <see cref="LookupKind"/>
-/// chooses the table; everything above this interface treats all four the same, because
-/// <see cref="ILookupEntity"/> is the only shape they need.
-/// </summary>
 public interface ILookupRepository
 {
     Task<IReadOnlyList<ILookupEntity>> ListAsync(
@@ -19,14 +14,13 @@ public interface ILookupRepository
         LookupKind kind, int id, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Finds a row by name, case-insensitively, across live and soft-deleted rows: the
-    /// unique index spans both, so a deleted name revives its row rather than duplicating.
-    /// Tracked, because the caller may be about to revive it.
+    /// Finds a row by name, case-insensitively, across live and soft-deleted rows: the unique index
+    /// spans both, so a deleted name revives its row rather than duplicating.
     /// </summary>
     Task<ILookupEntity?> FindByNameAsync(
         LookupKind kind, string name, CancellationToken cancellationToken = default);
 
-    /// <summary>Creates and stages a new row. Unsaved, so it has no id yet.</summary>
+    /// <summary>Creates and stages a new row.</summary>
     ILookupEntity Add(LookupKind kind, string name, string? description);
 
     /// <summary>How many live rows would be orphaned if this one were deleted.</summary>

@@ -7,17 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.Api.Controllers;
 
-/// <summary>
-/// Maintains commission rules - the pricing an admin changes without a developer or a
-/// release. A rule is a percentage plus a fixed amount with a minimum fee, keyed on a
-/// scheme/product/funding/region combination where any field may be a wildcard.
-/// <para>
-/// Reads take <c>commissionrules.read</c>; writes take <c>commissionrules.write</c>. Saving a
-/// rule that overlaps an existing one on the same key is refused with 409, and the response
-/// names the conflicting rule. Deletes are soft; the configured default cannot be deleted
-/// until another rule takes its place.
-/// </para>
-/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
@@ -34,9 +23,6 @@ public class CommissionRulesController : ControllerBase
     /// <summary>
     /// Lists commission rules, active ones first, then by specificity and priority.
     /// </summary>
-    /// <param name="includeDeleted">Include soft-deleted rules.</param>
-    /// <param name="includeExpired">Include rules whose validity has passed.</param>
-    /// <response code="200">The rules.</response>
     [HttpGet]
     [Authorize(Policy = Permissions.CommissionRulesRead)]
     [ProducesResponseType(typeof(List<CommissionRuleListItem>), StatusCodes.Status200OK)]
@@ -51,8 +37,6 @@ public class CommissionRulesController : ControllerBase
     }
 
     /// <summary>Returns one rule by id, deleted rules included.</summary>
-    /// <response code="200">The rule.</response>
-    /// <response code="404">No rule has that id.</response>
     [HttpGet("{id:int}")]
     [Authorize(Policy = Permissions.CommissionRulesRead)]
     [ProducesResponseType(typeof(CommissionRuleListItem), StatusCodes.Status200OK)]
@@ -65,9 +49,6 @@ public class CommissionRulesController : ControllerBase
     }
 
     /// <summary>Adds a rule.</summary>
-    /// <response code="201">Added. The body carries the rule.</response>
-    /// <response code="400">A field broke a rule, or a key id does not exist.</response>
-    /// <response code="409">The validity overlaps an existing rule on the same key.</response>
     [HttpPost]
     [Authorize(Policy = Permissions.CommissionRulesWrite)]
     [ProducesResponseType(typeof(CommissionRuleMutationResult), StatusCodes.Status201Created)]
@@ -86,11 +67,7 @@ public class CommissionRulesController : ControllerBase
         return ApiResults.From(result);
     }
 
-    /// <summary>Overwrites a rule with new values. A soft-deleted rule must be restored first.</summary>
-    /// <response code="200">Updated. The body carries the rule.</response>
-    /// <response code="400">A field broke a rule, or a key id does not exist.</response>
-    /// <response code="404">No such rule, or it is deleted and must be restored first.</response>
-    /// <response code="409">The validity overlaps another rule on the same key.</response>
+    /// <summary>Overwrites a rule with new values.</summary>
     [HttpPut("{id:int}")]
     [Authorize(Policy = Permissions.CommissionRulesWrite)]
     [ProducesResponseType(typeof(CommissionRuleMutationResult), StatusCodes.Status200OK)]
@@ -105,13 +82,7 @@ public class CommissionRulesController : ControllerBase
         return ApiResults.From(result);
     }
 
-    /// <summary>
-    /// Soft-deletes a rule. Refused with 409 while the rule is the configured default -
-    /// set another rule as the default, or clear it, first.
-    /// </summary>
-    /// <response code="200">Deleted. The body carries the rule.</response>
-    /// <response code="404">No rule has that id.</response>
-    /// <response code="409">The rule is already deleted, or it is the current default.</response>
+    /// <summary>Soft-deletes a rule.</summary>
     [HttpDelete("{id:int}")]
     [Authorize(Policy = Permissions.CommissionRulesWrite)]
     [ProducesResponseType(typeof(CommissionRuleMutationResult), StatusCodes.Status200OK)]
@@ -125,9 +96,6 @@ public class CommissionRulesController : ControllerBase
     }
 
     /// <summary>Brings a soft-deleted rule back.</summary>
-    /// <response code="200">Restored. The body carries the rule.</response>
-    /// <response code="404">No rule has that id.</response>
-    /// <response code="409">The rule was not deleted.</response>
     [HttpPost("{id:int}/restore")]
     [Authorize(Policy = Permissions.CommissionRulesWrite)]
     [ProducesResponseType(typeof(CommissionRuleMutationResult), StatusCodes.Status200OK)]
@@ -142,11 +110,7 @@ public class CommissionRulesController : ControllerBase
 
     /// <summary>
     /// Makes a rule the fallback default, applied when no rule matches a classified card.
-    /// Replaces whatever rule was default before.
     /// </summary>
-    /// <response code="200">The rule is now the default.</response>
-    /// <response code="400">The rule is soft-deleted or inactive and cannot be the default.</response>
-    /// <response code="404">No rule has that id.</response>
     [HttpPost("{id:int}/default")]
     [Authorize(Policy = Permissions.CommissionRulesWrite)]
     [ProducesResponseType(typeof(CommissionRuleMutationResult), StatusCodes.Status200OK)]
@@ -160,10 +124,8 @@ public class CommissionRulesController : ControllerBase
     }
 
     /// <summary>
-    /// Clears the configured default, so an unmatched classification produces no fee. A no-op
-    /// that still succeeds when there was no default configured.
+    /// Clears the configured default, so an unmatched classification produces no fee.
     /// </summary>
-    /// <response code="200">There is no default rule.</response>
     [HttpDelete("default")]
     [Authorize(Policy = Permissions.CommissionRulesWrite)]
     [ProducesResponseType(typeof(CommissionRuleMutationResult), StatusCodes.Status200OK)]

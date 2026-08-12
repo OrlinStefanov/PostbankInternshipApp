@@ -2,10 +2,6 @@ using BinTool.Application.Models.ReferenceData;
 
 namespace BinTool.Application.Models.Currency;
 
-/// <summary>
-/// One currency as a browse listing shows it: the code and name, the euro rate, and the
-/// derived (soft-delete) status.
-/// </summary>
 public class CurrencyListItem
 {
     public int Id { get; set; }
@@ -15,7 +11,7 @@ public class CurrencyListItem
 
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>The euro value of one unit of this currency. Euro is 1.0.</summary>
+    /// <summary>The euro value of one unit of this currency.</summary>
     public decimal RateToEur { get; set; }
 
     public bool IsActive { get; set; }

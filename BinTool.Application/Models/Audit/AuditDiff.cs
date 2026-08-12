@@ -2,26 +2,9 @@ using System.Text.Json;
 
 namespace BinTool.Application.Models.Audit;
 
-/// <summary>
-/// Lines an audit entry's two JSON snapshots up field by field, so a reader sees what
-/// actually moved rather than two blocks of JSON to compare by eye.
-/// </summary>
 public static class AuditDiff
 {
-    /// <summary>
-    /// Pairs the fields of the before and after snapshots.
-    /// <para>
-    /// A missing snapshot is treated as an empty one, which is what makes a Created entry
-    /// come out as all-<see cref="AuditChangeKind.Added"/> and a hard delete as
-    /// all-<see cref="AuditChangeKind.Removed"/>. Returns <c>null</c> if either snapshot is
-    /// present but is not a JSON object - there is no sound way to pair fields then, and
-    /// the caller is expected to fall back to showing the snapshots as they were stored.
-    /// </para>
-    /// </summary>
-    /// <returns>
-    /// The fields in the after snapshot's own order, followed by any that exist only in the
-    /// before snapshot; or <c>null</c> when the snapshots cannot be paired.
-    /// </returns>
+    /// <summary>Pairs the fields of the before and after snapshots.</summary>
     public static IReadOnlyList<AuditFieldChange>? Compute(string? oldValues, string? newValues)
     {
         var before = Flatten(oldValues);
