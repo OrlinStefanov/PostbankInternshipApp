@@ -78,6 +78,25 @@ public class BinRangeApiClient
             url, Json, cancellationToken) ?? new PagedResult<BinRangeListItem>();
     }
 
+    // Asks what the card-scheme detector makes of a prefix, from "GET
+    // /api/BinRanges/scheme-hint". The detector is a business rule and lives on the server; the
+    // editor asks rather than keeping a copy that would have to be kept in step.
+    public async Task<SchemeHint> GetSchemeHintAsync(
+        string prefix, string? declaredScheme, CancellationToken cancellationToken = default)
+    {
+        await AuthorizeAsync();
+
+        var url = $"api/BinRanges/scheme-hint?prefix={Uri.EscapeDataString(prefix)}";
+
+        if (!string.IsNullOrWhiteSpace(declaredScheme))
+        {
+            url += $"&declaredScheme={Uri.EscapeDataString(declaredScheme)}";
+        }
+
+        return await _http.GetFromJsonAsync<SchemeHint>(url, Json, cancellationToken)
+               ?? new SchemeHint(null, false);
+    }
+
     public async Task<int> CountSchemeMismatchesAsync(CancellationToken cancellationToken = default)
     {
         await AuthorizeAsync();

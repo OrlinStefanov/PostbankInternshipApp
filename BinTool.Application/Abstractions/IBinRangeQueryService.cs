@@ -31,4 +31,14 @@ public interface IBinRangeQueryService
     /// <see cref="GetSchemeMismatchesAsync"/>, without the projection.
     /// </summary>
     Task<int> CountSchemeMismatchesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The detector's reading of a prefix being typed, for an editor that suggests the scheme and
+    /// warns when the chosen one disagrees. Synchronous: the detector is a lookup table, so this
+    /// touches no storage.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// The prefix is blank, holds a non-digit, or is outside 6-19 digits.
+    /// </exception>
+    SchemeHint DetectScheme(string prefix, string? declaredScheme);
 }

@@ -40,6 +40,19 @@ public class BinRangeQueryService : IBinRangeQueryService
         CancellationToken cancellationToken = default) =>
         _ranges.GetFilterOptionsAsync(cancellationToken);
 
+    public SchemeHint DetectScheme(string prefix, string? declaredScheme)
+    {
+        // Normalized on the way in so a client sees the same refusals here as on save, rather
+        // than a hint that quietly disagrees with what the range endpoints will accept.
+        var normalized = BinPrefix.Normalize(prefix);
+
+        var detected = _detector.Detect(normalized);
+
+        return new SchemeHint(
+            _detector.DisplayName(detected),
+            _detector.Matches(detected, declaredScheme));
+    }
+
     public async Task<PagedResult<BinRangeListItem>> GetSchemeMismatchesAsync(
         int page, int pageSize, CancellationToken cancellationToken = default)
     {

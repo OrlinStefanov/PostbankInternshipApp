@@ -1,5 +1,4 @@
 @inject BinRangeApiClient Api
-@inject ICardSchemeDetector SchemeDetector
 
 @* Rendered only while open, so the surrounding page owns "is the dialog up?" and this
    component owns everything inside it. *@
@@ -47,8 +46,8 @@
                         <div class="col-12 col-md-6">
                             <label class="form-label" for="e-prefix">Prefix</label>
                             @* Plain input rather than InputText so oninput fires on every
-                               keystroke - the detector needs the current digits to suggest
-                               a scheme live rather than waiting for blur. *@
+                               keystroke - the scheme hint follows the current digits rather
+                               than waiting for blur. *@
                             <input id="e-prefix" type="text" class="form-control mono" inputmode="numeric"
                                    placeholder="6 to 8 digits" value="@_input.Prefix"
                                    @oninput="OnPrefixInput" />
@@ -58,36 +57,37 @@
                         <div class="col-12 col-md-6">
                             <label class="form-label" for="e-scheme">Card scheme</label>
                             <InputSelect id="e-scheme" class="@SchemeSelectCssClass"
-                                         @bind-Value="_input.CardScheme">
+                                         @bind-Value="_input.CardScheme"
+                                         @bind-Value:after="RefreshHintAsync">
                                 <option value="">Choose…</option>
                                 @foreach (var name in Options.CardSchemes)
                                 {
                                     <option value="@name">@name</option>
                                 }
                             </InputSelect>
-                            @if (_detectedScheme is not null)
+                            @if (DetectedScheme is not null)
                             {
-                                if (SchemeDetector.Matches(_detected, _input.CardScheme))
+                                if (_hint!.MatchesDeclared)
                                 {
                                     <div class="form-text text-success">
-                                        Matches the prefix (@_detectedScheme).
+                                        Matches the prefix (@DetectedScheme).
                                     </div>
                                 }
                                 else if (string.IsNullOrWhiteSpace(_input.CardScheme))
                                 {
                                     <div class="form-text">
-                                        Prefix looks like <strong>@_detectedScheme</strong>.
+                                        Prefix looks like <strong>@DetectedScheme</strong>.
                                     </div>
                                 }
                                 else
                                 {
                                     <div class="form-text text-warning-emphasis">
-                                        Prefix looks like <strong>@_detectedScheme</strong>, not
+                                        Prefix looks like <strong>@DetectedScheme</strong>, not
                                         @_input.CardScheme.
                                     </div>
                                 }
                             }
-                            else if (_detectorRan)
+                            else if (_hintRequested)
                             {
                                 <div class="form-text text-warning-emphasis">
                                     Prefix does not sit in any known card-scheme range.
@@ -247,23 +247,35 @@
     private string? _error;
     private string? _mismatch;
 
-    // Live suggestion state, driven by every keystroke in the prefix input.
-    // _detectedScheme is the display name (null for Unknown or too-short prefixes);
-    // _detectorRan tells the hint apart from "nothing typed yet". _autoSuggested holds
-    // the name the code last wrote into the scheme select, so a subsequent detection
-    // can update it without overwriting a value the user chose deliberately.
-    private DetectedScheme _detected = DetectedScheme.Unknown;
-    private string? _detectedScheme;
-    private bool _detectorRan;
+    // Live suggestion state. The reading comes from the server - the detector is a business rule,
+    // and running a copy of it here would mean two places to keep in step. _hint is the last answer
+    // ("what network is this, and does the chosen scheme agree?"); _hintRequested tells "no known
+    // range" apart from "nothing typed yet". _autoSuggested holds the name the code last wrote into
+    // the scheme select, so a later reading can update it without overwriting a deliberate choice.
+    private SchemeHint? _hint;
+    private bool _hintRequested;
     private string? _autoSuggested;
+
+    // Detection is a pure function of (prefix, declared scheme), so an answer never goes stale.
+    // Typing out an 8-digit prefix costs three calls and going back over it costs none.
+    private readonly Dictionary<(string Prefix, string? Declared), SchemeHint> _hints = new();
+
+    // Keystrokes outrun round-trips, so an older reading must not land on top of a newer one.
+    private CancellationTokenSource? _hintRequest;
+
+    // Shortest prefix worth asking about; typing the first few digits costs nothing. Taken from
+    // the domain constant so the two cannot drift apart.
+    private const int MinPrefixLength = BinPrefix.MinLength;
+
+    private string? DetectedScheme => _hint?.DetectedScheme;
 
     private string SchemeSelectCssClass
     {
         get
         {
             const string basic = "form-select";
-            if (_detectedScheme is null) return basic;
-            if (SchemeDetector.Matches(_detected, _input.CardScheme)) return $"{basic} is-valid";
+            if (_hint?.DetectedScheme is null) return basic;
+            if (_hint.MatchesDeclared) return $"{basic} is-valid";
             if (string.IsNullOrWhiteSpace(_input.CardScheme)) return basic;
             return $"{basic} is-invalid";
         }
@@ -334,7 +346,7 @@
 
     private static string Shown(string? value) => string.IsNullOrWhiteSpace(value) ? Unset : value;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         _input = Range is null
             ? new BinRangeInput { ValidFrom = DateTime.UtcNow.Date }
@@ -352,33 +364,95 @@
         _error = null;
         _mismatch = null;
         _autoSuggested = null;
-        DetectScheme();
+        await RefreshHintAsync();
     }
 
-    // Reflects each keystroke back onto the model and re-runs the detector, so the hint under the
-    // scheme select updates while the user is still typing rather than after the field loses focus.
-    private void OnPrefixInput(ChangeEventArgs e)
+    // Reflects each keystroke back onto the model and refreshes the hint, so it updates while the
+    // user is still typing rather than after the field loses focus.
+    private async Task OnPrefixInput(ChangeEventArgs e)
     {
         _input.Prefix = e.Value?.ToString() ?? string.Empty;
-        DetectScheme();
+        await RefreshHintAsync();
     }
 
-    // Runs the detector against the current prefix and, if the field would otherwise be empty or
-    // still holds a previous suggestion, pre-fills the scheme select. Never overwrites a value the
-    // user typed themselves - if they picked "Visa" for a Mastercard prefix, the scheme select
-    // stays on Visa and the hint calls out the disagreement.
-    private void DetectScheme()
+    // Asks the server what it makes of the current prefix. Runs twice at most: pre-filling the
+    // scheme select changes what "does it agree?" is being asked about, so the answer has to be
+    // asked again - the second pass finds nothing left to suggest and stops.
+    private async Task RefreshHintAsync()
     {
-        _detected = SchemeDetector.Detect(_input.Prefix ?? string.Empty);
-        _detectedScheme = SchemeDetector.DisplayName(_detected);
-        _detectorRan = !string.IsNullOrEmpty(_input.Prefix) && (_input.Prefix?.Length ?? 0) >= 2;
+        for (var pass = 0; pass < 2; pass++)
+        {
+            var before = _input.CardScheme;
 
-        if (_detectedScheme is null)
+            if (!await LoadHintAsync()) return;
+
+            AutoSuggestScheme();
+
+            if (string.Equals(_input.CardScheme, before, StringComparison.Ordinal)) return;
+        }
+    }
+
+    // False when there is nothing to ask about, or the answer never arrived. The hint is a
+    // convenience - the server checks the scheme again on save - so a failed call leaves the field
+    // unannotated rather than blocking the form.
+    private async Task<bool> LoadHintAsync()
+    {
+        var prefix = (_input.Prefix ?? string.Empty).Trim();
+
+        // Below the shortest storable prefix there is nothing to detect, and a stray character is
+        // the prefix field's own validation message to give rather than this one's.
+        if (prefix.Length < MinPrefixLength || !prefix.All(char.IsAsciiDigit))
+        {
+            _hint = null;
+            _hintRequested = false;
+            return false;
+        }
+
+        var key = (prefix, _input.CardScheme);
+
+        if (_hints.TryGetValue(key, out var cached))
+        {
+            _hint = cached;
+            _hintRequested = true;
+            return true;
+        }
+
+        _hintRequest?.Cancel();
+        _hintRequest = new CancellationTokenSource();
+
+        try
+        {
+            var hint = await Api.GetSchemeHintAsync(prefix, _input.CardScheme, _hintRequest.Token);
+
+            _hints[key] = hint;
+            _hint = hint;
+            _hintRequested = true;
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            // A later keystroke owns the hint now; leave whatever it settles on in place.
+            return false;
+        }
+        catch
+        {
+            _hint = null;
+            _hintRequested = false;
+            return false;
+        }
+    }
+
+    // Pre-fills the scheme select when it would otherwise be empty or still holds a previous
+    // suggestion. Never overwrites a value the user chose themselves - if they picked "Visa" for a
+    // Mastercard prefix, the select stays on Visa and the hint calls out the disagreement.
+    private void AutoSuggestScheme()
+    {
+        if (DetectedScheme is null)
             return;
 
         // Only auto-fill with a name that exists as reference data - a scheme the admin
         // hasn't added yet would fail validation on the select.
-        if (!Options.CardSchemes.Contains(_detectedScheme))
+        if (!Options.CardSchemes.Contains(DetectedScheme))
             return;
 
         var currentIsEmpty = string.IsNullOrWhiteSpace(_input.CardScheme);
@@ -387,8 +461,8 @@
 
         if (currentIsEmpty || currentIsPreviousSuggestion)
         {
-            _input.CardScheme = _detectedScheme;
-            _autoSuggested = _detectedScheme;
+            _input.CardScheme = DetectedScheme;
+            _autoSuggested = DetectedScheme;
         }
     }
 

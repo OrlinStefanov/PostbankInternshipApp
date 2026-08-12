@@ -89,6 +89,26 @@ public class BinRangesController : ControllerBase
         return Ok(count);
     }
 
+    /// <summary>
+    /// What the card-scheme detector makes of a prefix, for an editor suggesting the scheme as
+    /// it is typed.
+    /// </summary>
+    /// <param name="prefix">The BIN prefix, 6-19 digits.</param>
+    /// <param name="declaredScheme">The scheme currently chosen, if any.</param>
+    /// <response code="200">
+    /// The reading. <c>detectedScheme</c> is null when the prefix matches no published range.
+    /// </response>
+    /// <response code="400">The prefix is missing, holds a non-digit, or is not 6-19 digits long.</response>
+    [HttpGet("scheme-hint")]
+    [Authorize(Policy = Permissions.BinRangesRead)]
+    [ProducesResponseType(typeof(SchemeHint), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public IActionResult DetectScheme(
+        [FromQuery] string prefix, [FromQuery] string? declaredScheme = null)
+    {
+        return Ok(_service.DetectScheme(prefix, declaredScheme));
+    }
+
     /// <summary>Returns one BIN range by id.</summary>
     /// <param name="id">Id of the range.</param>
     /// <response code="200">The range.</response>

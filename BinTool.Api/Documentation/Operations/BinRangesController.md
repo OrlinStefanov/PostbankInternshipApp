@@ -46,6 +46,21 @@ One row per live range where the digits say one network and the stored
 `detectedScheme`. Rows the detector cannot judge (a prefix in no known IIN
 range) are not returned - only genuine contradictions.
 
+## DetectScheme
+
+Answers two questions about a prefix a user is still typing: which network its
+digits belong to, and whether that is the scheme they have chosen. It reads no
+data, so the prefix need not exist as a range.
+
+`detectedScheme` is null when the prefix falls outside every published IIN range
+the detector knows - an absence of an opinion, not a fault. `matchesDeclared` is
+false whenever nothing has been declared yet, so a client can use
+`detectedScheme` as a suggestion and `matchesDeclared` as the warning.
+
+Agreement is decided here rather than by comparing the two names on the client,
+because the detector accepts aliases: reference data naming a scheme `Amex`
+agrees with a detected `American Express`.
+
 ## GetById
 
 Soft-deleted ranges are returned too, with `status: Deleted` - otherwise there

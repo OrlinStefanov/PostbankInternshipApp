@@ -3,4 +3,3 @@
 global using BinTool.Application.Abstractions;
 global using BinTool.Application.Authorization;
 global using BinTool.Domain.Entities;
-global using BinTool.Domain.Services;
