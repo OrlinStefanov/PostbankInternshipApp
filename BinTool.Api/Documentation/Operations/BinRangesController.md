@@ -46,6 +46,13 @@ One row per live range where the digits say one network and the stored
 `detectedScheme`. Rows the detector cannot judge (a prefix in no known IIN
 range) are not returned - only genuine contradictions.
 
+## SchemeMismatchCount
+
+Just the number, for a badge. The same scan as `scheme-mismatches` without
+building the projection, so a client polling for the badge does not pay for a
+page of rows it will not render. Zero is the healthy answer and comes back as
+`0`, not as an empty body.
+
 ## DetectScheme
 
 Answers two questions about a prefix a user is still typing: which network its
@@ -126,4 +133,3 @@ record rather than creating a second one.
 
 The range returns with the values it had when it was deleted, and starts matching
 classification again from the moment it is restored, subject to its own dates.
-

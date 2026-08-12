@@ -24,3 +24,9 @@ role is refused with a 409.
 
 Refused while any user still holds the role, and always for the protected Admin role.
 
+
+## GetRoles
+
+Every role, each with the permissions it grants and the number of users holding
+it. The count is what makes a delete refusal predictable: a role with members
+cannot be removed, and this is where a client sees that before trying.

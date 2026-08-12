@@ -21,3 +21,9 @@ They are returned as raw strings - the client decides how to render them.
 `pageSize` is capped at 200; `totalCount` counts every match rather
 than just this page so a client can render a pager without a second call.
 
+## EntityTypes
+
+The values `Search` accepts for `entityType`, in the order a client should offer
+them. Fixed in code rather than read off the audit table: a type nobody has
+changed yet still belongs in the filter, and reading the distinct values that
+happen to be stored would quietly drop it.
