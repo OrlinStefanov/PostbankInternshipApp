@@ -5,10 +5,8 @@ using BinTool.Domain.Common;
 
 namespace BinTool.Application.Mapping;
 
-// The one place a stored CommissionRule becomes something a caller sees, and a caller's input
-// becomes a stored rule. Nothing here decides anything - the lifecycle and scoring rules it leans
-// on live on the entity in CommissionRuleExtensions and RuleCriteriaKey; this only translates
-// between shapes.
+// Nothing here decides anything - the lifecycle and scoring rules live on the entity; this only
+// translates between shapes.
 public static class CommissionRuleMapper
 {
     public static RuleCriteriaKey Key(this CommissionRuleInput input) =>

@@ -575,10 +575,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired();
 
-            // Keep the staged conflict even if the target row is hard-deleted; the
-            // resolution step re-checks the target still exists before applying.
-            // Optional: a scheme mismatch on a new prefix has no existing target and
-            // applies by inserting a fresh range instead.
+            // Keep the staged conflict even if the target row is hard-deleted; resolution re-checks
+            // the target still exists. Optional: a scheme mismatch on a new prefix has no target
+            // and applies by inserting a fresh range instead.
             entity.HasOne(e => e.TargetBinRange)
                 .WithMany()
                 .HasForeignKey(e => e.TargetBinRangeId)

@@ -6,10 +6,9 @@ namespace BinTool.Api.Extensions;
 
 public static class ApplicationServiceExtensions
 {
-    // Registers the application's own services. Written out one by one rather than scanned off the
-    // assembly, so the lifetime of each is visible here instead of implied by a convention - the
-    // singletons in particular hold no per-request state, and that is a claim worth being able to
-    // check at a glance.
+    // Written out one by one rather than scanned off the assembly, so the lifetime of each is
+    // visible here instead of implied by a convention - the singletons in particular hold no
+    // per-request state.
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddScoped<ICurrentUser, HttpContextCurrentUser>();

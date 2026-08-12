@@ -247,10 +247,8 @@
     private string? _error;
     private string? _mismatch;
 
-    // Live suggestion state. The reading comes from the server - the detector is a business rule,
-    // and running a copy of it here would mean two places to keep in step. _hint is the last answer
-    // ("what network is this, and does the chosen scheme agree?"); _hintRequested tells "no known
-    // range" apart from "nothing typed yet". _autoSuggested holds the name the code last wrote into
+    // The reading comes from the server - the detector is a business rule, and running a copy here
+    // would mean two places to keep in step. _autoSuggested holds the name the code last wrote into
     // the scheme select, so a later reading can update it without overwriting a deliberate choice.
     private SchemeHint? _hint;
     private bool _hintRequested;
@@ -285,9 +283,8 @@
 
     // ---- Live preview ----------------------------------------------------------
     //
-    // Every member here reads off _input, so the card and the list beside the form follow
-    // the fields without anything having to push them: the prefix input already re-renders
-    // on each keystroke for the scheme hint, and the selects and dates re-render on change.
+    // Every member here reads off _input, so the card and the list beside the form follow the
+    // fields without anything having to push them.
 
     private const string Unset = "—";
 

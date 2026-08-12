@@ -54,9 +54,8 @@ public class CommissionCalculation
     public bool MinimumApplied { get; set; }
 
     // ---- Euro equivalents ------------------------------------------------------
-    // The same figures converted to euro at EurRate, so a reader on the euro can compare
-    // fees priced in different currencies. When the rule is already in euro these equal
-    // their native counterparts and EurRate is 1.
+    // The same figures converted at EurRate, so fees priced in different currencies can be
+    // compared. Equal to their native counterparts when the rule is already in euro.
 
     /// <summary><see cref="Amount"/> in euro.</summary>
     public decimal AmountEur { get; set; }

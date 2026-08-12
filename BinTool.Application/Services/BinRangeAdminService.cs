@@ -197,13 +197,9 @@ public class BinRangeAdminService : IBinRangeAdminService
         return await SucceededAsync(BinRangeMutationStatus.Restored, binRangeId, cancellationToken);
     }
 
-    // What a create and an update both have to establish before they may proceed: the input
-    // is well formed and its four names resolve to live rows.
-    //
-    // The scheme-mismatch check deliberately does NOT belong here. It runs after the
-    // prefix-in-use check, because a duplicate prefix is the more specific refusal: telling
-    // someone their scheme looks wrong on a row they were never going to be allowed to add
-    // sends them off fixing the wrong thing.
+    // What a create and an update both have to establish before they may proceed. The scheme
+    // mismatch is checked later, after the prefix-in-use check: a duplicate prefix is the more
+    // specific refusal.
     private async Task<(ResolvedReferences? Resolved, BinRangeMutationResult? Refused)> PrepareAsync(
         BinRangeInput input, CancellationToken cancellationToken)
     {
@@ -245,10 +241,9 @@ public class BinRangeAdminService : IBinRangeAdminService
             names.FundingType!.Value, names.Country!.Value), null);
     }
 
-    // Cross-checks the declared card scheme against what the prefix's digits say the network
-    // actually is, and refuses the write when they disagree - unless the caller ticks
-    // AcknowledgeSchemeMismatch. The resolved name is used rather than the raw input so the message
-    // matches how the row would be stored (canonical spelling, not "visa").
+    // Refuses the write when the prefix's digits disagree with the declared scheme, unless the
+    // caller ticks AcknowledgeSchemeMismatch. The resolved name is used rather than the raw input,
+    // so the message matches how the row would be stored - canonical spelling, not "visa".
     private BinRangeMutationResult? SchemeMismatch(
         BinRangeInput input, ResolvedReferences resolved)
     {

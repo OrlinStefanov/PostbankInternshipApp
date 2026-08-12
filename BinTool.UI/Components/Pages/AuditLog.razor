@@ -327,10 +327,8 @@ else
     // filter changes reset it - the rows on the next page are different.
     private readonly HashSet<int> _expanded = new();
 
-    // Per-row view options within an opened row. Unchanged fields start hidden because the
-    // reason to open a row is to see what moved; the raw snapshots start hidden because the
-    // field table says the same thing in less space, but they stay one click away since
-    // they are the only faithful record of what was actually stored.
+    // Unchanged fields start hidden because the reason to open a row is to see what moved; the raw
+    // snapshots stay one click away as the only faithful record of what was actually stored.
     private readonly HashSet<int> _showUnchanged = new();
     private readonly HashSet<int> _showRaw = new();
 

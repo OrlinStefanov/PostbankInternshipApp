@@ -3,13 +3,9 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace BinTool.Application.Authorization;
 
-// Grants a PermissionRequirement when the caller either is in the Admin role - a superuser that
-// holds every permission, including ones added to the catalog after it was seeded, which is what
-// makes Admin a god the rest of the system cannot lock out - or carries the matching Permission
-// claim, which a login stamps onto the token from the roles the user held at the time.
-//
-// Because permissions ride on the token, a change to a role's permissions reaches a signed-in
-// user when their token is next issued, not mid-session.
+// Admin holds every permission, including ones added to the catalog after it was seeded. Everyone
+// else needs the matching Permission claim, which a login stamps on from the roles held at the time
+// - so a change to a role reaches a signed-in user when their next token is issued, not mid-session.
 public sealed class PermissionAuthorizationHandler : AuthorizationHandler<PermissionRequirement>
 {
     protected override Task HandleRequirementAsync(

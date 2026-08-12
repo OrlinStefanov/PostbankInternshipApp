@@ -8,12 +8,9 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-// Maintains commission rules. Every write follows the same beats - validate, resolve the key ids to
-// names, refuse a conflict, snapshot what is about to change, apply, audit in the same unit of
-// work, save - and this class does no more than run them in that order. The steps themselves belong
-// to the repository, the mapper, the validator and the domain. A rule carries exactly one criteria
-// row. The schema permits many, but a rule keyed on a single scheme/product/funding/region
-// combination is what the domain calls for, so the invariant is held here.
+// Every write follows the same beats - validate, resolve the key ids to names, refuse a conflict,
+// snapshot, apply, audit in the same unit of work, save. A rule carries exactly one criteria row:
+// the schema permits many, but the invariant is held here.
 public class CommissionRuleAdminService : ICommissionRuleAdminService
 {
     private readonly ICommissionRuleRepository _rules;

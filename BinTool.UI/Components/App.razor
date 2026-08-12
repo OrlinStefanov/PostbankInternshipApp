@@ -22,13 +22,9 @@
 </html>
 
 @code {
-    // Static files are served with an ETag but no Cache-Control, which leaves the browser
-    // free to reuse a stored copy without revalidating. That is invisible for most edits,
-    // but the design tokens live in app.css while the rules that consume them live in the
-    // scoped bundle: serve a stale app.css against a fresh bundle and every `var(--app-*)`
-    // declaration is dropped, which turns the sidebar transparent and paints white text on
-    // white. Stamping each URL with the file's own timestamp makes a changed file a
-    // different URL, so that pairing cannot happen.
+    // Static files are served with an ETag but no Cache-Control, so a stale app.css can be paired
+    // with a fresh scoped bundle - which drops every var(--app-*) and paints white text on white.
+    // Stamping each URL with the file's own timestamp makes a changed file a different URL.
 
     private string Versioned(string path)
     {

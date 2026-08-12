@@ -121,10 +121,9 @@ public class CommissionRuleRepository : ICommissionRuleRepository
     private IQueryable<CommissionRule> Live(int excludeRuleId) =>
         _db.CommissionRules.Where(r => !r.IsDeleted && r.CommissionRuleId != excludeRuleId);
 
-    // Narrows to rules whose validity touches the window, both ends inclusive and an open-ended
-    // rule treated as running forever. The one place this predicate is written: it has to translate
-    // to SQL, so Overlaps cannot be called inside the expression - but the two ends still arrive as
-    // a DateRange, and every caller gets the same comparison.
+    // The one place this predicate is written. It has to translate to SQL, so Overlaps cannot be
+    // called inside the expression - but the two ends still arrive as a DateRange, and every caller
+    // gets the same comparison.
     private static IQueryable<CommissionRule> Overlapping(
         IQueryable<CommissionRule> query, DateRange window)
     {

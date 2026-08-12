@@ -1,15 +1,9 @@
 namespace BinTool.Domain.Common;
 
-// Maps a BIN prefix to its card network using the well-known IIN ranges. The rules cover seven
-// networks - the four the reference data seeds, plus JCB, Discover and UnionPay, which an
-// administrator may add; anything outside them is reported as Unknown rather than guessed at. The
-// list is a deliberate subset of the published allocations, so adding a network is a code change
-// here. Only leading digits are inspected, so a 6-8 digit prefix is classified the same way a full
-// card number would be. The detector is stateless and holds no data of its own, so it is safe to
-// share as a singleton.
-//
-// It sits beside BinPrefix rather than in a Services folder because it is the same kind of thing:
-// a rule about what card numbers mean, with no storage behind it. Nothing here reads or writes.
+// Maps a BIN prefix to its card network using the well-known IIN ranges. Anything outside the seven
+// networks listed here is reported as Unknown rather than guessed at, so adding a network is a code
+// change. Stateless, so it is safe to share as a singleton. It sits beside BinPrefix because it is
+// the same kind of thing: a rule about what card numbers mean, with no storage behind it.
 public class CardSchemeDetector : ICardSchemeDetector
 {
     // Accepted names per network. The reference data may rename a scheme, so a few

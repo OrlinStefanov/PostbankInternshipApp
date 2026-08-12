@@ -5,10 +5,9 @@ using BinTool.Domain.Entities;
 
 namespace BinTool.Application.Services;
 
-// Selects the applicable commission rule and works out the fee. Selection is deterministic: among
-// the rules that match the card and are valid on the date, the one with the highest Priority wins;
-// ties are broken by PriorityScore, then ValidFrom (newer wins), then row id. When nothing matches,
-// the configured default is used and the result is flagged as a fallback.
+// Selection is deterministic: among the rules matching the card and valid on the date, the highest
+// Priority wins; ties break by PriorityScore, then ValidFrom (newer wins), then row id. Nothing
+// matching uses the configured default and flags the result as a fallback.
 public class CommissionResolver : ICommissionResolver
 {
     private readonly ICommissionRuleRepository _rules;

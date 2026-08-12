@@ -3,10 +3,8 @@ using Microsoft.Extensions.Options;
 
 namespace BinTool.Application.Authorization;
 
-// Supplies an authorization policy on demand for any catalog permission, so an endpoint can write
-// "[Authorize(Policy = Permissions.BinRangesWrite)]" without every policy having to be registered
-// up front. A policy name that is not a known permission falls through to the default provider, so
-// ordinary named policies still work.
+// Supplies a policy on demand for any catalog permission, so an endpoint needs no up-front
+// registration. A policy name that is not a known permission falls through to the default provider.
 public sealed class PermissionPolicyProvider : IAuthorizationPolicyProvider
 {
     private readonly DefaultAuthorizationPolicyProvider _fallback;

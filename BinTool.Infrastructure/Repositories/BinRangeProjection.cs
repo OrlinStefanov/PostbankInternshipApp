@@ -4,10 +4,9 @@ using BinTool.Domain.Entities;
 
 namespace BinTool.Infrastructure.Repositories;
 
-// The one place a stored BinRange becomes a BinRangeListItem. Shared between browsing and the
-// single-range writes so the two cannot drift - most of all the status, which is derived here
-// rather than stored and so has to be computed the same way everywhere. Being an expression, it
-// translates to SQL instead of pulling rows into memory first.
+// Shared between browsing and the single-range writes so the two cannot drift - most of all the
+// status, which is derived here rather than stored. Being an expression, it translates to SQL
+// instead of pulling rows into memory first.
 internal static class BinRangeProjection
 {
     public static Expression<Func<BinRange, BinRangeListItem>> ToListItem(DateTime today) =>

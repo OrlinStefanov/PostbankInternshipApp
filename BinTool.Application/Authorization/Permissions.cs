@@ -5,11 +5,8 @@ namespace BinTool.Application.Authorization;
 // showing the privilege to a person composing a role.
 public sealed record PermissionInfo(string Key, string Name, string Description, string Group);
 
-// The fixed catalog of privileges. Each key maps to real enforcement on an endpoint, so the set is
-// defined in code - what an admin composes freely is which of these a role holds, and which roles a
-// user holds. Adding a privilege is: add a constant and a PermissionInfo here, and put the key on
-// an endpoint. Seeding grants the Admin role every key, so Admin picks it up automatically, and the
-// role editor renders it from All with no further work.
+// The fixed catalog. Each key maps to real enforcement on an endpoint, so the set is defined in
+// code - what an admin composes freely is which keys a role holds. Seeding grants Admin every key.
 public static class Permissions
 {
     public const string BinClassify = "bin.classify";

@@ -1,9 +1,8 @@
 namespace BinTool.Domain.Entities;
 
-// A currency that commission amounts can be denominated in, with the rate used to express those
-// amounts in euro. Euro is the base (rate 1); a fixed-peg currency such as the Bulgarian lev keeps
-// its legally set rate. One current rate per currency - there is no historical rate table, so a fee
-// is always converted at the rate stored today.
+// Euro is the base (rate 1); a fixed-peg currency such as the Bulgarian lev keeps its legally set
+// rate. One current rate per currency - there is no historical table, so a fee is always converted
+// at the rate stored today.
 public class Currency
 {
     public int CurrencyId { get; set; }

@@ -2,13 +2,9 @@ using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
-// The log events a BIN import emits. A single import can touch thousands of rows, so nothing here
-// logs per row - the row-level detail belongs in "BinImportResult" and the rejection rows, which
-// the user can read in the UI. What the log carries is the shape of the run: what came in, what
-// happened, and what needs a human. The per-run scope ties those together. Rejection reasons are
-// logged; the rejected line itself is not. An import file is card reference data rather than card
-// numbers, but a raw CSV line is unvalidated caller input and a log is the wrong place to find out
-// it held something it should not have.
+// Nothing here logs per row - one import can touch thousands, and the row-level detail belongs in
+// BinImportResult. Rejection reasons are logged; the rejected line itself is not, being unvalidated
+// caller input.
 internal static partial class ImportLog
 {
     [LoggerMessage(EventId = 2001, Level = LogLevel.Information,

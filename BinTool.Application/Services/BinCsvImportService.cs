@@ -45,11 +45,9 @@ public class BinCsvImportService : IBinCsvImportService
     public async Task<BinImportResult> ImportAsync(
         Stream csvStream, string fileName, CancellationToken cancellationToken = default)
     {
-        // Everything logged for the rest of this call carries the run id and the file name,
-        // so a run that rejected rows can be read end to end without each event having to
-        // repeat which import it belonged to. The run id is generated here rather than taken
-        // from the history row because the row has no id until the first save, and the
-        // failure paths above that save need to be traceable too.
+        // Everything logged for the rest of this call carries the run id and the file name. The run
+        // id is generated here rather than taken from the history row, which has no id until the
+        // first save - and the failure paths above that save need to be traceable too.
         using var scope = _logger.BeginScope(new Dictionary<string, object>
         {
             ["ImportRunId"] = Guid.NewGuid(),
@@ -240,10 +238,9 @@ public class BinCsvImportService : IBinCsvImportService
                 continue;
             }
 
-            // A soft-deleted range is not live data, so there is nothing for the user to
-            // arbitrate: revive the existing row in place with the imported values. The
-            // row keeps its identity and audit trail, and the prefix stays unique.
-            // Applied further down, against tracked instances.
+            // A soft-deleted range is not live data, so there is nothing for the user to arbitrate:
+            // revive the existing row in place with the imported values, keeping its identity and
+            // audit trail.
             if (current.IsDeleted)
             {
                 revivals[current.BinRangeId] = v;
@@ -292,10 +289,9 @@ public class BinCsvImportService : IBinCsvImportService
                 ? "Partial"
                 : "Success";
 
-        // Inserted ranges have no id until they are saved, and an audit entry has to carry
-        // one - so the trail is written in a second save, with a transaction holding the
-        // two together. Ranges committing without their audit rows would leave the trail
-        // quietly incomplete, which is the one failure an audit trail cannot have.
+        // Inserted ranges have no id until they are saved and an audit entry has to carry one, so
+        // the trail is written in a second save with a transaction holding the two together - a
+        // quietly incomplete trail is the one failure an audit trail cannot have.
         await using var transaction = await _repository.BeginTransactionAsync(cancellationToken);
 
         await _repository.SaveChangesAsync(cancellationToken);
@@ -366,10 +362,8 @@ public class BinCsvImportService : IBinCsvImportService
 
         var now = DateTime.UtcNow;
 
-        // Applying a conflict is the only place an existing BIN range is updated, and the
-        // only place a staged (target-less) scheme mismatch inserts one. Count both back
-        // against the originating import so its ImportHistory totals reflect what its
-        // conflicts ultimately produced once they are resolved.
+        // Count applied conflicts back against the originating import, so its ImportHistory totals
+        // reflect what its conflicts ultimately produced once they are resolved.
         var updatesByHistory = new Dictionary<int, int>();
         var insertsByHistory = new Dictionary<int, int>();
 
@@ -581,10 +575,9 @@ public class BinCsvImportService : IBinCsvImportService
         return conflicts;
     }
 
-    // Writes the audit trail for everything an import changed. Only the rows that touched live BIN
-    // data are recorded. A rejected row changed nothing and is already kept, with its reason, on
-    // the import history; an unchanged row by definition changed nothing; and a staged conflict has
-    // not been decided yet, so it is audited if and when someone applies it.
+    // Only the rows that touched live BIN data are recorded. A rejected row changed nothing and is
+    // already kept with its reason on the import history; a staged conflict is audited if and when
+    // someone applies it.
     private void RecordImportedRanges(
         List<(BinRange Entity, ResolvedRow Values)> inserted,
         Dictionary<int, ResolvedRow> revivals,
@@ -805,10 +798,9 @@ public class BinCsvImportService : IBinCsvImportService
             : $"Prefix {prefix} is a {detectedName} range, but the file declares {declaredName}.";
     }
 
-    // Non-null when the target row already sitting in the database holds a scheme the detector
-    // disagrees with - the case where a reviewer needs to be told the stored row is wrong for its
-    // prefix, even if the incoming row is not changing it. Silent when there is no target, the
-    // detector does not know the prefix, or the stored scheme is already the right one.
+    // Non-null when the target row already in the database holds a scheme the detector disagrees
+    // with - a reviewer needs telling the stored row is wrong for its prefix even when the incoming
+    // row is not changing it.
     private string? StoredSchemeAdvisory(BinRange? target, DetectedScheme detected, Lookups lookups)
     {
         if (target is null) return null;

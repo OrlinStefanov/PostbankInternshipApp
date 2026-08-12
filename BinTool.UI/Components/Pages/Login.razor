@@ -71,12 +71,9 @@
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
-    // Start the login page from a clean, signed-out state. The antiforgery token this form posts is
-    // bound to whoever is signed in when it renders, so a leftover cookie - a still valid session,
-    // or one whose token has expired - would render a token bound to the old identity and the POST
-    // would fail antiforgery. Clearing the cookie AND resetting "HttpContext.User" makes the token
-    // render for the anonymous caller the POST will actually present. This is also the natural
-    // "switch account" path.
+    // The antiforgery token this form posts is bound to whoever is signed in when it renders, so a
+    // leftover cookie would render a token bound to the old identity and the POST would fail.
+    // Clearing the cookie and resetting HttpContext.User is also the natural "switch account" path.
     protected override async Task OnInitializedAsync()
     {
         if (HttpContext.User.Identity?.IsAuthenticated == true)
