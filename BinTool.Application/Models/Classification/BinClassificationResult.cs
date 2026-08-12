@@ -55,7 +55,7 @@ public class BinClassificationResult
     /// <summary>
     /// The card scheme the detector assigns to the matched prefix, populated only when it
     /// disagrees with <see cref="CardScheme"/>. Lets a lookup surface the same "stored
-    /// scheme is wrong" warning the browse and vulnerabilities pages show, so a user who
+    /// scheme is wrong" warning the browse and scheme-mismatch pages show, so a user who
     /// looks up the BIN sees the disagreement rather than trusting a bad row silently.
     /// </summary>
     public string? DetectedScheme { get; set; }

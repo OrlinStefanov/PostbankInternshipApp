@@ -7,19 +7,19 @@
 <div class="home">
     <AuthorizeView>
         <Authorized>
-            @* Vulnerabilities: stored rows whose scheme contradicts the detector. Only shown
+            @* Scheme mismatches: stored rows whose scheme contradicts the detector. Only shown
                when the scan actually finds something, so a healthy database has no callout at
                all. It sits above the title because it is the one thing on this screen that
                wants acting on rather than navigating to. The count is a decoration - a load
                failure hides it silently rather than showing a stale badge. *@
-            <AuthorizeView Policy="@Permissions.BinRangesRead" Context="vuln">
+            <AuthorizeView Policy="@Permissions.BinRangesRead" Context="mismatch">
                 <Authorized>
                     @if (_mismatchCount > 0)
                     {
                         <div class="alarm">
                             <div class="alarm-said">
                                 <span class="alarm-count">
-                                    @_mismatchCount @(_mismatchCount == 1 ? "vulnerability" : "vulnerabilities")
+                                    @_mismatchCount @(_mismatchCount == 1 ? "mismatch" : "mismatches")
                                 </span>
                                 <span class="alarm-text">
                                     @_mismatchCount stored BIN
@@ -28,7 +28,7 @@
                                     incorrect routing or fee calculations.
                                 </span>
                             </div>
-                            <a class="btn btn-warning btn-sm" href="vulnerabilities">Review</a>
+                            <a class="btn btn-warning btn-sm" href="scheme-mismatches">Review</a>
                         </div>
                     }
                 </Authorized>
@@ -62,11 +62,11 @@
                     </span>
                 </a>
 
-                <AuthorizeView Policy="@Permissions.BinRangesRead" Context="vulnEntry">
+                <AuthorizeView Policy="@Permissions.BinRangesRead" Context="mismatchEntry">
                     <Authorized>
-                        <a class="entry" href="vulnerabilities">
+                        <a class="entry" href="scheme-mismatches">
                             <span class="ico ico-warning entry-icon" aria-hidden="true"></span>
-                            <span class="entry-title">Vulnerabilities</span>
+                            <span class="entry-title">Scheme mismatches</span>
                             <span class="entry-text">
                                 Stored ranges whose scheme contradicts their prefix
                             </span>
@@ -178,7 +178,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Only fetch the count when the signed-in user can actually see the vulnerabilities
+        // Only fetch the count when the signed-in user can actually see the scheme-mismatch
         // page - an unauthenticated visitor or one without BinRangesRead has no card to
         // render, so there is no reason to make the API call.
         if (AuthenticationState is null) return;

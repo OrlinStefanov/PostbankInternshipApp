@@ -60,7 +60,7 @@ public class BinRangeListItem
 
     /// <summary>
     /// The card scheme the detector assigns to this prefix, or null if the prefix sits in
-    /// no range the detector recognises. Populated by the vulnerability listing so the
+    /// no range the detector recognises. Populated by the scheme-mismatch listing so the
     /// disagreement with <see cref="CardScheme"/> is visible per row; null on the ordinary
     /// browse listing.
     /// </summary>

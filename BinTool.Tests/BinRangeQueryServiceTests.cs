@@ -235,7 +235,7 @@ public class BinRangeQueryServiceTests : SqliteTestBase
     {
         // A Visa prefix stored under Mastercard: the browse listing carries the
         // detector's opinion so a viewer sees the disagreement without having to open
-        // the vulnerabilities page.
+        // the scheme-mismatch page.
         SeedBinRange("400001", MastercardId, ConsumerId, CreditId, UsCountryId, Started);
 
         var result = await Search();

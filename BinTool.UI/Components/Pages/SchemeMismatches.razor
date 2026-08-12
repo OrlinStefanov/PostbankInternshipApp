@@ -1,12 +1,12 @@
-@page "/vulnerabilities"
+@page "/scheme-mismatches"
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Permissions.BinRangesRead)]
 @inject BinRangeApiClient Api
 
-<PageTitle>BIN vulnerabilities</PageTitle>
+<PageTitle>Scheme mismatches</PageTitle>
 
 <div class="page-head">
-    <h1 class="h3 mb-1">BIN vulnerabilities</h1>
+    <h1 class="h3 mb-1">Scheme mismatches</h1>
     <p class="text-secondary mb-0">
         Stored ranges whose card scheme contradicts what the prefix's digits say. Each
         row would misclassify a card until it is corrected - open it, apply the detector's
@@ -129,7 +129,7 @@ else if (_page.TotalCount > 0)
 
     @if (_page.TotalPages > 1)
     {
-        <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="Vulnerability pages">
+        <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="Scheme mismatch pages">
             <button class="btn btn-outline-secondary btn-sm"
                     @onclick="() => GoToPage(_page.Page - 1)"
                     disabled="@(_loading || !_page.HasPrevious)">

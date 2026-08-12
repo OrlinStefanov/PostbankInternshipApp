@@ -18,7 +18,7 @@ public class BinRangeQueryServiceMismatchTests : SqliteTestBase
     }
 
     [Fact]
-    public async Task A_row_whose_stored_scheme_matches_the_detector_is_not_a_vulnerability()
+    public async Task A_row_whose_stored_scheme_matches_the_detector_is_not_a_mismatch()
     {
         SeedBinRange("400001", VisaId, ConsumerId, CreditId, UsCountryId, Started);
 
@@ -43,7 +43,7 @@ public class BinRangeQueryServiceMismatchTests : SqliteTestBase
     }
 
     [Fact]
-    public async Task A_row_the_detector_cannot_judge_is_not_a_vulnerability()
+    public async Task A_row_the_detector_cannot_judge_is_not_a_mismatch()
     {
         // 999999 sits in no known IIN range, so the detector cannot say anything about it -
         // absence of a verdict is not the same as a contradiction.
@@ -55,7 +55,7 @@ public class BinRangeQueryServiceMismatchTests : SqliteTestBase
     }
 
     [Fact]
-    public async Task A_soft_deleted_row_is_not_a_vulnerability_even_when_its_scheme_is_wrong()
+    public async Task A_soft_deleted_row_is_not_a_mismatch_even_when_its_scheme_is_wrong()
     {
         var range = SeedBinRange("400001", MastercardId, ConsumerId, CreditId, UsCountryId, Started);
         range.IsDeleted = true;

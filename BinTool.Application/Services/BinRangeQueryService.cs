@@ -26,7 +26,7 @@ public class BinRangeQueryService : IBinRangeQueryService
             query, page, pageSize, DateTime.UtcNow.Date, cancellationToken);
 
         // Flag mismatched rows on the ordinary listing too, so a browsing user sees the
-        // same warning the vulnerabilities page does. Runs on the sliced page only - capped
+        // same warning the scheme-mismatch page does. Runs on the sliced page only - capped
         // by MaxPageSize, so this is at most a couple of hundred Detect() calls.
         foreach (var item in result.Items)
         {

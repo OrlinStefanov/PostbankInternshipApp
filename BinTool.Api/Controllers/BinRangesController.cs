@@ -76,7 +76,7 @@ public class BinRangesController : ControllerBase
     }
 
     /// <summary>
-    /// Total number of scheme-mismatched ranges, for a "vulnerabilities" badge on the home
+    /// Total number of scheme-mismatched ranges, for the mismatch badge on the home
     /// screen. Same scan as <see cref="SchemeMismatches"/>, without the projection.
     /// </summary>
     /// <response code="200">The count.</response>
