@@ -308,7 +308,7 @@ public class BinCsvImportService : IBinCsvImportService
         if (current.IsDeleted)
         {
             classification.Revivals[current.BinRangeId] = v;
-            classification.RevivedFrom[current.BinRangeId] = Snapshot(current, lookups);
+            classification.RevivedFrom[current.BinRangeId] = BinRangeSnapshotMapper.From(current, lookups);
             result.InsertedCount++;
             return;
         }
@@ -322,7 +322,7 @@ public class BinCsvImportService : IBinCsvImportService
         DetectedScheme detected, string? declaredScheme, BinImportLookups lookups,
         ImportHistory history, DateTime now, ClassifiedCandidates classification)
     {
-        var mismatch = NewConflict(candidate.Values, candidate.Raw, history, now, ConflictType.SchemeMismatch);
+        var mismatch = PendingBinConflictMapper.From(candidate.Values, candidate.Raw, history, now, ConflictType.SchemeMismatch);
         mismatch.TargetBinRangeId = current?.BinRangeId;
         _repository.AddConflict(mismatch);
 
@@ -338,7 +338,7 @@ public class BinCsvImportService : IBinCsvImportService
         DetectedScheme detected, BinImportLookups lookups, ImportHistory history, DateTime now,
         ClassifiedCandidates classification)
     {
-        var conflict = NewConflict(candidate.Values, candidate.Raw, history, now, ConflictType.ValueConflict);
+        var conflict = PendingBinConflictMapper.From(candidate.Values, candidate.Raw, history, now, ConflictType.ValueConflict);
         conflict.TargetBinRangeId = current.BinRangeId;
         _repository.AddConflict(conflict);
 
@@ -349,21 +349,7 @@ public class BinCsvImportService : IBinCsvImportService
 
     private void AddInsert(ResolvedRow v, DateTime now, ClassifiedCandidates classification)
     {
-        var added = new BinRange
-        {
-            Prefix = v.Prefix,
-            PrefixLength = v.Prefix.Length,
-            CardSchemeId = v.CardSchemeId,
-            ProductTypeId = v.ProductTypeId,
-            FundingTypeId = v.FundingTypeId,
-            CountryId = v.CountryId,
-            ValidFrom = v.ValidFrom,
-            ValidTo = v.ValidTo,
-            CreatedAt = now,
-            UpdatedAt = now,
-            CreatedBy = _currentUser.Name,
-            UpdatedBy = _currentUser.Name
-        };
+        var added = BinRangeImportMapper.ForImport(v, now, _currentUser.Name);
 
         _repository.AddRange(added);
         classification.Inserted.Add((added, v));
@@ -376,20 +362,7 @@ public class BinCsvImportService : IBinCsvImportService
 
         foreach (var row in tracked)
         {
-            var v = revivals[row.BinRangeId];
-
-            row.PrefixLength = v.Prefix.Length;
-            row.CardSchemeId = v.CardSchemeId;
-            row.ProductTypeId = v.ProductTypeId;
-            row.FundingTypeId = v.FundingTypeId;
-            row.CountryId = v.CountryId;
-            row.ValidFrom = v.ValidFrom;
-            row.ValidTo = v.ValidTo;
-            row.IsDeleted = false;
-            row.DeletedAt = null;
-            row.DeletedBy = null;
-            row.UpdatedAt = now;
-            row.UpdatedBy = _currentUser.Name;
+            BinRangeImportMapper.ApplyRevival(row, revivals[row.BinRangeId], now, _currentUser.Name);
         }
     }
 
@@ -423,17 +396,8 @@ public class BinCsvImportService : IBinCsvImportService
     {
         foreach (var s in staged)
         {
-            result.Conflicts.Add(new BinConflict
-            {
-                PendingBinConflictId = s.Entity.PendingBinConflictId,
-                RowNumber = s.RowNumber,
-                Prefix = s.Entity.Prefix,
-                ConflictType = s.Entity.ConflictType.ToString(),
-                Message = s.Message,
-                Differences = s.Diffs,
-                DetectedScheme = _schemeDetector.DisplayName(_schemeDetector.Detect(s.Entity.Prefix)),
-                SchemeAdvisory = s.Advisory
-            });
+            var detectedName = _schemeDetector.DisplayName(_schemeDetector.Detect(s.Entity.Prefix));
+            result.Conflicts.Add(BinConflictMapper.FromStaged(s, detectedName));
         }
 
         result.ConflictCount = result.Conflicts.Count;
@@ -496,42 +460,17 @@ public class BinCsvImportService : IBinCsvImportService
 
     private void ApplyUpdate(BinRange target, PendingBinConflict conflict, BinImportLookups lookups, DateTime now)
     {
-        var before = Snapshot(target, lookups);
+        var before = BinRangeSnapshotMapper.From(target, lookups);
 
-        target.CardSchemeId = conflict.CardSchemeId;
-        target.ProductTypeId = conflict.ProductTypeId;
-        target.FundingTypeId = conflict.FundingTypeId;
-        target.CountryId = conflict.CountryId;
-        target.PrefixLength = conflict.PrefixLength;
-        target.ValidFrom = conflict.ValidFrom;
-        target.ValidTo = conflict.ValidTo;
-        target.IsDeleted = false;
-        target.DeletedAt = null;
-        target.DeletedBy = null;
-        target.UpdatedAt = now;
-        target.UpdatedBy = _currentUser.Name;
+        BinRangeImportMapper.ApplyResolved(target, conflict, now, _currentUser.Name);
 
         _audit.Record(AuditAction.Updated, AuditEntityTypes.BinRange, target.BinRangeId,
-            before, Snapshot(target, lookups));
+            before, BinRangeSnapshotMapper.From(target, lookups));
     }
 
     private BinRange ApplyInsertFromConflict(PendingBinConflict conflict, DateTime now)
     {
-        var added = new BinRange
-        {
-            Prefix = conflict.Prefix,
-            PrefixLength = conflict.PrefixLength,
-            CardSchemeId = conflict.CardSchemeId,
-            ProductTypeId = conflict.ProductTypeId,
-            FundingTypeId = conflict.FundingTypeId,
-            CountryId = conflict.CountryId,
-            ValidFrom = conflict.ValidFrom,
-            ValidTo = conflict.ValidTo,
-            CreatedAt = now,
-            UpdatedAt = now,
-            CreatedBy = _currentUser.Name,
-            UpdatedBy = _currentUser.Name
-        };
+        var added = BinRangeImportMapper.ForImport(conflict, now, _currentUser.Name);
 
         _repository.AddRange(added);
         return added;
@@ -555,7 +494,7 @@ public class BinCsvImportService : IBinCsvImportService
         foreach (var (added, values) in insertedFromConflicts)
         {
             _audit.Record(AuditAction.Imported, AuditEntityTypes.BinRange, added.BinRangeId,
-                null, Snapshot(values, lookups!, isDeleted: false));
+                null, BinRangeSnapshotMapper.From(values, lookups!, isDeleted: false));
         }
 
         await _repository.SaveChangesAsync(cancellationToken);
@@ -575,33 +514,15 @@ public class BinCsvImportService : IBinCsvImportService
 
         if (conflict.ConflictType == ConflictType.SchemeMismatch)
         {
-            return new BinConflict
-            {
-                PendingBinConflictId = conflict.PendingBinConflictId,
-                RowNumber = 0,
-                Prefix = conflict.Prefix,
-                ConflictType = conflict.ConflictType.ToString(),
-                Message = MismatchMessage(conflict.Prefix, detected,
-                    lookups.CardSchemeName(conflict.CardSchemeId)),
-                Differences = target is not null ? Diff(target, incoming, lookups) : new(),
-                DetectedScheme = detectedName,
-                SchemeAdvisory = advisory
-            };
+            var diffs = target is not null ? Diff(target, incoming, lookups) : new();
+            var message = MismatchMessage(conflict.Prefix, detected, lookups.CardSchemeName(conflict.CardSchemeId));
+            return BinConflictMapper.ForPending(conflict, diffs, detectedName, advisory, message);
         }
 
         if (target is null)
             return null;
 
-        return new BinConflict
-        {
-            PendingBinConflictId = conflict.PendingBinConflictId,
-            RowNumber = 0,
-            Prefix = conflict.Prefix,
-            ConflictType = conflict.ConflictType.ToString(),
-            Differences = Diff(target, incoming, lookups),
-            DetectedScheme = detectedName,
-            SchemeAdvisory = advisory
-        };
+        return BinConflictMapper.ForPending(conflict, Diff(target, incoming, lookups), detectedName, advisory);
     }
 
     private void RecordImportedRanges(
@@ -614,13 +535,13 @@ public class BinCsvImportService : IBinCsvImportService
         foreach (var (entity, values) in inserted)
         {
             _audit.Record(AuditAction.Imported, AuditEntityTypes.BinRange, entity.BinRangeId,
-                null, Snapshot(values, lookups, isDeleted: false));
+                null, BinRangeSnapshotMapper.From(values, lookups, isDeleted: false));
         }
 
         foreach (var (binRangeId, values) in revivals)
         {
             _audit.Record(AuditAction.Imported, AuditEntityTypes.BinRange, binRangeId,
-                revivedFrom[binRangeId], Snapshot(values, lookups, isDeleted: false));
+                revivedFrom[binRangeId], BinRangeSnapshotMapper.From(values, lookups, isDeleted: false));
         }
     }
 
@@ -646,26 +567,6 @@ public class BinCsvImportService : IBinCsvImportService
             history.ImportedRows += insertsByHistory.GetValueOrDefault(history.ImportHistoryId);
         }
     }
-
-    private static BinRangeSnapshot Snapshot(BinRange range, BinImportLookups lookups) => new(
-        range.Prefix,
-        lookups.CardSchemeName(range.CardSchemeId),
-        lookups.ProductTypeName(range.ProductTypeId),
-        lookups.FundingTypeName(range.FundingTypeId),
-        lookups.CountryCode(range.CountryId),
-        BinRangeSnapshot.Date(range.ValidFrom),
-        range.ValidTo is null ? null : BinRangeSnapshot.Date(range.ValidTo.Value),
-        range.IsDeleted);
-
-    private static BinRangeSnapshot Snapshot(ResolvedRow row, BinImportLookups lookups, bool isDeleted) => new(
-        row.Prefix,
-        lookups.CardSchemeName(row.CardSchemeId),
-        lookups.ProductTypeName(row.ProductTypeId),
-        lookups.FundingTypeName(row.FundingTypeId),
-        lookups.CountryCode(row.CountryId),
-        BinRangeSnapshot.Date(row.ValidFrom),
-        row.ValidTo is null ? null : BinRangeSnapshot.Date(row.ValidTo.Value),
-        isDeleted);
 
     private static bool TryValidateRow(
         string? prefix, string? cardScheme, string? productType, string? fundingType,
@@ -808,24 +709,6 @@ public class BinCsvImportService : IBinCsvImportService
 
         return diffs;
     }
-
-    private static PendingBinConflict NewConflict(
-        ResolvedRow v, string raw, ImportHistory history, DateTime now, ConflictType type) => new()
-        {
-            ConflictType = type,
-            Prefix = v.Prefix,
-            PrefixLength = v.Prefix.Length,
-            CardSchemeId = v.CardSchemeId,
-            ProductTypeId = v.ProductTypeId,
-            FundingTypeId = v.FundingTypeId,
-            CountryId = v.CountryId,
-            ValidFrom = v.ValidFrom,
-            ValidTo = v.ValidTo,
-            RawData = raw,
-            Status = ConflictStatus.Pending,
-            CreatedAt = now,
-            ImportHistory = history
-        };
 
     private string MismatchMessage(string prefix, DetectedScheme detected, string? declared)
     {

@@ -1,4 +1,5 @@
 using BinTool.Application.Abstractions;
+using BinTool.Application.Mapping;
 using BinTool.Application.Models.Commission;
 using BinTool.Domain.Common;
 using BinTool.Domain.Entities;
@@ -28,12 +29,10 @@ public class CommissionResolver : ICommissionResolver
     {
         var day = onDate.Date;
 
- 
         var inputCurrency = await ResolveInputCurrencyAsync(inputCurrencyId, cancellationToken);
 
         var matches = await _rules.FindMatchingAsync(
             cardSchemeId, productTypeId, fundingTypeId, regionId, day, cancellationToken);
-
 
         var winner = matches
             .OrderByDescending(r => r.Priority)          // the admin's ranking
@@ -87,35 +86,15 @@ public class CommissionResolver : ICommissionResolver
         var floored = Math.Max(rawFee, rule.MinimumFee);
         var fee = Math.Round(floored, 2, MidpointRounding.ToEven);
 
-        var amount2 = Math.Round(amount, 2, MidpointRounding.ToEven);
-        var rawFee2 = Math.Round(rawFee, 2, MidpointRounding.ToEven);
-
-        decimal ToEur(decimal value) =>
-            Math.Round(value * ruleCurrency.RateToEur, 2, MidpointRounding.ToEven);
-
-        return new CommissionCalculation
-        {
-            AppliedRuleId = rule.CommissionRuleId,
-            AppliedRuleName = rule.RuleName,
-            IsFallback = isFallback,
-            InputAmount = inputAmount,
-            InputCurrencyCode = inputCurrency.Code,
-            Amount = amount2,
-            CurrencyCode = ruleCurrency.Code,
-            EurRate = ruleCurrency.RateToEur,
-            PercentageRate = rule.PercentageRate,
-            FixedAmount = rule.FixedAmount,
-            MinimumFee = rule.MinimumFee,
-            RawFee = rawFee2,
-            Fee = fee,
-            MinimumApplied = floored > rawFee,
-            AmountEur = ToEur(amount2),
-            FixedAmountEur = ToEur(rule.FixedAmount),
-            MinimumFeeEur = ToEur(rule.MinimumFee),
-            RawFeeEur = ToEur(rawFee2),
-            FeeEur = ToEur(fee),
-            Reason = Reason(rule, isFallback)
-        };
+        return CommissionCalculationMapper.From(
+            rule, ruleCurrency, inputCurrency,
+            inputAmount,
+            amount: Math.Round(amount, 2, MidpointRounding.ToEven),
+            rawFee: Math.Round(rawFee, 2, MidpointRounding.ToEven),
+            fee,
+            minimumApplied: floored > rawFee,
+            isFallback,
+            reason: Reason(rule, isFallback));
     }
 
     private static string Reason(CommissionRule rule, bool isFallback)

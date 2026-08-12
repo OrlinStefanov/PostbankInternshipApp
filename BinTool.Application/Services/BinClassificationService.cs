@@ -1,4 +1,5 @@
 using BinTool.Application.Abstractions;
+using BinTool.Application.Mapping;
 using BinTool.Application.Models.Classification;
 using BinTool.Domain.Common;
 
@@ -35,24 +36,11 @@ public class BinClassificationService : IBinClassificationService
 
         if (match is null)
         {
-            return new BinClassificationResult { Bin = lookupKey, Matched = false };
+            return BinClassificationResultMapper.NoMatch(lookupKey);
         }
 
-        var result = new BinClassificationResult
-        {
-            Bin = lookupKey,
-            Matched = true,
-            MatchedPrefix = match.Prefix,
-            CardScheme = match.CardScheme,
-            ProductType = match.ProductType,
-            FundingType = match.FundingType,
-            CountryCode = match.CountryCode,
-            CountryName = match.CountryName,
-            Region = match.Region,
-            ValidFrom = match.ValidFrom,
-            ValidTo = match.ValidTo,
-            DetectedScheme = _schemeDetector.MismatchedName(match.Prefix, match.CardScheme)
-        };
+        var result = BinClassificationResultMapper.From(
+            lookupKey, match, _schemeDetector.MismatchedName(match.Prefix, match.CardScheme));
 
         if (amount is { } transactionAmount)
         {
