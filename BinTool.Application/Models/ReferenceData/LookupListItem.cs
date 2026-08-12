@@ -8,7 +8,6 @@ public class LookupListItem
 
     public string? Description { get; set; }
 
-    /// <summary>Derived from the soft-delete flag, not stored.</summary>
     public LookupStatus Status { get; set; }
 
     public DateTime? DeletedAt { get; set; }

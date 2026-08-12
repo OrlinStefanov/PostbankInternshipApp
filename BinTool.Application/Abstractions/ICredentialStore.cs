@@ -1,7 +1,7 @@
+using BinTool.Application.Models.Auth;
+
 namespace BinTool.Application.Abstractions;
 
-// The credential operations a sign-in needs, one call each and no policy in any of them: the order
-// they run in, and what it means when one of them fails, is settled by SignInService.
 public interface ICredentialStore
 {
     Task<CredentialUser?> FindByNameOrEmailAsync(
@@ -23,10 +23,3 @@ public interface ICredentialStore
     Task StampLastLoginAsync(
         string userId, DateTime whenUtc, CancellationToken cancellationToken = default);
 }
-
-public sealed record CredentialUser(
-    string Id,
-    string UserName,
-    string? Email,
-    string? FullName,
-    bool IsActive);

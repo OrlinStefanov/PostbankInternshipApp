@@ -7,8 +7,6 @@ public static class LookupMapper
 {
     public static string NormalizedName(this LookupInput input) => input.Name.Trim();
 
-    // A blank description is stored as null rather than "", so "no description" has one
-    // representation instead of two that render the same but do not compare equal.
     public static string? NormalizedDescription(this LookupInput input) =>
         string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim();
 

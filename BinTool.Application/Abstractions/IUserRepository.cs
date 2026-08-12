@@ -1,3 +1,5 @@
+using BinTool.Application.Models.Access;
+
 namespace BinTool.Application.Abstractions;
 
 public interface IUserRepository
@@ -18,11 +20,3 @@ public interface IUserRepository
 
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }
-
-public sealed record UserRecord(
-    string Id,
-    string UserName,
-    string? FullName,
-    string? Email,
-    bool IsActive,
-    IReadOnlyList<string> Roles);

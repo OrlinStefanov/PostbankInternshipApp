@@ -1,12 +1,12 @@
 using BinTool.Application.Abstractions;
 using BinTool.Application.Authorization;
+using BinTool.Application.Models.Auth;
 using Microsoft.Extensions.Logging;
 
 namespace BinTool.Application.Services;
 
 // The order of the checks is the rule worth holding on to: the password is checked before the lock,
-// so an account's owner is never shut out by their own typos, and a correct password releases the
-// lock rather than making them wait the window out.
+// so an account's owner is never shut out by their own typos
 public class SignInService : ISignInService
 {
     private readonly ICredentialStore _credentials;

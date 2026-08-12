@@ -1,4 +1,3 @@
-using BinTool.Application.Abstractions;
 using BinTool.Application.Models.Audit;
 using BinTool.Application.Models.BinRanges;
 
@@ -25,9 +24,6 @@ public static class BinRangeMapper
         range.UpdatedBy = user;
     }
 
-    // The after-snapshot, built from the values about to be written and the canonical names
-    // resolving already produced - so it describes the row being saved without having to read it
-    // back first.
     public static BinRangeSnapshot ToSnapshot(
         BinRangeInput input, ResolvedReferences resolved, bool isDeleted) =>
         new(input.NormalizedPrefix(),

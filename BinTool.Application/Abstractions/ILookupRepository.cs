@@ -13,10 +13,6 @@ public interface ILookupRepository
     Task<ILookupEntity?> GetForUpdateAsync(
         LookupKind kind, int id, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Finds a row by name, case-insensitively, across live and soft-deleted rows: the unique index
-    /// spans both, so a deleted name revives its row rather than duplicating.
-    /// </summary>
     Task<ILookupEntity?> FindByNameAsync(
         LookupKind kind, string name, CancellationToken cancellationToken = default);
 

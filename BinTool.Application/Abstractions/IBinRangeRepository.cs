@@ -15,11 +15,6 @@ public interface IBinRangeRepository
     Task<IReadOnlyList<BinRangeListItem>> GetManyAsync(
         IReadOnlyCollection<int> binRangeIds, DateTime today,
         CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Just enough of every live range to run the detector over it: the scan reads three columns
-    /// rather than whole rows, so it stays cheap at tens of thousands of ranges.
-    /// </summary>
     Task<IReadOnlyList<PrefixScheme>> ListLivePrefixSchemesAsync(
         CancellationToken cancellationToken = default);
 
@@ -34,10 +29,6 @@ public interface IBinRangeRepository
 
     Task<BinRange?> GetForUpdateAsync(int binRangeId, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Finds a range by prefix across live and soft-deleted rows: the unique index spans both, so a
-    /// deleted prefix would otherwise block an insert it should revive.
-    /// </summary>
     Task<BinRange?> FindByPrefixAsync(string prefix, CancellationToken cancellationToken = default);
 
     Task<bool> PrefixBelongsToAnotherAsync(
@@ -54,28 +45,3 @@ public interface IBinRangeRepository
 
     Task<ITransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
 }
-
-public readonly record struct PrefixScheme(int Id, string Prefix, string SchemeName);
-
-public sealed record MatchedRange(
-    string Prefix,
-    int CardSchemeId,
-    string CardScheme,
-    int ProductTypeId,
-    string ProductType,
-    int FundingTypeId,
-    string FundingType,
-    string CountryCode,
-    string CountryName,
-    int RegionId,
-    string Region,
-    DateTime ValidFrom,
-    DateTime? ValidTo);
-
-public readonly record struct NamedReference(int Id, string Name);
-
-public readonly record struct BinReferenceNames(
-    NamedReference? CardScheme,
-    NamedReference? ProductType,
-    NamedReference? FundingType,
-    NamedReference? Country);

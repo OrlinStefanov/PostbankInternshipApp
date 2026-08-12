@@ -3,8 +3,6 @@ using Microsoft.Extensions.Options;
 
 namespace BinTool.Application.Authorization;
 
-// Supplies a policy on demand for any catalog permission, so an endpoint needs no up-front
-// registration. A policy name that is not a known permission falls through to the default provider.
 public sealed class PermissionPolicyProvider : IAuthorizationPolicyProvider
 {
     private readonly DefaultAuthorizationPolicyProvider _fallback;

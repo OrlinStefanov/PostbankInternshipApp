@@ -13,16 +13,11 @@ public class RoleInput : IValidatableObject
     [StringLength(256, ErrorMessage = "Description must be 256 characters or fewer.")]
     public string? Description { get; set; }
 
-    /// <summary>The permission keys to grant.</summary>
     public List<string> Permissions { get; set; } = new();
 
-    /// <summary>
-    /// Cross-field rules, kept on the model so the API's automatic validation and a direct service
-    /// call reject the same input.
-    /// </summary>
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        // Fully qualified: the property named Permissions would otherwise shadow the catalog.
+        // Property would shadow it.
         foreach (var key in Permissions.Where(p => !Authorization.Permissions.IsPermission(p)))
         {
             yield return new ValidationResult(

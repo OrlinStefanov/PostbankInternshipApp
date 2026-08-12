@@ -1,12 +1,10 @@
-using BinTool.Application.Abstractions;
 using BinTool.Application.Models.Audit;
 using BinTool.Application.Models.Commission;
+using BinTool.Application.Models.ReferenceData;
 using BinTool.Domain.Common;
 
 namespace BinTool.Application.Mapping;
 
-// Nothing here decides anything - the lifecycle and scoring rules live on the entity; this only
-// translates between shapes.
 public static class CommissionRuleMapper
 {
     public static RuleCriteriaKey Key(this CommissionRuleInput input) =>
@@ -15,7 +13,6 @@ public static class CommissionRuleMapper
     public static DateRange Validity(this CommissionRuleInput input) =>
         DateRange.OfDays(input.ValidFrom, input.ValidTo);
 
-    // The score that will be stored: the admin's if they set one, otherwise the suggestion.
     public static int EffectivePriorityScore(this CommissionRuleInput input) =>
         input.PriorityScore ?? input.Key().SuggestedPriorityScore;
 
@@ -90,9 +87,6 @@ public static class CommissionRuleMapper
             rule.IsDeleted);
     }
 
-    // Builds the "after" snapshot from the values about to be written, using the canonical
-    // reference names already resolved - so it describes the row being saved without having to read
-    // it back first.
     public static CommissionRuleSnapshot ToSnapshot(
         CommissionRuleInput input, ReferenceNames names, bool isDeleted) =>
         new(input.RuleName.Trim(),

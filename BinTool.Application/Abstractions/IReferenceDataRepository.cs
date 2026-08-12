@@ -1,13 +1,7 @@
+using BinTool.Application.Models.ReferenceData;
 using BinTool.Domain.Common;
 
 namespace BinTool.Application.Abstractions;
-
-public readonly record struct ReferenceNames(
-    string? Currency,
-    string? CardScheme,
-    string? ProductType,
-    string? FundingType,
-    string? Region);
 
 public interface IReferenceDataRepository
 {

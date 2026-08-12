@@ -1,3 +1,4 @@
+using BinTool.Application.Models.Commission;
 using BinTool.Domain.Common;
 
 namespace BinTool.Tests.Fakes;

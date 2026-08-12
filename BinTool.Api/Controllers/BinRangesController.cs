@@ -46,8 +46,7 @@ public class BinRangesController : ControllerBase
     }
 
     /// <summary>
-    /// Lists BIN ranges whose stored card scheme contradicts the network the detector assigns to
-    /// the prefix.
+    /// Lists BIN ranges whose stored card scheme contradicts the network the detector assigns to the prefix.
     /// </summary>
     [HttpGet("scheme-mismatches")]
     [Authorize(Policy = Permissions.BinRangesRead)]
@@ -74,8 +73,7 @@ public class BinRangesController : ControllerBase
     }
 
     /// <summary>
-    /// What the card-scheme detector makes of a prefix, for an editor suggesting the scheme as it
-    /// is typed.
+    /// What the card-scheme detector makes of a prefix, for an editor suggesting the scheme as it is typed.
     /// </summary>
     [HttpGet("scheme-hint")]
     [Authorize(Policy = Permissions.BinRangesRead)]
@@ -159,7 +157,4 @@ public class BinRangesController : ControllerBase
 
         return ApiResults.From(result);
     }
-
-    // Maps a refusal onto the status code that says the same thing. Every write returns the same
-    // body either way, so a client reads one shape rather than two.
 }

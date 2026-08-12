@@ -1,3 +1,4 @@
+using BinTool.Application.Models.ReferenceData;
 using BinTool.Domain.Common;
 using BinTool.Infrastructure.Data;
 

@@ -4,7 +4,6 @@ namespace BinTool.Application.Models.Auth;
 
 public class LoginRequest
 {
-    /// <summary>User name or email address.</summary>
     [Required(ErrorMessage = "A user name is required.")]
     public string UserName { get; set; } = string.Empty;
 

@@ -5,21 +5,6 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace BinTool.Api.Documentation;
 
-/// <summary>
-/// Supplies each operation's long-form description from a markdown file rather than from a
-/// <c>&lt;remarks&gt;</c> block in the controller.
-/// <para>
-/// The prose is the API's manual - sample requests, what a filter means, why a 409 happens -
-/// and it ran to three hundred lines across the controllers, which is more of a file than the
-/// code it sat above. The overview already lived in ApiDescription.md for the same reason;
-/// this is that decision applied per operation. Swagger UI renders it identically.
-/// </para>
-/// <para>
-/// One file per controller under <c>Documentation/Operations</c>, named after the declaring
-/// type, with one <c>## MethodName</c> section per action. Actions inherited from a base
-/// controller resolve against the base's file, so the four lookup controllers share one.
-/// </para>
-/// </summary>
 public sealed class OperationRemarksFilter : IOperationFilter
 {
     private const string ResourcePrefix = "BinTool.Api.Documentation.Operations.";

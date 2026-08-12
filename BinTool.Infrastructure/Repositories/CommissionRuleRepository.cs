@@ -1,3 +1,4 @@
+using BinTool.Application.Models.Commission;
 using BinTool.Domain.Common;
 using BinTool.Infrastructure.Data;
 

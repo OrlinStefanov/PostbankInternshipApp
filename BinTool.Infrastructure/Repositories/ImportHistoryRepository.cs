@@ -22,8 +22,6 @@ public class ImportHistoryRepository : IImportHistoryRepository
         var totalCount = await rows.CountAsync(cancellationToken);
 
         var items = await rows
-            // Newest first is what an operator scanning for a recent import wants; the id
-            // tiebreaks two imports recorded in the same tick so paging stays stable.
             .OrderByDescending(h => h.ImportedAt)
             .ThenByDescending(h => h.ImportHistoryId)
             .Skip((page - 1) * pageSize)

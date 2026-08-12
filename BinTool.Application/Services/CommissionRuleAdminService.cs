@@ -2,6 +2,7 @@ using BinTool.Application.Abstractions;
 using BinTool.Application.Mapping;
 using BinTool.Application.Models.Audit;
 using BinTool.Application.Models.Commission;
+using BinTool.Application.Models.ReferenceData;
 using BinTool.Application.Validation;
 using BinTool.Domain.Common;
 using Microsoft.Extensions.Logging;

@@ -6,7 +6,7 @@ public class CountryMutationResult : IMutationResult
 {
     public LookupMutationStatus Status { get; set; }
 
-    // The status code carries this, so it is not repeated in the body.
+    // The status code says this.
     [JsonIgnore]
     public MutationOutcome Outcome => Status.Outcome();
 

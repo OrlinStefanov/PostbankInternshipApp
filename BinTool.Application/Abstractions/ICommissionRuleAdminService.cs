@@ -8,9 +8,6 @@ public interface ICommissionRuleAdminService
     Task<List<CommissionRuleListItem>> SearchAsync(
         bool includeDeleted, bool includeExpired, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Returns one rule by id, deleted rules included, or null when nothing matches.
-    /// </summary>
     Task<CommissionRuleListItem?> GetAsync(int id, CancellationToken cancellationToken = default);
 
     Task<CommissionRuleMutationResult> CreateAsync(

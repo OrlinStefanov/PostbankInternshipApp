@@ -10,9 +10,6 @@ public class UserListItem
 
     public string? Email { get; set; }
 
-    /// <summary>
-    /// Disabled accounts cannot sign in; shown so an admin knows why a user is dark.
-    /// </summary>
     public bool IsActive { get; set; }
 
     public List<string> Roles { get; set; } = new();

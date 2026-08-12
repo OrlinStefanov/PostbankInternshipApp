@@ -1,12 +1,7 @@
 namespace BinTool.Application.Authorization;
 
-// One privilege a role can be granted. The Key is what is stored (as a role claim and, once a user
-// signs in, as a claim on their token) and what the authorization policies check; the rest is for
-// showing the privilege to a person composing a role.
 public sealed record PermissionInfo(string Key, string Name, string Description, string Group);
 
-// The fixed catalog. Each key maps to real enforcement on an endpoint, so the set is defined in
-// code - what an admin composes freely is which keys a role holds. Seeding grants Admin every key.
 public static class Permissions
 {
     public const string BinClassify = "bin.classify";

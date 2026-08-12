@@ -1,3 +1,4 @@
+using BinTool.Application.Models.ReferenceData;
 using BinTool.Infrastructure.Data;
 
 namespace BinTool.Infrastructure.Repositories;

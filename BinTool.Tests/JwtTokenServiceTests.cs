@@ -4,6 +4,7 @@ using System.Text;
 using BinTool.Api.Options;
 using BinTool.Api.Services;
 using BinTool.Application.Authorization;
+using BinTool.Application.Models.Auth;
 using BinTool.Domain.Entities;
 using FluentAssertions;
 using Microsoft.Extensions.Options;

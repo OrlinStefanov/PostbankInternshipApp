@@ -15,10 +15,7 @@ public class BinCsvImportService : IBinCsvImportService
 
     private const int StreamBufferSize = 64 * 1024;
 
-    private static readonly string[] RequiredColumns =
-    {
-        "Prefix", "CardScheme", "ProductType", "FundingType", "CountryCode", "ValidFrom"
-    };
+    private static readonly string[] RequiredColumns = BinCsvTemplate.RequiredColumns;
 
     private static readonly CsvConfiguration CsvSettings = new(CultureInfo.InvariantCulture)
     {

@@ -17,9 +17,7 @@ public sealed record CommissionRuleSnapshot(
     bool IsActive,
     bool IsDeleted)
 {
-    /// <summary>The label recorded in place of a wildcard (null) key field.</summary>
     public const string AnyValue = "(any)";
 
-    /// <summary>Formats a date the same way across every snapshot: yyyy-MM-dd.</summary>
     public static string Date(DateTime value) => value.ToString("yyyy-MM-dd");
 }

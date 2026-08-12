@@ -15,7 +15,6 @@ public sealed record BinRangeSnapshot(
 {
     public const string DateFormat = "yyyy-MM-dd";
 
-    /// <summary>Takes the snapshot from a range already resolved for display.</summary>
     public static BinRangeSnapshot From(BinRangeListItem range, bool? isDeleted = null) => new(
         range.Prefix,
         range.CardScheme,

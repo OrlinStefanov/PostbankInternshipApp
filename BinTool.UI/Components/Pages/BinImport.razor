@@ -1,7 +1,10 @@
 @page "/import"
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Permissions.BinRangesImport)]
+@using BinTool.Application.Services
 @inject BinImportApiClient Api
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <PageTitle>BIN Import</PageTitle>
 
@@ -14,10 +17,20 @@
             different values, or a declared scheme that does not match the prefix.
         </p>
     </div>
-    <button class="btn btn-primary" @onclick="OpenUpload">
-        Import CSV
-    </button>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary" @onclick="DownloadTemplate">
+            Download template
+        </button>
+        <button class="btn btn-primary" @onclick="OpenUpload">
+            Import CSV
+        </button>
+    </div>
 </div>
+
+@if (_templateError is not null)
+{
+    <div class="alert alert-danger mt-3" role="alert">@_templateError</div>
+}
 
 @if (_loading)
 {
@@ -161,6 +174,12 @@ else
                     <label class="form-label" for="csv-file">CSV file</label>
                     <InputFile id="csv-file" class="form-control" accept=".csv,text/csv"
                                OnChange="OnFileSelected" disabled="@_busy" />
+
+                    <p class="form-text mb-0">
+                        Nothing to hand? <button type="button" class="btn btn-link btn-sm p-0 align-baseline"
+                                                 @onclick="DownloadTemplate" disabled="@_busy">Download the template</button>
+                        — the header row with one example filled in.
+                    </p>
 
                     @if (_file is not null)
                     {
@@ -354,6 +373,9 @@ else
     private string? _uploadError;
     private string? _resolveError;
     private string? _loadError;
+    private string? _templateError;
+
+    private IJSObjectReference? _download;
 
     private BinImportResult? _result;
     private ConflictResolutionResult? _resolveOutcome;
@@ -393,6 +415,42 @@ else
         _decisions.Clear();
         foreach (var conflict in _conflicts)
             _decisions[conflict.PendingBinConflictId] = null;
+    }
+
+    // The template is a constant, so it is built here rather than fetched. A failure is shown
+    // rather than swallowed: a click that does nothing leaves the user with no way forward.
+    private async Task DownloadTemplate()
+    {
+        _templateError = null;
+
+        try
+        {
+            _download ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/download.js");
+
+            await _download.InvokeVoidAsync(
+                "save", BinCsvTemplate.FileName, BinCsvTemplate.ContentType, BinCsvTemplate.ToCsvBytes());
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        catch (JSException ex)
+        {
+            _templateError = $"Could not download the template: {ex.Message}";
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_download is null) return;
+
+        try
+        {
+            await _download.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit went first - the browser dropped the module with it.
+        }
     }
 
     private void OpenUpload()

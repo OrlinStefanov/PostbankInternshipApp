@@ -1,3 +1,5 @@
+using BinTool.Application.Models.ReferenceData;
+
 namespace BinTool.Application.Abstractions;
 
 public interface ICountryRepository
@@ -10,10 +12,6 @@ public interface ICountryRepository
 
     Task<Country?> GetForUpdateAsync(int id, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Finds a country by ISO code across live and soft-deleted rows: the unique index spans both,
-    /// so a deleted code revives its row rather than allowing a duplicate.
-    /// </summary>
     Task<Country?> FindByIsoCodeAsync(string isoCode, CancellationToken cancellationToken = default);
 
     /// <summary>A live region by id, or null.</summary>
@@ -31,5 +29,3 @@ public interface ICountryRepository
 
     Task<ITransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
 }
-
-public readonly record struct RegionIdentity(int Id, string Name);

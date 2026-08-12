@@ -1,3 +1,5 @@
+using BinTool.Application.Models.Access;
+
 namespace BinTool.Application.Abstractions;
 
 public interface IRoleRepository
@@ -17,10 +19,6 @@ public interface IRoleRepository
 
     Task<RoleWriteResult> DeleteAsync(string roleId, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Brings the role's permissions in line with the wanted set - adds what is missing, removes
-    /// what is no longer wanted, leaves the rest alone.
-    /// </summary>
     Task SetPermissionsAsync(
         string roleId, IReadOnlySet<string> permissions, CancellationToken cancellationToken = default);
 
@@ -30,18 +28,4 @@ public interface IRoleRepository
 
     /// <summary>Flushes the staged audit entries.</summary>
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
-}
-
-public sealed record RoleRecord(
-    string Id,
-    string Name,
-    string? Description,
-    IReadOnlyList<string> Permissions,
-    int MemberCount);
-
-public readonly record struct RoleWriteResult(bool Succeeded, string Error, RoleRecord? Role)
-{
-    public static RoleWriteResult Ok(RoleRecord role) => new(true, string.Empty, role);
-
-    public static RoleWriteResult Refused(string error) => new(false, error, null);
 }

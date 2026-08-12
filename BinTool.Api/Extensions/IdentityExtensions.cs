@@ -14,11 +14,8 @@ public static class IdentityExtensions
             options.Password.RequireNonAlphanumeric = true;
             options.SignIn.RequireConfirmedEmail = false;
 
-            // Stated rather than left to Identity's defaults, which are the same numbers
-            // but invisible: a lockout looks exactly like a wrong password from outside,
-            // so anyone hitting one needs to be able to read what the rule is.
             options.Lockout.MaxFailedAccessAttempts = 5;
-            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(3);
             options.Lockout.AllowedForNewUsers = true;
         })
         .AddEntityFrameworkStores<AppDbContext>()

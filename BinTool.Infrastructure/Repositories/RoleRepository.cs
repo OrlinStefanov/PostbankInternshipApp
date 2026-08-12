@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using BinTool.Application.Authorization;
+using BinTool.Application.Models.Access;
 using BinTool.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 

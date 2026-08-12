@@ -7,15 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BinTool.Api.Controllers;
 
-/// <summary>
-/// Browses the audit trail. Read-only by design - audit rows are written by the same
-/// SaveChanges as the change they describe, and there is no path to edit or delete one
-/// through the application.
-/// <para>
-/// Requires the <c>audit.read</c> permission. Admin holds it by default; a future role
-/// composed of just this permission can watch the trail without holding write access.
-/// </para>
-/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
@@ -30,8 +21,6 @@ public class AuditController : ControllerBase
     }
 
     /// <summary>Lists audit entries, filtered and paged.</summary>
-    /// <param name="query">Filters and paging.</param>
-    /// <response code="200">One page of matching entries. Empty when nothing matched.</response>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<AuditLogItem>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Search(
@@ -43,11 +32,8 @@ public class AuditController : ControllerBase
     }
 
     /// <summary>
-    /// Lists the entity-type values the audit log records - the values the
-    /// <c>entityType</c> filter accepts. Sourced from the canonical constants rather than
-    /// from the data, so an option exists even before its first row is written.
+    /// Lists the entity-type values the audit log records
     /// </summary>
-    /// <response code="200">The available entity-type values, ordered.</response>
     [HttpGet("entity-types")]
     [ProducesResponseType(typeof(IReadOnlyList<string>), StatusCodes.Status200OK)]
     public IActionResult EntityTypes(CancellationToken cancellationToken)

@@ -1,3 +1,4 @@
+using BinTool.Application.Models.Auth;
 using Microsoft.AspNetCore.Identity;
 
 namespace BinTool.Infrastructure.Repositories;

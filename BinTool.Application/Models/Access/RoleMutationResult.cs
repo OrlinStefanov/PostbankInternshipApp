@@ -6,16 +6,14 @@ public class RoleMutationResult : IMutationResult
 {
     public RoleMutationStatus Status { get; set; }
 
-    // The status code carries this, so it is not repeated in the body.
+    // The status code says this.
     [JsonIgnore]
     public MutationOutcome Outcome => Status.Outcome();
 
     public bool Succeeded => Outcome == MutationOutcome.Succeeded;
 
-    /// <summary>Why the write was refused.</summary>
     public string? Error { get; set; }
 
-    /// <summary>The role as it now stands.</summary>
     public RoleListItem? Role { get; set; }
 
     public static RoleMutationResult Success(RoleMutationStatus status, RoleListItem? role = null) =>

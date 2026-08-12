@@ -1,4 +1,3 @@
-using BinTool.Application.Abstractions;
 using BinTool.Application.Authorization;
 using BinTool.Application.Models.Access;
 
@@ -11,8 +10,6 @@ public static class RoleMapper
     public static string? NormalizedDescription(this RoleInput input) =>
         string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim();
 
-    // Unknown keys are dropped rather than refused: the input model has already rejected
-    // them before a real request gets this far, so anything left is a caller bypassing it.
     public static IReadOnlySet<string> WantedPermissions(this RoleInput input) =>
         input.Permissions.Where(Permissions.IsPermission).ToHashSet(StringComparer.Ordinal);
 

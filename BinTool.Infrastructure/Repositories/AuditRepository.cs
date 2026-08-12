@@ -23,8 +23,6 @@ public class AuditRepository : IAuditRepository
         var totalCount = await rows.CountAsync(cancellationToken);
 
         var items = await rows
-            // Newest first is what an operator scanning for a recent change wants; the id
-            // tiebreaks two rows written in the same tick so paging stays stable.
             .OrderByDescending(a => a.PerformedAt)
             .ThenByDescending(a => a.AuditEntryId)
             .Skip((page - 1) * pageSize)

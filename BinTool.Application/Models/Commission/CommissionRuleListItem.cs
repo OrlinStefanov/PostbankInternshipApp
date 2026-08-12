@@ -8,27 +8,22 @@ public class CommissionRuleListItem
 
     public int? CardSchemeId { get; set; }
 
-    /// <summary>Resolved scheme name, or null when the rule wildcards the scheme.</summary>
     public string? CardSchemeName { get; set; }
 
     public int? ProductTypeId { get; set; }
 
-    /// <summary>Resolved product name, or null when the rule wildcards the product.</summary>
     public string? ProductTypeName { get; set; }
 
     public int? FundingTypeId { get; set; }
 
-    /// <summary>Resolved funding name, or null when the rule wildcards the funding.</summary>
     public string? FundingTypeName { get; set; }
 
     public int? RegionId { get; set; }
 
-    /// <summary>Resolved region name, or null when the rule wildcards the region.</summary>
     public string? RegionName { get; set; }
 
     public int CurrencyId { get; set; }
 
-    /// <summary>The currency's ISO-4217 code the amounts are denominated in, e.g. "EUR".</summary>
     public string CurrencyCode { get; set; } = string.Empty;
 
     public decimal PercentageRate { get; set; }
@@ -39,14 +34,8 @@ public class CommissionRuleListItem
 
     public int Priority { get; set; }
 
-    /// <summary>
-    /// The stored priority score — the secondary tiebreak after <see cref="Priority"/>.
-    /// </summary>
     public int PriorityScore { get; set; }
 
-    /// <summary>
-    /// The system-suggested priority score: the count of non-wildcard key fields, 0 to 4.
-    /// </summary>
     public int Specificity { get; set; }
 
     public DateTime ValidFrom { get; set; }
@@ -55,10 +44,8 @@ public class CommissionRuleListItem
 
     public bool IsActive { get; set; }
 
-    /// <summary>Derived from the flags and the validity window.</summary>
     public CommissionRuleStatus Status { get; set; }
 
-    /// <summary>True when this rule is the configured fallback default.</summary>
     public bool IsDefault { get; set; }
 
     public DateTime CreatedAt { get; set; }

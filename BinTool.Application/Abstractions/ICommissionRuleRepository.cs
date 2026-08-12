@@ -1,15 +1,10 @@
+using BinTool.Application.Models.Commission;
 using BinTool.Domain.Common;
 
 namespace BinTool.Application.Abstractions;
 
-public readonly record struct RuleIdentity(int Id, string Name);
-
 public interface ICommissionRuleRepository
 {
-    /// <summary>
-    /// Every rule with its criteria and the reference rows the key ids point at, so names can be
-    /// shown without a second trip.
-    /// </summary>
     Task<IReadOnlyList<CommissionRule>> ListAsync(
         bool includeDeleted, CancellationToken cancellationToken = default);
 
@@ -22,26 +17,14 @@ public interface ICommissionRuleRepository
     /// </summary>
     Task<CommissionRule?> GetForUpdateAsync(int id, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// The first live rule whose key is <em>identical</em> and whose validity touches the given
-    /// window.
-    /// </summary>
     Task<RuleIdentity?> FindKeyOverlapAsync(
         RuleCriteriaKey key, DateRange window, int excludeRuleId,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Live rules sharing the given priority whose validity touches the window, with their criteria
-    /// loaded.
-    /// </summary>
     Task<IReadOnlyList<CommissionRule>> FindPriorityCandidatesAsync(
         int priority, DateRange window, int excludeRuleId,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Every live rule whose criteria match the card and whose validity covers the day, with its
-    /// criteria and currency loaded.
-    /// </summary>
     Task<IReadOnlyList<CommissionRule>> FindMatchingAsync(
         int cardSchemeId, int productTypeId, int fundingTypeId, int regionId, DateTime onDate,
         CancellationToken cancellationToken = default);

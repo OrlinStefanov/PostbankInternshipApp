@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using BinTool.Api.Options;
 using BinTool.Application.Authorization;
+using BinTool.Application.Models.Auth;
 using BinTool.Domain.Entities;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;

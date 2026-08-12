@@ -1,4 +1,3 @@
-using BinTool.Application.Abstractions;
 using BinTool.Application.Models.Audit;
 using BinTool.Application.Models.ReferenceData;
 

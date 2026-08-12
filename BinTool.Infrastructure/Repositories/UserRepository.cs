@@ -1,3 +1,4 @@
+using BinTool.Application.Models.Access;
 using BinTool.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 
