@@ -1,13 +1,7 @@
 namespace BinTool.Domain.Common;
 
-// Maps a BIN prefix to its card network using the well-known IIN ranges. Anything outside the seven
-// networks listed here is reported as Unknown rather than guessed at, so adding a network is a code
-// change. Stateless, so it is safe to share as a singleton. It sits beside BinPrefix because it is
-// the same kind of thing: a rule about what card numbers mean, with no storage behind it.
 public class CardSchemeDetector : ICardSchemeDetector
 {
-    // Accepted names per network. The reference data may rename a scheme, so a few
-    // common aliases are allowed rather than pinning to one exact string.
     private static readonly Dictionary<DetectedScheme, string[]> Aliases = new()
     {
         [DetectedScheme.Visa] = new[] { "Visa" },
@@ -24,8 +18,6 @@ public class CardSchemeDetector : ICardSchemeDetector
         if (string.IsNullOrEmpty(prefix) || !IsAllDigits(prefix))
             return DetectedScheme.Unknown;
 
-        // Compare on numeric ranges of a fixed width rather than string prefixes so
-        // the four-digit Mastercard 2-series is tested cleanly alongside the rest.
         var d1 = prefix[0] - '0';
         var two = TakeDigits(prefix, 2);
         var three = TakeDigits(prefix, 3);
@@ -61,9 +53,7 @@ public class CardSchemeDetector : ICardSchemeDetector
             return DetectedScheme.Discover;
         }
 
-        // UnionPay: the whole 62 range, plus 810-817. Tested after Discover so the
-        // 6011/644-649/65 ranges keep their own answer; the remainder of 62 - including
-        // the 622126-622925 block Discover co-brands - is reported as UnionPay.
+        // UnionPay: the whole 62 range, plus 810-817.
         if (two == 62 || three is >= 810 and <= 817)
         {
             return DetectedScheme.UnionPay;
