@@ -230,7 +230,7 @@ public class CommissionResolverTests : SqliteTestBase
             scheme: VisaId, product: ConsumerId, funding: CreditId, region: DomesticRegionId,
             priority: 5, priorityScore: 1);
         var overridden = SeedRule("Wildcard with high override",
-            priority: 5, priorityScore: 10);
+            priority: 5, priorityScore: 4);
 
         var result = await Resolve();
 

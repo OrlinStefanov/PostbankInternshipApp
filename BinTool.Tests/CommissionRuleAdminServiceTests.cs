@@ -118,9 +118,9 @@ public class CommissionRuleAdminServiceTests : SqliteTestBase
     }
 
     [Fact]
-    public async Task Priority_score_above_100_is_rejected()
+    public async Task Priority_score_above_4_is_rejected()
     {
-        var result = await _service.CreateAsync(Input(priorityScore: 101));
+        var result = await _service.CreateAsync(Input(priorityScore: 5));
 
         result.Status.Should().Be(CommissionRuleMutationStatus.Invalid);
     }
@@ -141,10 +141,10 @@ public class CommissionRuleAdminServiceTests : SqliteTestBase
     public async Task Explicit_priority_score_overrides_the_suggestion()
     {
         var result = await _service.CreateAsync(Input(
-            name: "Override", schemeId: VisaId, productId: ConsumerId, priorityScore: 7));
+            name: "Override", schemeId: VisaId, productId: ConsumerId, priorityScore: 4));
 
         result.Status.Should().Be(CommissionRuleMutationStatus.Created);
-        result.Rule!.PriorityScore.Should().Be(7);
+        result.Rule!.PriorityScore.Should().Be(4);
     }
 
     private sealed class TestUser : ICurrentUser

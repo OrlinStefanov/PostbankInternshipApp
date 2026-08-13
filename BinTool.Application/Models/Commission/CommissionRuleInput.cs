@@ -34,7 +34,7 @@ public class CommissionRuleInput
     public int Priority { get; set; }
 
     [Range(CommissionRuleLimits.MinPriorityScore, CommissionRuleLimits.MaxPriorityScore,
-        ErrorMessage = "Priority score must be between 0 and 100.")]
+        ErrorMessage = "Priority score must be between 0 and 4.")]
     public int? PriorityScore { get; set; }
 
     [Required(ErrorMessage = "A ValidFrom date is required.")]

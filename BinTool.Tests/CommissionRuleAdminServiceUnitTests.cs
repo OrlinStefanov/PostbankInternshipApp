@@ -175,9 +175,9 @@ public class CommissionRuleAdminServiceUnitTests
     public async Task An_explicit_score_overrides_the_suggestion()
     {
         var result = await _service.CreateAsync(Input(
-            scheme: Visa, product: Consumer, priorityScore: 7));
+            scheme: Visa, product: Consumer, priorityScore: 4));
 
-        result.Rule!.PriorityScore.Should().Be(7);
+        result.Rule!.PriorityScore.Should().Be(4);
         result.Rule.Specificity.Should().Be(2, "the suggestion is still reported alongside it");
     }
 
@@ -197,7 +197,7 @@ public class CommissionRuleAdminServiceUnitTests
     [Fact]
     public async Task A_score_above_the_allowed_range_is_rejected()
     {
-        var result = await _service.CreateAsync(Input(priorityScore: 101));
+        var result = await _service.CreateAsync(Input(priorityScore: 5));
 
         result.Status.Should().Be(CommissionRuleMutationStatus.Invalid);
     }
