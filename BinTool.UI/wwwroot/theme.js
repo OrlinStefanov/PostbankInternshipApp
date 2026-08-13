@@ -54,6 +54,27 @@ window.BinToolTheme = (function () {
 
     apply(stored());
 
+    // Enhanced navigation is the reason this is not a set-once script. When Blazor follows an
+    // internal link it fetches the next page and morphs the live DOM to match it, and that morph
+    // reaches <html>: the server response never carries `data-theme` - it is set here, in the
+    // browser - so the attribute is stripped on every page change and the theme falls back to the
+    // OS. The head script does not re-run to put it back. So re-apply after each enhanced load.
+    //
+    // `enhancedload` fires synchronously at the end of the DOM update, before the browser paints,
+    // so restoring the attribute there is invisible rather than a flash of the wrong theme. Blazor
+    // is not defined yet while the head is parsing, so the registration waits for it.
+    function hookEnhancedNav() {
+        if (window.Blazor && typeof window.Blazor.addEventListener === 'function') {
+            window.Blazor.addEventListener('enhancedload', function () {
+                apply(stored());
+            });
+        } else {
+            setTimeout(hookEnhancedNav, 50);
+        }
+    }
+
+    hookEnhancedNav();
+
     return {
         toggle: function () {
             var next = current() === 'dark' ? 'light' : 'dark';
