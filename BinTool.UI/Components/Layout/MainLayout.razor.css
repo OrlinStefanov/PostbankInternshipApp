@@ -18,14 +18,14 @@ main {
     min-width: 0; /* lets wide tables scroll inside the column instead of stretching it */
     display: flex;
     flex-direction: column;
-    background-color: var(--app-paper, #f1f3f7);
+    background-color: var(--app-paper, #f8fafc);
 }
 
 .sidebar {
     display: flex;
     flex-direction: column;
-    background-color: var(--app-shell, #1a2035);
-    border-right: 1px solid var(--app-shell-line, #242d47);
+    background-color: var(--app-shell, #0f172a);
+    border-right: 1px solid var(--app-shell-line, #1e293b);
 }
 
 .top-row {
@@ -36,7 +36,7 @@ main {
     height: 56px;
     padding: 0 24px;
     background-color: var(--app-surface, #ffffff);
-    border-bottom: 1px solid var(--app-line, #e5e7eb);
+    border-bottom: 1px solid var(--app-line, #e2e8f0);
 }
 
 .page-name {
@@ -44,7 +44,7 @@ main {
     font-size: 15px;
     font-weight: 600;
     letter-spacing: -.01em;
-    color: var(--app-ink, #111827);
+    color: var(--app-ink, #0f172a);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -55,6 +55,75 @@ main {
     align-items: center;
     gap: 16px;
     min-width: 0;
+}
+
+/* --- Theme toggle ---------------------------------------------------------
+   Two glyphs in the same box, one of them hidden. Drawing both up front means
+   the swap is a `display` change with nothing to load, so the icon does not
+   pop in a frame after the colours have already turned over. */
+
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--app-line, #e2e8f0);
+    border-radius: var(--app-radius, 4px);
+    background-color: var(--app-surface, #ffffff);
+    color: var(--app-muted, #64748b);
+    cursor: pointer;
+    transition: background-color .1s ease, color .1s ease, border-color .1s ease;
+}
+
+.theme-toggle:hover {
+    background-color: var(--tone-neutral-bg, #f1f5f9);
+    border-color: var(--app-line-strong, #cbd5e1);
+    color: var(--app-ink, #0f172a);
+}
+
+.theme-toggle:focus-visible {
+    outline: 2px solid var(--app-ring, #f5a8ac);
+    outline-offset: 2px;
+}
+
+.theme-toggle .theme-to-dark,
+.theme-toggle .theme-to-light {
+    width: 15px;
+    height: 15px;
+}
+
+/* Light theme: offer the moon. Dark theme: offer the sun. */
+.theme-toggle .theme-to-light {
+    display: none;
+}
+
+:root[data-theme="dark"] .theme-toggle .theme-to-dark {
+    display: none;
+}
+
+:root[data-theme="dark"] .theme-toggle .theme-to-light {
+    display: inline-block;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-toggle .theme-to-dark {
+        display: none;
+    }
+
+    :root:not([data-theme="light"]) .theme-toggle .theme-to-light {
+        display: inline-block;
+    }
+
+    :root[data-theme="light"] .theme-toggle .theme-to-dark {
+        display: inline-block;
+    }
+
+    :root[data-theme="light"] .theme-toggle .theme-to-light {
+        display: none;
+    }
 }
 
 .content {
@@ -118,6 +187,7 @@ main {
     }
 
     .nav-collapse:checked ~ .sidebar ::deep .nav-link {
+        position: relative;
         justify-content: center;
         gap: 0;
         padding: 9px 0;
@@ -125,9 +195,26 @@ main {
         border-right: 3px solid transparent;
     }
 
+    /* With the label gone there is no room for a counted pill, and keeping one
+       in flow would push the icon off the rail's centre line. It becomes a dot
+       on the icon's shoulder - the link's `title` still carries the number. */
+    .nav-collapse:checked ~ .sidebar ::deep .nav-badge {
+        position: absolute;
+        top: 6px;
+        left: 50%;
+        margin-left: 3px;
+        min-width: 0;
+        width: 7px;
+        height: 7px;
+        padding: 0;
+        font-size: 0;
+        line-height: 0;
+        overflow: hidden;
+    }
+
     .nav-collapse:checked ~ .sidebar ::deep a.active {
         border-left-width: 0;
-        border-right-color: var(--app-accent, #2563eb);
+        border-right-color: var(--app-accent, #e30613);
     }
 
     .nav-collapse:checked ~ .sidebar ::deep .nav-collapse-btn {
@@ -159,7 +246,7 @@ main {
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    background-color: var(--app-accent, #2563eb);
+    background-color: var(--app-accent-solid, #e30613);
     color: #fff;
     font-size: 12px;
     font-weight: 700;
@@ -176,7 +263,7 @@ main {
 .user-name {
     font-size: 13px;
     font-weight: 500;
-    color: var(--app-ink, #111827);
+    color: var(--app-ink, #0f172a);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -184,7 +271,7 @@ main {
 
 .user-roles {
     font-size: 11px;
-    color: var(--app-muted, #6b7280);
+    color: var(--app-muted, #64748b);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -212,7 +299,7 @@ main {
     z-index: 1000;
     padding: 11px 40px 11px 20px;
     font-size: 13px;
-    color: #92400e;
+    color: var(--tone-warning-prose, #92400e);
     background-color: var(--tone-warning-bg, #fffbeb);
     border-top: 1px solid var(--tone-warning-line, #fde68a);
     box-shadow: 0 -2px 8px rgba(17, 24, 39, .08);

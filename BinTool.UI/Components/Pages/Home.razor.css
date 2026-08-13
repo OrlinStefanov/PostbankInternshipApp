@@ -58,13 +58,13 @@
     font-size: 22px;
     font-weight: 700;
     letter-spacing: -.03em;
-    color: var(--app-ink, #111827);
+    color: var(--app-ink, #0f172a);
 }
 
 .home-head p {
     margin: 4px 0 0;
     font-size: 14px;
-    color: var(--app-muted, #6b7280);
+    color: var(--app-muted, #64748b);
 }
 
 /* --- Entry cards ----------------------------------------------------------
@@ -84,7 +84,7 @@
     flex-direction: column;
     padding: 18px 20px;
     background-color: var(--app-surface, #ffffff);
-    border: 1px solid var(--app-line, #e5e7eb);
+    border: 1px solid var(--app-line, #e2e8f0);
     border-radius: var(--app-radius-lg, 6px);
     color: inherit;
     text-decoration: none;
@@ -92,7 +92,7 @@
 }
 
 .entry:hover {
-    border-color: var(--app-ring, #93c5fd);
+    border-color: var(--app-ring, #f5a8ac);
     color: inherit;
 }
 
@@ -100,18 +100,18 @@
     width: 22px;
     height: 22px;
     margin-bottom: 10px;
-    color: var(--app-accent, #2563eb);
+    color: var(--app-accent, #e30613);
 }
 
 .entry-title {
     font-size: 14px;
     font-weight: 600;
-    color: var(--app-ink, #111827);
+    color: var(--app-ink, #0f172a);
     margin-bottom: 4px;
 }
 
 .entry-text {
     font-size: 13px;
     line-height: 1.4;
-    color: var(--app-muted, #6b7280);
+    color: var(--app-muted, #64748b);
 }

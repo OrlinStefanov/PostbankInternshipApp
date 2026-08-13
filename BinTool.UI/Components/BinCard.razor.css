@@ -97,7 +97,7 @@
 }
 
 .bincard-generic .bincard-face {
-    background: linear-gradient(135deg, #1a2035, #374151 62%, #6b7280);
+    background: linear-gradient(135deg, #0f172a, #475569 62%, #64748b);
 }
 
 /* --- Front --------------------------------------------------------------- */
@@ -268,7 +268,7 @@
 }
 
 .bincard-signature-text {
-    color: #1f2937;
+    color: #0f172a;
     font-family: var(--app-font-mono);
     font-size: .6875rem;
     font-weight: 600;

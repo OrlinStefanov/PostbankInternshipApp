@@ -16,9 +16,20 @@
         <div class="top-row">
             <h1 class="page-name">@PageName()</h1>
 
-            <AuthorizeView>
-                <Authorized>
-                    <div class="top-row-end">
+            <div class="top-row-end">
+                @* The layout renders statically, so this is a plain DOM handler rather than
+                   an @@onclick - the same reason the sidebar collapses through a checkbox.
+                   Both glyphs are drawn and the stylesheet shows whichever one names the
+                   theme the press will move to. *@
+                <button type="button" class="theme-toggle" onclick="BinToolTheme.toggle()"
+                        title="Switch between the light and dark theme"
+                        aria-label="Switch between the light and dark theme">
+                    <span class="ico ico-moon theme-to-dark" aria-hidden="true"></span>
+                    <span class="ico ico-sun theme-to-light" aria-hidden="true"></span>
+                </button>
+
+                <AuthorizeView>
+                    <Authorized>
                         <span class="user-chip">
                             <span class="user-avatar" aria-hidden="true">@Initials(context.User)</span>
                             <span class="user-lines">
@@ -27,12 +38,12 @@
                             </span>
                         </span>
                         <a class="btn btn-outline-secondary btn-sm" href="logout">Sign out</a>
-                    </div>
-                </Authorized>
-                <NotAuthorized>
-                    <a class="btn btn-primary btn-sm" href="login">Sign in</a>
-                </NotAuthorized>
-            </AuthorizeView>
+                    </Authorized>
+                    <NotAuthorized>
+                        <a class="btn btn-primary btn-sm" href="login">Sign in</a>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
         </div>
 
         <article class="content">

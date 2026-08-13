@@ -11,8 +11,11 @@
 
 <div class="nav-head">
     <a class="brand" href="">
-        <span class="brand-mark" aria-hidden="true">B</span>
-        <span class="brand-text">BinTool</span>
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-text">
+            <span class="brand-name">Postbank</span>
+            <span class="brand-sub">Bulgaria Classifier</span>
+        </span>
     </a>
 </div>
 
@@ -62,6 +65,13 @@
                         <NavLink class="nav-link" href="scheme-mismatches" title="Scheme mismatches">
                             <span class="ico ico-warning nav-icon" aria-hidden="true"></span>
                             <span class="nav-text">Scheme mismatches</span>
+                            @if (_mismatchCount > 0)
+                            {
+                                <span class="nav-badge"
+                                      title="@_mismatchCount ranges contradict the detected scheme">
+                                    @(_mismatchCount > 99 ? "99+" : _mismatchCount.ToString())
+                                </span>
+                            }
                         </NavLink>
                     </div>
                 </Authorized>
@@ -158,3 +168,39 @@
     <span class="ico ico-chevron-left nav-collapse-icon" aria-hidden="true"></span>
     <span class="nav-text">Collapse</span>
 </label>
+
+@code {
+    private int _mismatchCount;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    [Inject]
+    private BinRangeApiClient Api { get; set; } = default!;
+
+    [Inject]
+    private IAuthorizationService Authorization { get; set; } = default!;
+
+    // The badge is a decoration on a link the user can already see, so a failed count is
+    // dropped rather than surfaced: a nav that throws would take every page down with it.
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationState is null) return;
+
+        var state = await AuthenticationState;
+        if (state.User.Identity is not { IsAuthenticated: true }) return;
+
+        var canRead = (await Authorization.AuthorizeAsync(
+            state.User, Permissions.BinRangesRead)).Succeeded;
+        if (!canRead) return;
+
+        try
+        {
+            _mismatchCount = await Api.CountSchemeMismatchesAsync();
+        }
+        catch (Exception)
+        {
+            _mismatchCount = 0;
+        }
+    }
+}

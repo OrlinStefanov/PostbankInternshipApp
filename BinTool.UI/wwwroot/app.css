@@ -34,11 +34,11 @@
    -------------------------------------------------------------------------- */
 
 @font-face {
-    font-family: "DM Sans";
+    font-family: "Inter";
     font-style: normal;
-    font-weight: 100 1000;
+    font-weight: 100 900;
     font-display: swap;
-    src: url("fonts/dm-sans-latin.woff2") format("woff2");
+    src: url("fonts/inter-latin.woff2") format("woff2");
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
                    U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F,
                    U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF,
@@ -46,11 +46,11 @@
 }
 
 @font-face {
-    font-family: "DM Sans";
+    font-family: "Inter";
     font-style: normal;
-    font-weight: 100 1000;
+    font-weight: 100 900;
     font-display: swap;
-    src: url("fonts/dm-sans-latin-ext.woff2") format("woff2");
+    src: url("fonts/inter-latin-ext.woff2") format("woff2");
     unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
                    U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
                    U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
@@ -58,11 +58,11 @@
 }
 
 @font-face {
-    font-family: "JetBrains Mono";
+    font-family: "Fira Code";
     font-style: normal;
-    font-weight: 100 800;
+    font-weight: 300 700;
     font-display: swap;
-    src: url("fonts/jetbrains-mono-latin.woff2") format("woff2");
+    src: url("fonts/fira-code-latin.woff2") format("woff2");
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
                    U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F,
                    U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF,
@@ -70,11 +70,11 @@
 }
 
 @font-face {
-    font-family: "JetBrains Mono";
+    font-family: "Fira Code";
     font-style: normal;
-    font-weight: 100 800;
+    font-weight: 300 700;
     font-display: swap;
-    src: url("fonts/jetbrains-mono-latin-ext.woff2") format("woff2");
+    src: url("fonts/fira-code-latin-ext.woff2") format("woff2");
     unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
                    U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
                    U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
@@ -83,85 +83,112 @@
 
 :root {
     /* --- Neutrals ---------------------------------------------------------
-       Cool greys. The page sits a shade below white so that white cards read
+       Slate. The page sits a shade below white so that white cards read
        as surfaces rather than as more page. Two line weights: `line` draws the
        outside of a thing, `line-soft` divides the inside of one. */
-    --app-paper: #f1f3f7;
+    --app-paper: #f8fafc;
     --app-surface: #ffffff;
-    --app-sunken: #f9fafb;
-    --app-line: #e5e7eb;
-    --app-line-soft: #f3f4f6;
-    --app-line-strong: #d1d5db;
+    --app-sunken: #f1f5f9;
+    --app-line: #e2e8f0;
+    --app-line-soft: #f1f5f9;
+    --app-line-strong: #cbd5e1;
 
-    --app-ink: #111827;
-    --app-body: #374151;
-    --app-muted: #6b7280;
-    --app-faint: #9ca3af;
+    --app-ink: #0f172a;
+    --app-body: #475569;
+    --app-muted: #64748b;
+    --app-faint: #94a3b8;
 
-    /* The tint a table row takes on hover - a blue so faint it reads as a
+    /* The tint a table row takes on hover - a red so faint it reads as a
        highlight rather than as a selection. */
-    --app-row-hover: #f8faff;
+    --app-row-hover: #fdf6f7;
 
     /* --- Accent -----------------------------------------------------------
-       One blue, spent on the primary action, the active nav item and the
-       focus ring. Deliberately never used for a status, so a blue control
-       always means "this is the main thing to press". */
-    --app-accent: #2563eb;
-    --app-accent-hover: #1d4ed8;
-    --app-ring: #93c5fd;
+       Postbank red, spent on the primary action, the active nav item and the
+       focus ring. Deliberately never used for a status, so a red control
+       always means "this is the main thing to press" - which is why the
+       danger tone below is a deeper crimson rather than this same red. */
+    --app-accent: #e30613;
+    --app-accent-hover: #b80510;
+    --app-ring: #f5a8ac;
+
+    /* The red a *fill* is painted in, as opposed to the red text is drawn in.
+       They are the same colour here and only part company in the dark theme,
+       where accent text has to lighten to stay legible but a chip carrying
+       white type has to stay dark enough to keep that type readable. */
+    --app-accent-solid: #e30613;
+    --app-accent-solid-hover: #b80510;
 
     /* --- Shell ------------------------------------------------------------
-       The sidebar is its own dark surface, not a tint of the page. Its greys
-       are warmer than the page's so the two never look like a failed match. */
-    --app-shell: #1a2035;
-    --app-shell-line: #242d47;
-    --app-shell-text: #8a94b0;
-    --app-shell-dim: #4a5578;
-    --app-shell-bright: #93c5fd;
-    --app-shell-brand: #e8ecf5;
+       The sidebar is its own dark surface, not a tint of the page. It runs
+       down the same slate ramp as the page so the two never look like a
+       failed match, and marks the active item in the brand red. */
+    --app-shell: #0f172a;
+    --app-shell-line: #1e293b;
+    --app-shell-text: #94a3b8;
+    --app-shell-dim: #334155;
+    --app-shell-bright: #fca5a5;
+    --app-shell-brand: #f1f5f9;
+
+    /* The wordmark's red. The sidebar is a dark surface in *both* themes, so
+       this is deliberately not `--app-accent`: #e30613 only clears 2.5:1 on
+       slate-900, and the accent's light-theme value is what would land here.
+       Not overridden in the dark block below - the shell barely moves. */
+    --app-shell-accent: #fb6b78;
 
     /* --- Tone pairs -------------------------------------------------------
        Foreground / background / border for anything that means something.
        Every foreground clears 4.5:1 on its own background, which is what the
        old solid-fill badges failed to do. */
-    --tone-neutral-fg: #374151;
-    --tone-neutral-bg: #f3f4f6;
-    --tone-neutral-line: #e5e7eb;
+    --tone-neutral-fg: #475569;
+    --tone-neutral-bg: #f1f5f9;
+    --tone-neutral-line: #e2e8f0;
 
     /* A second, quieter grey. The design gives a withdrawn row a paler chip
        than an ordinary one so "deleted" recedes instead of just sitting there
        as another neutral. */
-    --tone-muted-fg: #6b7280;
-    --tone-muted-bg: #f9fafb;
-    --tone-muted-line: #e5e7eb;
+    --tone-muted-fg: #64748b;
+    --tone-muted-bg: #f8fafc;
+    --tone-muted-line: #e2e8f0;
 
-    --tone-success-fg: #15803d;
-    --tone-success-bg: #f0fdf4;
-    --tone-success-line: #bbf7d0;
+    --tone-success-fg: #047857;
+    --tone-success-bg: #ecfdf5;
+    --tone-success-line: #a7f3d0;
 
     --tone-warning-fg: #b45309;
     --tone-warning-bg: #fffbeb;
     --tone-warning-line: #fde68a;
 
+    /* `--tone-warning-fg` is tuned for an 11px chip; at paragraph size on a wide
+       fill it reads thin, so warning prose gets its own darker brown. */
+    --tone-warning-prose: #92400e;
+
     /* The solid amber a warning *button* fills with. Darker than the text
        tone, because it carries white type. */
     --tone-warning-solid: #d97706;
 
-    --tone-danger-fg: #dc2626;
-    --tone-danger-bg: #fef2f2;
-    --tone-danger-line: #fecaca;
+    /* A deeper crimson than the brand red above. Destructive actions have to
+       stay tellable apart from primary ones when the two sit side by side in
+       a dialog, which they cannot do if both are #e30613. */
+    --tone-danger-fg: #9f1239;
+    --tone-danger-bg: #fff1f2;
+    --tone-danger-line: #fecdd3;
 
     --tone-info-fg: #1d4ed8;
     --tone-info-bg: #eff6ff;
     --tone-info-line: #bfdbfe;
 
+    /* The accent's own tone pair. `.btn-outline-primary` used to borrow the
+       info blue, which worked only while the accent was itself blue. */
+    --tone-accent-bg: #fdf2f3;
+    --tone-accent-line: #f7c4c8;
+
     --app-radius: 4px;
     --app-radius-lg: 6px;
     --app-radius-pill: 100px;
 
-    --app-font: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
-                Roboto, "Helvetica Neue", Arial, sans-serif;
-    --app-font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono",
+    --app-font: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+                "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --app-font-mono: "Fira Code", ui-monospace, "Cascadia Mono",
                      "SF Mono", Menlo, Consolas, monospace;
 
     /* --- Bootstrap 5.3 tokens the component stylesheets reference ---------- */
@@ -172,8 +199,157 @@
     --bs-tertiary-bg: var(--app-sunken);
     --bs-success-text-emphasis: var(--tone-success-fg);
     --bs-danger-text-emphasis: var(--tone-danger-fg);
-    --bs-danger-rgb: 220, 38, 38;
+    --bs-danger-rgb: 159, 18, 57;
     --bs-font-monospace: var(--app-font-mono);
+
+    /* Tells the browser which way to paint the things CSS does not reach -
+       native scrollbars, date pickers, spin buttons. */
+    color-scheme: light;
+}
+
+/* --------------------------------------------------------------------------
+   Dark theme
+
+   The same tokens again, and nothing else: every rule below this block reads
+   the palette rather than a literal, so the whole app turns over from here.
+
+   `data-theme` is set on <html> by the inline script in App.razor before the
+   first paint, so there is no flash of the light theme on a reload. The
+   attribute always wins over the media query - a user who has chosen a theme
+   has chosen it on every machine, whatever the OS is set to.
+   -------------------------------------------------------------------------- */
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --app-paper: #0f172a;
+        --app-surface: #1e293b;
+        --app-sunken: #172032;
+        --app-line: #334155;
+        --app-line-soft: #273549;
+        --app-line-strong: #475569;
+
+        --app-ink: #f1f5f9;
+        --app-body: #cbd5e1;
+        --app-muted: #94a3b8;
+        --app-faint: #64748b;
+
+        --app-row-hover: rgba(227, 6, 19, .10);
+
+        --app-accent: #fb7185;
+        --app-accent-hover: #fda4af;
+        --app-ring: #9f1239;
+        --app-accent-solid: #e30613;
+        --app-accent-solid-hover: #c00511;
+
+        --app-shell: #020817;
+        --app-shell-line: #1e293b;
+        --app-shell-text: #94a3b8;
+        --app-shell-dim: #475569;
+        --app-shell-bright: #fca5a5;
+        --app-shell-brand: #f1f5f9;
+
+        --tone-neutral-fg: #cbd5e1;
+        --tone-neutral-bg: #334155;
+        --tone-neutral-line: #475569;
+
+        --tone-muted-fg: #94a3b8;
+        --tone-muted-bg: #1e293b;
+        --tone-muted-line: #334155;
+
+        --tone-success-fg: #6ee7b7;
+        --tone-success-bg: #06281f;
+        --tone-success-line: #065f46;
+
+        --tone-warning-fg: #fcd34d;
+        --tone-warning-bg: #2e2206;
+        --tone-warning-line: #78500b;
+        --tone-warning-prose: #fcd34d;
+        --tone-warning-solid: #b45309;
+
+        --tone-danger-fg: #fda4af;
+        --tone-danger-bg: #3a0d1c;
+        --tone-danger-line: #881337;
+
+        --tone-info-fg: #93c5fd;
+        --tone-info-bg: #0d1f3d;
+        --tone-info-line: #1e40af;
+
+        --tone-accent-bg: #33161c;
+        --tone-accent-line: #7f1d24;
+
+        --bs-danger-rgb: 253, 164, 175;
+
+        color-scheme: dark;
+    }
+}
+
+:root[data-theme="dark"] {
+    --app-paper: #0f172a;
+    --app-surface: #1e293b;
+    --app-sunken: #172032;
+    --app-line: #334155;
+    --app-line-soft: #273549;
+    --app-line-strong: #475569;
+
+    --app-ink: #f1f5f9;
+    --app-body: #cbd5e1;
+    --app-muted: #94a3b8;
+    --app-faint: #64748b;
+
+    --app-row-hover: rgba(227, 6, 19, .10);
+
+    /* Brand red darkens against a dark page rather than lifting off it, so the
+       accent moves a couple of steps lighter here. The hue is unchanged - it is
+       still recognisably the same red, just one that clears 4.5:1 on slate.
+       The solid pair does not move: white type on a lightened red is what fails
+       first, and every fill on the screen carries white type. */
+    --app-accent: #fb7185;
+    --app-accent-hover: #fda4af;
+    --app-ring: #9f1239;
+    --app-accent-solid: #e30613;
+    --app-accent-solid-hover: #c00511;
+
+    --app-shell: #020817;
+    --app-shell-line: #1e293b;
+    --app-shell-text: #94a3b8;
+    --app-shell-dim: #475569;
+    --app-shell-bright: #fca5a5;
+    --app-shell-brand: #f1f5f9;
+
+    /* The tone pairs invert: a light foreground on a deep, desaturated fill of
+       the same hue, which is what keeps a chip legible without it glowing. */
+    --tone-neutral-fg: #cbd5e1;
+    --tone-neutral-bg: #334155;
+    --tone-neutral-line: #475569;
+
+    --tone-muted-fg: #94a3b8;
+    --tone-muted-bg: #1e293b;
+    --tone-muted-line: #334155;
+
+    --tone-success-fg: #6ee7b7;
+    --tone-success-bg: #06281f;
+    --tone-success-line: #065f46;
+
+    --tone-warning-fg: #fcd34d;
+    --tone-warning-bg: #2e2206;
+    --tone-warning-line: #78500b;
+    --tone-warning-prose: #fcd34d;
+    --tone-warning-solid: #b45309;
+
+    --tone-danger-fg: #fda4af;
+    --tone-danger-bg: #3a0d1c;
+    --tone-danger-line: #881337;
+
+    --tone-info-fg: #93c5fd;
+    --tone-info-bg: #0d1f3d;
+    --tone-info-line: #1e40af;
+
+    --tone-accent-bg: #33161c;
+    --tone-accent-line: #7f1d24;
+
+    --bs-danger-rgb: 253, 164, 175;
+
+    color-scheme: dark;
 }
 
 /* --------------------------------------------------------------------------
@@ -349,11 +525,11 @@ a:focus-visible {
 /* Solid - the single primary action on a screen or in a dialog. */
 .btn-primary {
     --btn-fg: #fff;
-    --btn-bg: var(--app-accent);
-    --btn-line: var(--app-accent);
+    --btn-bg: var(--app-accent-solid);
+    --btn-line: var(--app-accent-solid);
     --btn-fg-hover: #fff;
-    --btn-bg-hover: var(--app-accent-hover);
-    --btn-line-hover: var(--app-accent-hover);
+    --btn-bg-hover: var(--app-accent-solid-hover);
+    --btn-line-hover: var(--app-accent-solid-hover);
 }
 
 .btn-danger {
@@ -361,8 +537,8 @@ a:focus-visible {
     --btn-bg: var(--tone-danger-fg);
     --btn-line: var(--tone-danger-fg);
     --btn-fg-hover: #fff;
-    --btn-bg-hover: #b91c1c;
-    --btn-line-hover: #b91c1c;
+    --btn-bg-hover: #881337;
+    --btn-line-hover: #881337;
 }
 
 /* Amber solid. Reserved for the button that resolves a warning - "Save anyway",
@@ -392,8 +568,8 @@ a:focus-visible {
 .btn-outline-primary {
     --btn-fg: var(--app-accent);
     --btn-bg: var(--app-surface);
-    --btn-line: var(--tone-info-line);
-    --btn-bg-hover: var(--tone-info-bg);
+    --btn-line: var(--tone-accent-line);
+    --btn-bg-hover: var(--tone-accent-bg);
     --btn-line-hover: var(--app-accent);
     --btn-fg-hover: var(--app-accent-hover);
 }
@@ -567,7 +743,7 @@ a:focus-visible {
     align-items: center;
     gap: 8px;
     padding: 10px 16px;
-    background-color: #fafafa;
+    background-color: var(--app-paper);
     border-bottom: 1px solid var(--app-line-soft);
 }
 
@@ -830,6 +1006,19 @@ a:focus-visible {
     background-size: 12px 8px;
 }
 
+/* The chevron is a background image, so its colour is baked into the data URI
+   rather than inherited - it has to be restated for the dark theme or it goes
+   near-invisible against the field. */
+:root[data-theme="dark"] .form-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394a3b8' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .form-select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394a3b8' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    }
+}
+
 .form-label {
     display: block;
     font-size: 13px;
@@ -849,8 +1038,8 @@ a:focus-visible {
 }
 
 .form-check-input:checked {
-    background-color: var(--app-accent);
-    border-color: var(--app-accent);
+    background-color: var(--app-accent-solid);
+    border-color: var(--app-accent-solid);
 }
 
 .form-check-input:disabled ~ .form-check-label {
@@ -900,11 +1089,8 @@ a:focus-visible {
     border-color: var(--tone-danger-line);
 }
 
-/* The amber alert carries the darker brown text the design uses for warning
-   prose - `--tone-warning-fg` is tuned for an 11px chip, and at paragraph size
-   on a wide fill it reads thin. */
 .alert-warning {
-    color: #92400e;
+    color: var(--tone-warning-prose);
     background-color: var(--tone-warning-bg);
     border-color: var(--tone-warning-line);
 }
@@ -983,6 +1169,16 @@ a:focus-visible {
 
 /* The one item that reports a problem rather than a place, so it gets the same
    triangle the warning banners use. */
+.ico-moon {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13.5 9.7A5.75 5.75 0 0 1 6.3 2.5a5.75 5.75 0 1 0 7.2 7.2Z'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13.5 9.7A5.75 5.75 0 0 1 6.3 2.5a5.75 5.75 0 1 0 7.2 7.2Z'/%3E%3C/svg%3E");
+}
+
+.ico-sun {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='3.1'/%3E%3Cpath d='M8 1.4v1.5M8 13.1v1.5M1.4 8h1.5M13.1 8h1.5M3.34 3.34l1.06 1.06M11.6 11.6l1.06 1.06M12.66 3.34 11.6 4.4M4.4 11.6l-1.06 1.06'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='3.1'/%3E%3Cpath d='M8 1.4v1.5M8 13.1v1.5M1.4 8h1.5M13.1 8h1.5M3.34 3.34l1.06 1.06M11.6 11.6l1.06 1.06M12.66 3.34 11.6 4.4M4.4 11.6l-1.06 1.06'/%3E%3C/svg%3E");
+}
+
 .ico-warning {
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2.75 14 13.25H2L8 2.75Z'/%3E%3Cpath d='M8 6.75v2.5'/%3E%3Cpath d='M8 11.35h.01'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2.75 14 13.25H2L8 2.75Z'/%3E%3Cpath d='M8 6.75v2.5'/%3E%3Cpath d='M8 11.35h.01'/%3E%3C/svg%3E");
