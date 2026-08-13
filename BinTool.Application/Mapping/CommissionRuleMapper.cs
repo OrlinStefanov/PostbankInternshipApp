@@ -19,7 +19,9 @@ public static class CommissionRuleMapper
     public static CommissionRuleListItem ToListItem(
         CommissionRule rule, int? defaultRuleId, DateTime today)
     {
-        var criteria = rule.RuleCriteria.FirstOrDefault();
+        var criteria = rule.RuleCriteria.
+            OrderBy(r => r.PriorityScore)
+            .FirstOrDefault();
 
         return new CommissionRuleListItem
         {

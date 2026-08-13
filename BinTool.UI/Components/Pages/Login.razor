@@ -9,11 +9,6 @@
 @inject AuthApiClient AuthApi
 @inject NavigationManager Nav
 
-@*
-    Static server rendering on purpose. A cookie can only be written while the HTTP
-    response is still being built - by the time an interactive circuit is running there
-    is no response left to add a Set-Cookie header to.
-*@
 
 <PageTitle>Sign in · BinTool</PageTitle>
 
@@ -71,16 +66,15 @@
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
-    // The antiforgery token this form posts is bound to whoever is signed in when it renders, so a
-    // leftover cookie would render a token bound to the old identity and the POST would fail.
-    // Clearing the cookie and resetting HttpContext.User is also the natural "switch account" path.
     protected override async Task OnInitializedAsync()
     {
         if (HttpContext.User.Identity?.IsAuthenticated == true)
         {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+            HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity());
+
             Nav.NavigateTo("/", forceLoad: true);
-            /*await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity());*/
         }
     }
 
@@ -104,15 +98,11 @@
             new(ClaimTypes.Name, login.UserName),
             new("full_name", login.FullName),
 
-            // The API token rides inside the encrypted cookie rather than in local
-            // storage, and stays reachable once the circuit takes over.
             new(AuthClaims.AccessToken, login.AccessToken)
         };
 
         claims.AddRange(login.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
-        // The permissions the API baked into the token, mirrored onto the cookie so the UI can
-        // gate pages and controls on the same policies the API enforces.
         claims.AddRange(login.Permissions.Select(p => new Claim(PermissionClaimTypes.Permission, p)));
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -124,23 +114,18 @@
             {
                 IsPersistent = false,
 
-                // Tied to the token's own expiry, so the session cannot outlive it.
                 ExpiresUtc = login.ExpiresAtUtc
             });
 
         Nav.NavigateTo(SafeReturnUrl(), forceLoad: true);
     }
 
-    // Whole minutes left on a lockout, rounded up and never below one, so the message reads "a
-    // minute" rather than "0 minutes" in the final seconds.
     private static int RemainingMinutes(DateTime lockoutEndsUtc)
     {
         var remaining = lockoutEndsUtc - DateTime.UtcNow;
         return remaining <= TimeSpan.Zero ? 1 : Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes));
     }
 
-    // Only same-site paths are honoured, so a crafted returnUrl cannot bounce a freshly signed-in
-    // user off to another site.
     private string SafeReturnUrl()
     {
         if (string.IsNullOrWhiteSpace(ReturnUrl)

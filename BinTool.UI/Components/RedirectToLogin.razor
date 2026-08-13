@@ -1,15 +1,15 @@
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
 @inject NavigationManager Nav
 
-@*
-    Splits the two reasons a page can be refused:
-    - nobody is signed in, so send them to log in and come back here afterwards;
-    - somebody is signed in but lacks the role, which no amount of logging in fixes,
-      so say so plainly rather than looping them through the login form.
-*@
 
 @code {
     [CascadingParameter]
     private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -23,6 +23,11 @@
         }
 
         var returnUrl = Nav.ToBaseRelativePath(Nav.Uri);
+
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+        HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity());
+
         Nav.NavigateTo($"login?returnUrl={Uri.EscapeDataString("/" + returnUrl)}", replace: true);
     }
 }
