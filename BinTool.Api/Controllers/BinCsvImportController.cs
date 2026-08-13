@@ -24,9 +24,12 @@ public class BinCsvImportController : ControllerBase
         _history = history;
     }
 
+    private const long MaxUploadBytes = 10 * 1024 * 1024;
+
     /// <summary>Imports a CSV of BIN ranges.</summary>
     [HttpPost("import")]
     [Consumes("multipart/form-data")]
+    [RequestSizeLimit(MaxUploadBytes)]
     [ProducesResponseType(typeof(BinImportResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Import(IFormFile file, CancellationToken cancellationToken)
@@ -34,6 +37,16 @@ public class BinCsvImportController : ControllerBase
         if (file is null || file.Length == 0)
         {
             return ApiResults.Invalid("A CSV file is required.");
+        }
+
+        if (file.Length > MaxUploadBytes)
+        {
+            return ApiResults.Invalid($"The file exceeds the {MaxUploadBytes / (1024 * 1024)} MB limit.");
+        }
+
+        if (!Path.GetExtension(file.FileName).Equals(".csv", StringComparison.OrdinalIgnoreCase))
+        {
+            return ApiResults.Invalid("Only .csv files are accepted.");
         }
 
         await using var stream = file.OpenReadStream();

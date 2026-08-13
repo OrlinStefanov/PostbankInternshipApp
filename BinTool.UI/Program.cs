@@ -19,7 +19,13 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.Name = "BinTool.Auth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+
+        // Always Secure in production, so the cookie is never sent over plain HTTP. Only
+        // relaxed to SameAsRequest in Development, where the app can be launched on the
+        // http profile and an Always cookie would silently never be set - breaking sign-in.
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
         options.LoginPath = "/login";
         options.AccessDeniedPath = "/access-denied";
 

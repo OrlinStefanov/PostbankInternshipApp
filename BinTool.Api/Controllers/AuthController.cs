@@ -1,10 +1,12 @@
 using System.Security.Claims;
+using BinTool.Api.Extensions;
 using BinTool.Api.Services;
 using BinTool.Application.Mapping;
 using BinTool.Application.Models.Auth;
 using BinTool.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace BinTool.Api.Controllers;
 
@@ -30,6 +32,7 @@ public class AuthController : ControllerBase
 
     /// <summary>Exchanges credentials for an access token.</summary>
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
