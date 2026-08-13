@@ -290,9 +290,16 @@
 
     // The codes offered in the amount selector. Euro is offered even when the list could not be
     // loaded - a role that cannot read currencies can still price in euro, rather than facing a
-    // selector with nothing in it and no way to submit an amount.
+    // selector with nothing in it and no way to submit an amount. Euro is also floated to the top
+    // so it is the option shown by default: under prerendering the <select> shows its first option
+    // until the circuit connects, so the first option has to be the one we mean to pre-select.
     private IEnumerable<string> CurrencyCodes =>
-        _currencies.Count > 0 ? _currencies.Select(c => c.Code) : new[] { "EUR" };
+        _currencies.Count > 0
+            ? _currencies
+                .Select(c => c.Code)
+                .OrderByDescending(code => string.Equals(code, "EUR", StringComparison.OrdinalIgnoreCase))
+                .ThenBy(code => code, StringComparer.OrdinalIgnoreCase)
+            : new[] { "EUR" };
 
     protected override async Task OnInitializedAsync()
     {

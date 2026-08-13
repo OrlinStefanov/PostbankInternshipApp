@@ -1102,6 +1102,8 @@ a:focus-visible {
 }
 
 .modal-content {
+    color: var(--app-body);
+    background-color: var(--app-surface);
     border: 1px solid var(--app-line);
     border-radius: var(--app-radius-lg);
     box-shadow: 0 12px 32px rgba(17, 24, 39, .18);
@@ -1125,6 +1127,19 @@ a:focus-visible {
 
 .modal-backdrop {
     background-color: var(--app-ink);
+}
+
+/* Bootstrap 5.1's close glyph is a baked-in dark SVG with a .btn-close-white
+   variant for dark panels. There is no markup hook here, so invert it in the
+   dark theme instead or the X goes near-invisible on the dark modal. */
+:root[data-theme="dark"] .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .btn-close {
+        filter: invert(1) grayscale(100%) brightness(200%);
+    }
 }
 
 /* --------------------------------------------------------------------------
