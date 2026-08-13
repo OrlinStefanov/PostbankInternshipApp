@@ -25,12 +25,14 @@ public class CommissionRuleRepository : ICommissionRuleRepository
     public Task<CommissionRule?> GetWithReferencesAsync(
         int id, CancellationToken cancellationToken = default) =>
         WithReferences(_db.CommissionRules.AsNoTracking())
+            .OrderBy(r => r.Priority)
             .FirstOrDefaultAsync(r => r.CommissionRuleId == id, cancellationToken);
 
     public Task<CommissionRule?> GetForUpdateAsync(
         int id, CancellationToken cancellationToken = default) =>
         _db.CommissionRules
             .Include(r => r.RuleCriteria)
+            .OrderBy(r => r.Priority)
             .FirstOrDefaultAsync(r => r.CommissionRuleId == id, cancellationToken);
 
     public async Task<RuleIdentity?> FindKeyOverlapAsync(
@@ -74,6 +76,7 @@ public class CommissionRuleRepository : ICommissionRuleRepository
                 && (c.ProductTypeId == null || c.ProductTypeId == productTypeId)
                 && (c.FundingTypeId == null || c.FundingTypeId == fundingTypeId)
                 && (c.RegionId == null || c.RegionId == regionId)))
+            .OrderBy(r => r.Priority)
             .ToListAsync(cancellationToken);
 
     public async Task<CommissionRule?> GetLiveDefaultRuleAsync(
@@ -85,6 +88,7 @@ public class CommissionRuleRepository : ICommissionRuleRepository
         return await _db.CommissionRules.AsNoTracking()
             .Include(r => r.RuleCriteria)
             .Include(r => r.Currency)
+            .OrderBy(r => r.Priority)
             .FirstOrDefaultAsync(
                 r => r.CommissionRuleId == ruleId && !r.IsDeleted, cancellationToken);
     }
@@ -93,11 +97,14 @@ public class CommissionRuleRepository : ICommissionRuleRepository
 
     public Task<int?> GetDefaultRuleIdAsync(CancellationToken cancellationToken = default) =>
         _db.DefaultRules.AsNoTracking()
+            .OrderBy(d => d.DefaultRuleId)
             .Select(d => (int?)d.CommissionRuleId)
             .FirstOrDefaultAsync(cancellationToken);
 
     public Task<DefaultRule?> GetDefaultAsync(CancellationToken cancellationToken = default) =>
-        _db.DefaultRules.FirstOrDefaultAsync(cancellationToken);
+        _db.DefaultRules
+            .OrderBy(d => d.DefaultRuleId)
+            .FirstOrDefaultAsync(cancellationToken);
 
     public void AddDefault(DefaultRule defaultRule) => _db.DefaultRules.Add(defaultRule);
 
