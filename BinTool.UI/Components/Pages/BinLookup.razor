@@ -54,11 +54,6 @@
                 </div>
 
                 <div class="col-12 col-lg-3">
-                    @* The button has no label of its own, so on a wide screen it would sit
-                       level with the other two labels rather than with the inputs under
-                       them. An empty label of the same metrics drops it into line, and
-                       being a real .form-label it cannot drift if that spacing changes.
-                       Below lg the fields stack and there is nothing to line up with. *@
                     <span class="form-label d-none d-lg-block" aria-hidden="true">&nbsp;</span>
                     <button type="submit" class="btn btn-primary" disabled="@_busy">
                         @if (_busy)
@@ -80,9 +75,6 @@
 
 @if (_result is { Matched: true })
 {
-    @* The card the digits describe, drawn as a card. It carries nothing the panels below
-       do not also list as text - it is there to make a classification legible at a glance,
-       and to be turned over when the reader wants the rest of it. *@
     <div class="card mt-4 lookup-card-panel">
         <div class="card-body">
             <BinCard Kind="Classified card"

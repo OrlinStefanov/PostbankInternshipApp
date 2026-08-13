@@ -198,10 +198,6 @@ else
                                     }
                                     else
                                     {
-                                        @* Before and after sit in adjacent cells so a value can be
-                                           read across in one line. The sign column repeats what the
-                                           red/green says, because colour on its own is not a cue
-                                           everyone receives. *@
                                         <table class="diff-table">
                                             <thead>
                                                 <tr>
@@ -313,8 +309,6 @@ else
     private IReadOnlyList<string> _entityTypes = Array.Empty<string>();
     private PagedResult<AuditLogItem> _page = new();
 
-    // The default window keeps the list interesting: a fresh open shows the last week
-    // rather than the very first entries ever recorded.
     private string _from = DateTime.UtcNow.Date.AddDays(-7).ToString("yyyy-MM-dd");
     private string _to = string.Empty;
     private string _entityType = string.Empty;
@@ -323,12 +317,8 @@ else
     private int _pageSize = AuditQuery.DefaultPageSize;
     private int _currentPage = 1;
 
-    // Which rows have their before/after opened. Kept per-id so page navigation and
-    // filter changes reset it - the rows on the next page are different.
     private readonly HashSet<int> _expanded = new();
 
-    // Unchanged fields start hidden because the reason to open a row is to see what moved; the raw
-    // snapshots stay one click away as the only faithful record of what was actually stored.
     private readonly HashSet<int> _showUnchanged = new();
     private readonly HashSet<int> _showRaw = new();
 
@@ -466,8 +456,6 @@ else
         if (!_showRaw.Add(id)) _showRaw.Remove(id);
     }
 
-    // The git-diff signs, so the kind of a row survives being printed, read by a screen reader, or
-    // seen by someone who does not separate red from green.
     private static string Sign(AuditChangeKind kind) => kind switch
     {
         AuditChangeKind.Added => "+",
@@ -476,8 +464,6 @@ else
         _ => ""
     };
 
-    // A stored empty string is worth telling apart from an absent value, so it is named rather than
-    // rendered as the nothing it would otherwise look like.
     private static string Display(string? value) =>
         value is null ? EmptyMarker : value.Length == 0 ? "(empty)" : value;
 

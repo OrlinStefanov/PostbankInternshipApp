@@ -1,14 +1,3 @@
-@*
-    Every label is wrapped in its own element so the icon rail can drop the text
-    without losing the icon. The `title` on each link is what carries the label
-    once it is hidden, so a rail item still says what it is on hover.
-
-    Items are grouped under section headings. A heading belongs to its group
-    rather than to any one link, so a user whose role hides every link in a
-    group would be left with a floating heading - `.nav-group:not(:has(...))`
-    in the stylesheet drops the whole block in that case.
-*@
-
 <div class="nav-head">
     <a class="brand" href="">
         <span class="brand-mark" aria-hidden="true"></span>
@@ -159,11 +148,7 @@
     </nav>
 </div>
 
-@*
-    A plain <label> rather than a button, so the sidebar collapses with no
-    interactivity: the checkbox it drives lives in MainLayout, where it can size
-    the sidebar element itself.
-*@
+
 <label class="nav-collapse-btn" for="nav-collapse">
     <span class="ico ico-chevron-left nav-collapse-icon" aria-hidden="true"></span>
     <span class="nav-text">Collapse</span>
@@ -181,8 +166,6 @@
     [Inject]
     private IAuthorizationService Authorization { get; set; } = default!;
 
-    // The badge is a decoration on a link the user can already see, so a failed count is
-    // dropped rather than surfaced: a nav that throws would take every page down with it.
     protected override async Task OnInitializedAsync()
     {
         if (AuthenticationState is null) return;

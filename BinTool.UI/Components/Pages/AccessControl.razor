@@ -84,8 +84,6 @@ else
                             </td>
                             <td class="text-center">@role.MemberCount</td>
                             <td class="pe-3 text-end text-nowrap">
-                                @* Protected roles open read-only, so that button is a neutral
-                                   "look" rather than the accent used for a real edit. *@
                                 <button class="btn btn-sm me-1 @(role.IsProtected ? "btn-outline-secondary" : "btn-outline-primary")"
                                         @onclick="() => StartEditRole(role)" disabled="@_busy">
                                     @(role.IsProtected ? "View" : "Edit")
@@ -549,9 +547,6 @@ else
         else _userSelectedRoles.Remove(roleName);
     }
 
-    // The Admin checkbox is locked when unchecking it would break a guardrail the server also
-    // enforces: you can't remove your own Admin, and you can't remove the last admin. Shown as a
-    // disabled, already-checked box so the reason is visible rather than a surprise on save.
     private bool IsAdminLockedForUser(RoleListItem role)
     {
         if (_editingUser is null || !role.IsProtected) return false;

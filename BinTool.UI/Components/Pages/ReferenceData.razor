@@ -407,8 +407,7 @@ else
             {
                 var (countries, regions) = (
                     await CountryApi.SearchAsync(_includeDeleted),
-                    // Countries need a region dropdown - always load fresh so a region that was
-                    // just added or deleted on another tab shows up correctly.
+        
                     await LookupApi.SearchAsync(LookupKind.Region, includeDeleted: false));
 
                 _countries = countries;

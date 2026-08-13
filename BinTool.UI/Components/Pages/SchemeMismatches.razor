@@ -187,8 +187,6 @@ else if (_page.TotalCount > 0)
                 state.User, Permissions.BinRangesWrite)).Succeeded;
         }
 
-        // The editor needs the reference dropdowns even here - the user may pick a different
-        // scheme, product or country while correcting the row.
         try
         {
             _options = await Api.GetFilterOptionsAsync();
@@ -250,8 +248,7 @@ else if (_page.TotalCount > 0)
         _editing = null;
     }
 
-    // After a save, re-scan rather than patching the row in place: fixing a range's scheme should
-    // make it drop off this list, and confirming that with a fresh scan is worth one extra request.
+    // After a save, re-scan rather than patching the row in place
     private async Task OnSaved(BinRangeMutationResult result)
     {
         CloseEditor();

@@ -3,9 +3,6 @@
 @inject NavigationManager Nav
 
 <div class="page">
-    @* Drives the sidebar width from CSS alone. It lives here rather than in
-       NavMenu because it has to be a sibling of `.sidebar` to size it; the
-       label that toggles it is at the foot of the nav, wired up by `for`. *@
     <input type="checkbox" id="nav-collapse" class="nav-collapse" aria-label="Collapse navigation" />
 
     <div class="sidebar">
@@ -17,10 +14,6 @@
             <h1 class="page-name">@PageName()</h1>
 
             <div class="top-row-end">
-                @* The layout renders statically, so this is a plain DOM handler rather than
-                   an @@onclick - the same reason the sidebar collapses through a checkbox.
-                   Both glyphs are drawn and the stylesheet shows whichever one names the
-                   theme the press will move to. *@
                 <button type="button" class="theme-toggle" onclick="BinToolTheme.toggle()"
                         title="Switch between the light and dark theme"
                         aria-label="Switch between the light and dark theme">
@@ -65,15 +58,9 @@
     public void Dispose() =>
         Nav.LocationChanged -= OnLocationChanged;
 
-    // The top bar names the screen you are on. Under static rendering the layout is rebuilt on
-    // every navigation anyway, but an interactive route would not rebuild it, so the change is
-    // listened for rather than assumed.
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) =>
         InvokeAsync(StateHasChanged);
 
-    // Route-to-label map for the top bar. Deliberately a lookup rather than a property on each
-    // page: the layout renders before the page does, so there is nothing to read off it, and a
-    // cascading value would make every page pay for a heading only the shell draws.
     private static readonly Dictionary<string, string> PageNames = new(StringComparer.OrdinalIgnoreCase)
     {
         [""] = "Home",
@@ -95,8 +82,6 @@
     {
         var path = Nav.ToBaseRelativePath(Nav.Uri);
 
-        // Query and fragment are not part of the route, and a page reached with a
-        // filter applied is still the same page.
         var cut = path.IndexOfAny(new[] { '?', '#' });
         if (cut >= 0) path = path[..cut];
 
@@ -112,8 +97,6 @@
     private static string Roles(System.Security.Claims.ClaimsPrincipal user) =>
         string.Join(", ", user.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value));
 
-    // Up to two initials for the avatar. Decorative only - the name is next to it - so a name that
-    // yields nothing usable just falls back to a dot rather than an empty circle.
     private static string Initials(System.Security.Claims.ClaimsPrincipal user)
     {
         var letters = DisplayName(user)

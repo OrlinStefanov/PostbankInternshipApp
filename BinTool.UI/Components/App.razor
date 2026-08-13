@@ -11,10 +11,6 @@
     <link rel="stylesheet" href="@Versioned("app.css")" />
     <link rel="stylesheet" href="@ScopedStyles" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    @* Blocking, and in the head on purpose: the attribute has to be on <html> before the
-       first paint, or every reload shows a frame of the light theme before turning dark.
-       No stored choice leaves the attribute off, which hands the decision to the
-       prefers-color-scheme media query in app.css. *@
     <script src="@Versioned("theme.js")"></script>
     <HeadOutlet />
 </head>

@@ -56,8 +56,6 @@
     </div>
 </div>
 
-@* The fallback default: applied when a classified card matches no rule. Shown up front
-   because it is the one rule that changes what an unmatched lookup returns. *@
 <div class="card mt-3">
     <div class="card-body py-3 d-flex flex-wrap align-items-center gap-2">
         <span class="fw-semibold me-1">Fallback default</span>
@@ -300,8 +298,6 @@ else if (!_loading)
                 state.User, Permissions.CommissionRulesWrite)).Succeeded;
         }
 
-        // The editor's dropdowns only ever offer live reference values; a scheme that was
-        // retired should not be pickable for a new rule.
         try
         {
             _schemes = await LookupApi.SearchAsync(LookupKind.CardScheme, includeDeleted: false);
@@ -313,8 +309,6 @@ else if (!_loading)
         }
         catch (Exception ex)
         {
-            // A failed reference load still leaves the listing worth showing; only the editor
-            // dropdowns would be empty.
             _error = $"Could not load reference data: {ex.Message}";
         }
 
@@ -376,9 +370,6 @@ else if (!_loading)
         _editing = null;
     }
 
-    // Reloads rather than patching the row in place: a change can move a rule between the active,
-    // scheduled and expired buckets, and a listing that disagrees with the database is worse than
-    // an extra call.
     private async Task OnSaved(CommissionRuleMutationResult result)
     {
         CloseEditor();

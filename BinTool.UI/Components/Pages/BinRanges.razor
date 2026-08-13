@@ -52,9 +52,6 @@
         </div>
     </div>
 
-    @* Each filter carries its name in the placeholder or in its "any" option rather
-       than in a label - that is what keeps the strip to a single row. `aria-label`
-       says the same thing to a screen reader, which a placeholder alone would not. *@
     <div class="filter-bar">
         <input class="form-control mono" style="width: 150px" inputmode="numeric"
                aria-label="Prefix starts with" placeholder="Prefix starts with…"
@@ -214,9 +211,6 @@ else
                                 </span>
                             </td>
                             <td class="pe-3 text-end text-nowrap">
-                                @* Each action carries its own colour - neutral to look, accent to
-                                   change, green to bring back, red to withdraw - so the row can be
-                                   read at a glance instead of button label by button label. *@
                                 <button class="btn btn-outline-secondary btn-sm me-1"
                                         @onclick="() => View(item)" disabled="@_busy">
                                     View
@@ -362,9 +356,6 @@ else
                         <div class="alert alert-danger py-2 px-3 small" role="alert">@_viewError</div>
                     }
 
-                    @* The range is what a card carrying this prefix would be, so it is shown
-                       as one - but a card is a picture, and a picture is easy to misread.
-                       Every value it draws is repeated as plain text underneath. *@
                     <BinCard Kind="BIN range"
                              Scheme="@_viewing.CardScheme"
                              StatusLabel="@_viewing.Status.ToString()"
@@ -646,9 +637,6 @@ else
         _editing = null;
     }
 
-    // Opens the read-only details for one range, re-fetching it by id so a deleted range can be
-    // looked at in full before deciding whether to restore it, and so the values shown are the
-    // stored ones rather than a possibly stale list row.
     private async Task View(BinRangeListItem item)
     {
         _viewing = item;
@@ -682,8 +670,6 @@ else
         await Run(() => Api.RestoreAsync(item.BinRangeId));
     }
 
-    // Reloads rather than patching the row in place: a change can move a range out of the current
-    // filter or page, and a listing that disagrees with the database is worse than an extra call.
     private async Task OnSaved(BinRangeMutationResult result)
     {
         CloseEditor();
